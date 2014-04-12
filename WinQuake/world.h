@@ -34,6 +34,7 @@ typedef struct
 	vec3_t	endpos;			// final position
 	plane_t	plane;			// surface normal at impact
 	edict_t	*ent;			// entity the surface is on
+	int		color;
 } trace_t;
 
 

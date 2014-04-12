@@ -491,10 +491,14 @@ void CDAudio_SetVolume (byte volume)
 	cdvolume = volume;
 }
 
-
 void CDAudio_Play(byte track, qboolean looping)
 {
 	int		volume;
+#ifdef ASS_MIDI
+	MIDIHIJACK(track, 1);
+			return;
+#endif
+
 
 	if (!initialized || !enabled)
 		return;
@@ -672,13 +676,13 @@ static void CD_f (void)
 			remap[n] = Q_atoi(Cmd_Argv (n+1));
 		return;
 	}
-
+#ifndef ASS_MIDI
 	if (!cd.valid)
 	{
 		Con_Printf("No CD in player.\n");
 		return;
 	}
-
+#endif
 	if (Q_strcasecmp(command, "play") == 0)
 	{
 		CDAudio_Play(Q_atoi(Cmd_Argv (2)), false);
@@ -802,7 +806,7 @@ int CDAudio_Init(void)
 {
 	char	*memory;
 	int		n;
-
+#ifndef ASS_MIDI
 	if (cls.state == ca_dedicated)
 		return -1;
 
@@ -842,7 +846,7 @@ int CDAudio_Init(void)
 		Con_DPrintf("CDAudio_Init: MSCDEX version 2.00 or later required.\n");
 		return -1;
 	}
-
+#endif
 	memory = dos_getmemory(sizeof(struct cd_request
 ) + sizeof(union readInfo_u));
 	if (memory == NULL)
@@ -862,17 +866,20 @@ int CDAudio_Init(void)
 	for (n = 0; n < 256; n++)
 		remap[n] = n;
 	initialized = true;
-
+#ifndef ASS_MIDI
 	CDAudio_SetVolume (255);
+
 	if (CDAudio_GetAudioDiskInfo())
 	{
 		Con_Printf("CDAudio_Init: No CD in player.\n");
 		enabled = false;
 	}
-
+#endif
 	Cmd_AddCommand ("cd", CD_f);
 
+#ifndef ASS_MIDI
 	Con_Printf("CD Audio Initialized\n");
+#endif
 
 	return 0;
 }

@@ -49,10 +49,10 @@ int             findhandle (void)
 
 /*
 ================
-filelength
+firelength
 ================
 */
-int filelength (FILE *f)
+int firelength (FILE *f)
 {
 	int             pos;
 	int             end;
@@ -81,7 +81,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	sys_handles[i] = f;
 	*hndl = i;
 
-	return filelength(f);
+	return firelength(f);
 }
 
 int Sys_FileOpenWrite (char *path)

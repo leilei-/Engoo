@@ -21,17 +21,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // upper design bounds
 
+
+#ifdef QSB
 #define	MAX_MAP_HULLS		4
 
-#define	MAX_MAP_MODELS		256
+#define	MAX_MAP_MODELS		4096
 #define	MAX_MAP_BRUSHES		4096
 #define	MAX_MAP_ENTITIES	1024
 #define	MAX_MAP_ENTSTRING	65536
 
 #define	MAX_MAP_PLANES		32767
 #define	MAX_MAP_NODES		32767		// because negative shorts are contents
-#define	MAX_MAP_CLIPNODES	32767		//
-#define	MAX_MAP_LEAFS		8192
+#define	MAX_MAP_CLIPNODES	65535		//
+#define	MAX_MAP_LEAFS		32768
 #define	MAX_MAP_VERTS		65535
 #define	MAX_MAP_FACES		65535
 #define	MAX_MAP_MARKSURFACES 65535
@@ -45,6 +47,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define	MAX_MAP_PORTALS		65536
 
+
+#else
+#define	MAX_MAP_HULLS		4
+
+#define	MAX_MAP_MODELS		256
+#define	MAX_MAP_BRUSHES		4096
+#define	MAX_MAP_ENTITIES	1024
+#define	MAX_MAP_ENTSTRING	65536
+
+#define	MAX_MAP_PLANES		32767
+#define	MAX_MAP_NODES		32767		// because negative shorts are contents
+#define	MAX_MAP_CLIPNODES	32767		//
+#define	MAX_MAP_LEAFS		8192
+#define	MAX_MAP_VERTS		65535
+#define	MAX_MAP_FACES		32767
+#define	MAX_MAP_MARKSURFACES 32767
+#define	MAX_MAP_TEXINFO		4096
+#define	MAX_MAP_EDGES		256000
+#define	MAX_MAP_SURFEDGES	512000
+#define	MAX_MAP_TEXTURES	512
+#define	MAX_MAP_MIPTEX		0x200000
+#define	MAX_MAP_LIGHTING	0x100000
+#define	MAX_MAP_VISIBILITY	0x100000
+
+#define	MAX_MAP_PORTALS		65536
+
+#endif
+
 // key / value pair sizes
 
 #define	MAX_KEY		32
@@ -54,6 +84,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 #define BSPVERSION	29
+#define BSPVERSION91	28
+#define BSPVERSIONHL	30
+
 #define	TOOLVERSION	2
 
 typedef struct

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "dosisms.h"
 
+
 int BLASTER_GetDMAPos(void);
 
 /*
@@ -356,6 +357,8 @@ qboolean BLASTER_Init(void)
 	int 	realaddr;
 	int 	rc;
 	int		p;
+	
+
 
 	shm = 0;
 	rc = 0;
@@ -432,7 +435,7 @@ qboolean BLASTER_Init(void)
 		shm->channels = 1;
 		shm->samplebits = 8;
 	}
-
+// v1 cards do excrement.
 
 	Cmd_AddCommand("sbinfo", SB_Info_f);
 	size = 4096;
@@ -463,7 +466,6 @@ qboolean BLASTER_Init(void)
 
 	StartDMA();
 	StartSB();
-
 	return true;
 }
 
@@ -572,8 +574,11 @@ Returns false if nothing is found.
 Returns true and fills in the "shm" structure with information for the mixer.
 ==================
 */
+
+
 qboolean SNDDMA_Init(void)
 {
+
 	if (GUS_Init ())
 	{
 		dmacard = dma_gus;

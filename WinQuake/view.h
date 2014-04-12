@@ -27,6 +27,8 @@ extern float v_blend[4];
 
 extern cvar_t *lcd_x;
 
+extern cvar_t *v_detail;
+extern cvar_t *r_lerpmodels;
 
 void V_Init (void);
 void V_RenderView (void);

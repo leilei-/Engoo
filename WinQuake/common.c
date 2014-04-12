@@ -1185,6 +1185,7 @@ void COM_Init_Cvars (void)
 {
 	registered = Cvar_Get ("registered", "0", CVAR_ORIGINAL);
 	cmdline = Cvar_Get ("cmdline", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	Sys_Printf ("COM_Init_Cvars\n");
 }
 // 2001-09-18 New cvar system by Maddes (Init)  end
 
@@ -1228,7 +1229,10 @@ void COM_Init (char *basedir)
 	Cmd_AddCommand ("path", COM_Path_f);
 
 	COM_InitFilesystem ();
-	COM_CheckRegistered ();
+//	COM_CheckRegistered ();
+	Cvar_Set (cmdline, com_cmdline);
+	Cvar_Set (registered, "1");
+	static_registered = 1; // CRACKED!!!!!
 }
 
 
@@ -1584,6 +1588,11 @@ int COM_OpenFile (char *filename, int *handle, searchpath_t **foundpath)	// 2001
 	return COM_FindFile (filename, handle, NULL, foundpath);	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 }
 
+int COM_OpenFileOld (char *filename, int *handle)
+{
+	return COM_FindFile (filename, handle, NULL, 0);
+}
+
 /*
 ===========
 COM_FOpenFile
@@ -1725,6 +1734,62 @@ loadedfile_t *COM_LoadHunkFile (char *path)
 	return COM_LoadFile (path, 1);
 }
 
+byte *COM_LoadFileOld (char *path, int usehunk)
+{
+	int             h;
+	byte    *buf;
+	char    base[32];
+	int             len;
+
+	buf = NULL;     // quiet compiler warning
+
+// look for it in the filesystem or pack files
+	len = COM_OpenFileOld (path, &h);
+	if (h == -1)
+		return NULL;
+	
+// extract the filename base name for hunk tag
+	COM_FileBase (path, base);
+	
+	if (usehunk == 1)
+		buf = Hunk_AllocName (len+1, base);
+	else if (usehunk == 2)
+		buf = Hunk_TempAlloc (len+1);
+	else if (usehunk == 0)
+		buf = Z_Malloc (mainzone,len+1);
+	else if (usehunk == 3)
+		buf = Cache_Alloc (loadcache, len+1, base);
+	else if (usehunk == 4)
+	{
+		if (len+1 > loadsize)
+			buf = Hunk_TempAlloc (len+1);
+		else
+			buf = loadbuf;
+	}
+	else
+		Sys_Error ("COM_LoadFile: bad usehunk");
+
+	if (!buf)
+		Sys_Error ("COM_LoadFile: not enough space for %s", path);
+		
+	((byte *)buf)[len] = 0;
+
+	Draw_BeginDisc ();
+	Sys_FileRead (h, buf, len);                     
+	COM_CloseFile (h);
+	Draw_EndDisc ();
+
+	return buf;
+}
+
+
+
+qbyte *COM_LoadHunkFileOld (char *path)
+{
+	return COM_LoadFileOld (path, 1);
+}
+
+
 // 2001-09-12 Returning information about loaded file by Maddes  start
 //byte *COM_LoadTempFile (char *path)
 loadedfile_t *COM_LoadTempFile (char *path)
@@ -1732,6 +1797,8 @@ loadedfile_t *COM_LoadTempFile (char *path)
 {
 	return COM_LoadFile (path, 2);
 }
+
+
 
 // 2001-09-12 Returning information about loaded file by Maddes  start
 //void COM_LoadCacheFile (char *path, struct cache_user_s *cu)
@@ -1937,7 +2004,24 @@ void COM_InitFilesystem (void)
 		COM_AddGameDirectory (va("%s/rogue", basedir) );
 	if (COM_CheckParm ("-hipnotic"))
 		COM_AddGameDirectory (va("%s/hipnotic", basedir) );
-
+	if (COM_CheckParm ("-quoth"))
+		COM_AddGameDirectory (va("%s/quoth", basedir) );
+	if (COM_CheckParm ("-transfusion")){
+		COM_AddGameDirectory (va("%s/basetf", basedir) );
+		gamemode = GAME_TRANSFUSION;
+	}
+	if (COM_CheckParm ("-fight")){
+		COM_AddGameDirectory (va("%s/fite", basedir) );
+		gamemode = GAME_FIGHT;
+	}
+	if (COM_CheckParm ("-laserarena")){
+		COM_AddGameDirectory (va("%s/main", basedir) );
+		gamemode = GAME_LASER_ARENA;
+	}
+	if (COM_CheckParm ("-kurok")){
+		COM_AddGameDirectory (va("%s/kurok", basedir) );
+		gamemode = GAME_KUROK;
+	}
 // 1999-12-23 Multiple "-data" parameters by Maddes  start
 //
 // -data <datadir>
@@ -2027,3 +2111,13 @@ searchpath_t *COM_GetDirSearchPath(searchpath_t *startsearch)
 	return lastsearch;
 }
 // 2001-09-12 Finding the last searchpath of a directory  end
+
+float	frand(void)
+{
+	return (rand()&32767)* (1.0/32767);
+}
+
+float	crand(void)
+{
+	return (rand()&32767)* (2.0/32767) - 1;
+}

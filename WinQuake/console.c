@@ -33,9 +33,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 #include <fcntl.h>
 #include "quakedef.h"
-
+extern int		console_scaled;	
+extern int		sb_scaled;	
 int 		con_linewidth;
-
+extern int lilchar;
 float		con_cursorspeed = 4;
 
 // 2000-01-05 Console scrolling fix by Maddes  start
@@ -96,9 +97,12 @@ void Con_ToggleConsole_f (void)
 		{
 			M_Menu_Main_f ();
 		}
+			VID_HandlePause (false);
 	}
-	else
+	else{
 		key_dest = key_console;
+			VID_HandlePause (true);
+	}
 
 	SCR_EndLoadingPlaque ();
 	memset (con_times, 0, sizeof(con_times));
@@ -164,11 +168,16 @@ Con_CheckResize
 If the line width has changed, reformat the buffer.
 ================
 */
+extern int menu_scaled;
+extern int console_scaled;
 void Con_CheckResize (void)
 {
 	int		i, j, width, oldwidth, oldtotallines, numlines, numchars;
 	char	tbuf[CON_TEXTSIZE];
 
+if(console_scaled)
+	width = (vid.vconwidth >> 3) - 2;
+else
 	width = (vid.width >> 3) - 2;
 
 	if (width == con_linewidth)
@@ -603,8 +612,14 @@ void Con_DrawInput (void)
 	for (i=0 ; i<con_linewidth ; i++)
 // 2001-12-10 Reduced compiler warnings by Jeff Ford  start
 	{
-//		Draw_Character ( (i+1)<<3, con_vislines - 16, text[i]);
+#ifdef SCALED2D
+		if (console_scaled)
+		Draw_Character_Scaled ( (i+1)<<3, y, text[i]);
+		else
 		Draw_Character ( (i+1)<<3, y, text[i]);
+#else
+		Draw_Character ( (i+1)<<3, y, text[i]);
+#endif
 	}
 // 2001-12-10 Reduced compiler warnings by Jeff Ford  end
 
@@ -620,6 +635,7 @@ Con_DrawNotify
 Draws the last few lines of output transparently over the game top
 ================
 */
+
 void Con_DrawNotify (void)
 {
 	int		x, v;
@@ -646,11 +662,55 @@ void Con_DrawNotify (void)
 
 		clearnotify = 0;
 		scr_copytop = 1;
-
+#ifdef SCALED2D
+		if (sb_scaled){	// often used as a hud
 		for (x = 0 ; x < con_linewidth ; x++)
+			Draw_Character_Scaled ( (x+1)<<3, v, text[x]);
+		}
+		else
+		{
+			for (x = 0 ; x < con_linewidth ; x++)
+			Draw_Character ( (x+1)<<3, v, text[x]);
+		}
+
+		v +=8;
+	}
+
+
+	if (key_dest == key_message)
+	{
+		clearnotify = 0;
+		scr_copytop = 1;
+
+		x = 0;
+		if(sb_scaled){
+		Draw_String_Scaled (8, v, "say:");
+		while(chat_buffer[x])
+		{
+			Draw_Character_Scaled ( (x+5)<<3, v, chat_buffer[x]);
+			x++;
+		}
+		Draw_Character_Scaled ( (x+5)<<3, v, 10+((int)(realtime*con_cursorspeed)&1));
+		v += 8;
+		}
+		else
+		{
+		Draw_String (8, v, "say:");
+		while(chat_buffer[x])
+		{
+			Draw_Character( (x+5)<<3, v, chat_buffer[x]);
+			x++;
+		}
+		Draw_Character ( (x+5)<<3, v, 10+((int)(realtime*con_cursorspeed)&1));
+		v += 8;
+		}
+	}
+#else
+
+			for (x = 0 ; x < con_linewidth ; x++)
 			Draw_Character ( (x+1)<<3, v, text[x]);
 
-		v += 8;
+		v +=8;
 	}
 
 
@@ -664,13 +724,13 @@ void Con_DrawNotify (void)
 		Draw_String (8, v, "say:");
 		while(chat_buffer[x])
 		{
-			Draw_Character ( (x+5)<<3, v, chat_buffer[x]);
+			Draw_Character( (x+5)<<3, v, chat_buffer[x]);
 			x++;
 		}
 		Draw_Character ( (x+5)<<3, v, 10+((int)(realtime*con_cursorspeed)&1));
 		v += 8;
 	}
-
+#endif
 	if (v > con_notifylines)
 		con_notifylines = v;
 }
@@ -743,16 +803,34 @@ void Con_DrawConsole (int lines, qboolean drawinput)
 		}
 // 2000-01-05 Console scrolling fix by Maddes  end
 		text = con_text + (j % con_totallines)*con_linewidth;
+#ifdef SCALED2D
+		if (console_scaled){
+		for (x=0 ; x<con_linewidth ; x++)
+			Draw_Character_Scaled ( (x+1)<<3, y, text[x]);
+		}
+		else
+#endif
+		{
 
 		for (x=0 ; x<con_linewidth ; x++)
 			Draw_Character ( (x+1)<<3, y, text[x]);
+
+		}
 	}
 // 2001-12-15 Avoid automatic console scrolling by Fett  start
 	if (sb)	// are we scrolled back?
 	{
+#ifdef SCALED2D
+		if (console_scaled){
 		// draw arrows to show the buffer is backscrolled
 		for (x=0 ; x<con_linewidth ; x+=4)
+			Draw_Character_Scaled ((x+1)<<3, y, '^');
+		} else 
+#endif
+		{
+		for (x=0 ; x<con_linewidth ; x+=4)
 			Draw_Character ((x+1)<<3, y, '^');
+		}
 	}
 // 2001-12-15 Avoid automatic console scrolling by Fett  end
 

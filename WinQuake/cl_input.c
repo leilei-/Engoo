@@ -297,6 +297,60 @@ void CL_AdjustAngles (void)
 
 }
 
+extern int deathcam_yesiamdead;
+extern vec3_t	deathcam_angles;
+// leilei - deathcam hacks suck!
+void CL_AdjustAnglesWhenYoureDead (void)
+{
+	float	speed;
+	float	up, down;
+
+	if (in_speed.state & 1)
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//		speed = host_frametime * cl_anglespeedkey->value;
+		speed = host_org_frametime * cl_anglespeedkey->value;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+	else
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//		speed = host_frametime;
+		speed = host_org_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+
+	if (!(in_strafe.state & 1))
+	{
+		deathcam_angles[YAW] -= speed*cl_yawspeed->value*CL_KeyState (&in_right);
+		deathcam_angles[YAW] += speed*cl_yawspeed->value*CL_KeyState (&in_left);
+		deathcam_angles[YAW] = anglemod(deathcam_angles[YAW]);
+	}
+	if (in_klook.state & 1)
+	{
+		V_StopPitchDrift ();
+		deathcam_angles[PITCH] -= speed*cl_pitchspeed->value * CL_KeyState (&in_forward);
+		deathcam_angles[PITCH] += speed*cl_pitchspeed->value * CL_KeyState (&in_back);
+	}
+
+	up = CL_KeyState (&in_lookup);
+	down = CL_KeyState(&in_lookdown);
+
+	deathcam_angles[PITCH] -= speed*cl_pitchspeed->value * up;
+	deathcam_angles[PITCH] += speed*cl_pitchspeed->value * down;
+
+	if (up || down)
+		V_StopPitchDrift ();
+/*
+	if (cl.viewangles[PITCH] > 180){
+		cl.viewangles[PITCH] = -179; cl.viewangles[ROLL] = 180;	}
+	if (cl.viewangles[PITCH] < -179){
+		cl.viewangles[PITCH] = 180;	cl.viewangles[ROLL] = 0; }
+
+	if (cl.viewangles[ROLL] > 50)
+		cl.viewangles[ROLL] = 50;
+	if (cl.viewangles[ROLL] < -50)
+		cl.viewangles[ROLL] = -50;
+		*/
+
+}
+
 /*
 ================
 CL_BaseMove
@@ -304,12 +358,17 @@ CL_BaseMove
 Send the intended movement message to the server
 ================
 */
+
 void CL_BaseMove (usercmd_t *cmd)
 {
 	if (cls.signon != SIGNONS)
 		return;
 
-	CL_AdjustAngles ();
+	
+	if (deathcam_yesiamdead)
+	CL_AdjustAnglesWhenYoureDead ();
+	else
+		CL_AdjustAngles ();
 
 	Q_memset (cmd, 0, sizeof(*cmd));
 
@@ -344,6 +403,16 @@ void CL_BaseMove (usercmd_t *cmd)
 #ifdef QUAKE2
 	cmd->lightlevel = cl.light_level;
 #endif
+
+
+	// react to onground state changes (for gun bob)
+	if (cl.onground)
+	{
+		if (!cl.oldonground)
+			cl.hitgroundtime = cl.time;
+		cl.lastongroundtime = cl.time;
+	}
+	cl.oldonground = cl.onground;
 }
 
 
@@ -485,6 +554,9 @@ void CL_InitInput (void)
 	Cmd_AddCommand ("-klook", IN_KLookUp);
 	Cmd_AddCommand ("+mlook", IN_MLookDown);
 	Cmd_AddCommand ("-mlook", IN_MLookUp);
+
+
+
 
 }
 

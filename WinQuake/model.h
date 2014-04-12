@@ -39,7 +39,7 @@ BRUSH MODELS
 ==============================================================================
 */
 
-
+typedef enum {fg_quake, fg_quake2, fg_quake3, fg_halflife, fg_quakeold, fg_new, fg_doom} fromgame_t;	//useful when we have very similar model types. (eg quake/halflife bsps)
 //
 // in memory representation
 //
@@ -63,17 +63,27 @@ typedef struct mplane_s
 	byte	type;			// for texture axis selection and fast side tests
 	byte	signbits;		// signx + signy<<1 + signz<<1
 	byte	pad[2];
+	//vec3_t center;
 } mplane_t;
+
+
 
 typedef struct texture_s
 {
-	char		name[16];
+	char		name[16];	
+
 	unsigned	width, height;
+	
+	byte	pixbytes;
+	byte	alphaed;	//gl_blend needed on this surface.
 	int			anim_total;				// total tenths in sequence ( 0 = no)
 	int			anim_min, anim_max;		// time for this frame min <=time< max
 	struct texture_s *anim_next;		// in the animation sequence
 	struct texture_s *alternate_anims;	// bmodels in frmae 1 use these
 	unsigned	offsets[MIPLEVELS];		// four mip maps stored
+
+	//int		hq						//	leilei - TODO: resolution expansion? (large texture for negative mip levels)
+	int			pcolor;					// color for particles and dynamic lights and flares?
 } texture_t;
 
 
@@ -83,6 +93,14 @@ typedef struct texture_s
 #define SURF_DRAWTURB		0x10
 #define SURF_DRAWTILED		0x20
 #define SURF_DRAWBACKGROUND	0x40
+
+// NEW  (old and deliberately STOLEN)
+#define SURF_DRAWSKYBOX			0x80	// vic made this
+#define SURF_DRAWTRANSLUCENT	0x100	// mk made this
+#define SURF_FRACTAL			0x200   // spike made this (formerly bulleten)
+#define SURF_MIRROR				0x400	// leilei made this one
+#define SURF_DONTMIP64			0x800	// leilei also made this one	
+
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
 typedef struct
@@ -98,6 +116,18 @@ typedef struct
 	texture_t	*texture;
 	int			flags;
 } mtexinfo_t;
+
+#define	VERTEXSIZE	7
+
+typedef struct glpoly_s
+{
+	struct	glpoly_s	*next;
+	struct	glpoly_s	*chain;
+	int		numverts;
+	int		flags;			// for SURF_UNDERWATER
+	float	verts[4][VERTEXSIZE];	// variable sized (xyz s1t1 s2t2)
+} glpoly_t;
+
 
 typedef struct msurface_s
 {
@@ -123,6 +153,19 @@ typedef struct msurface_s
 // lighting info
 	byte		styles[MAXLIGHTMAPS];
 	byte		*samples;		// [numstyles*surfsize]
+
+// new structs
+
+	int			shadowframe;
+	int			shadowbits;
+
+	int			avgcol;		// leilei - for flares
+	int			flared;		// leilei - for flares (check if we have a flare already)
+	vec3_t		inthecenter;		// leilei - for flares on surfaces which won't work :/
+	glpoly_t	*polys;				// hack to get polygons..... even though this ain't gl.
+
+	int			wlightframe;
+	int			wlightbits;
 } msurface_t;
 
 typedef struct mnode_s
@@ -193,7 +236,9 @@ typedef struct mspriteframe_s
 	void	*pcachespot;			// remove?
 	float	up, down, left, right;
 	byte	pixels[4];
+	
 } mspriteframe_t;
+
 
 typedef struct
 {
@@ -250,9 +295,10 @@ typedef struct
 	trivertx_t			bboxmin;
 	trivertx_t			bboxmax;
 	int					frame;
+	int					numframes; // Manoel Kasimier - model interpolation
 } maliasgroupframedesc_t;
 
-typedef struct
+typedef struct maliasgroup_s // Manoel Kasimier - model interpolation - edited
 {
 	int						numframes;
 	int						intervals;
@@ -296,6 +342,30 @@ typedef enum {mod_brush, mod_sprite, mod_alias} modtype_t;
 #define	EF_ZOMGIB	32			// small blood trail
 #define	EF_TRACER2	64			// orange split trail + rotate
 #define	EF_TRACER3	128			// purple trail
+
+//	TODO: Hexen II EF's
+
+typedef struct {
+	//deals with FTECONTENTS (assumes against solid)
+	qboolean (*Trace)			(struct model_s *model, int hulloverride, int frame, vec3_t p1, vec3_t p2, vec3_t mins, vec3_t maxs, struct trace_s *trace);
+	unsigned int (*PointContents)	(struct model_s *model, vec3_t p);
+	unsigned int (*BoxContents)		(struct model_s *model, int hulloverride, int frame, vec3_t p, vec3_t mins, vec3_t maxs);
+
+	//deals with whatever is native for the bsp (gamecode is expected to distinguish this).
+	qboolean (*NativeTrace)		(struct model_s *model, int hulloverride, int frame, vec3_t p1, vec3_t p2, vec3_t mins, vec3_t maxs, unsigned int against, struct trace_s *trace);
+	unsigned int (*NativeContents)(struct model_s *model, int hulloverride, int frame, vec3_t p, vec3_t mins, vec3_t maxs);
+
+	void (*FatPVS)				(struct model_s *model, vec3_t org, qboolean add);
+	qboolean (*EdictInFatPVS)	(struct model_s *model, struct edict_s *edict);
+	void (*FindTouchedLeafs_Q1)	(struct model_s *model, struct edict_s *ent, vec3_t cullmins, vec3_t cullmaxs);	//edict system as opposed to q2 game dll system.
+
+	void (*LightPointValues)	(struct model_s *model, vec3_t point, vec3_t res_diffuse, vec3_t res_ambient, vec3_t res_dir);
+	void (*StainNode)			(struct mnode_s *node, float *parms);
+	void (*MarkLights)			(struct dlight_s *light, int bit, struct mnode_s *node);
+
+	qbyte *(*LeafPVS)			(struct model_s *model, int num, qbyte *buffer);
+	int	(*LeafnumForPoint)		(struct model_s *model, vec3_t point);
+} bspfuncs_t;
 
 typedef struct model_s
 {
@@ -365,6 +435,12 @@ typedef struct model_s
 // additional model data
 //
 	cache_user_t	cache;		// only access through Mod_Extradata
+
+
+	// NEW STRUCTS
+	fromgame_t	fromgame;	// fteqw 'from game' check
+	byte		*avgcol;		// leilei for coloring dimlight/brightlight glows
+	int						dontshadow;
 
 } model_t;
 

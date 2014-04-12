@@ -1,0 +1,38 @@
+================================================================
+Title         : VisPatch File Splitter
+Date          : 2001-12-31
+Filename      : vpsplit.zip
+Author        : Matthias "Maddes" Buecher
+Email Address : maddes@go.to
+Homepage      : Quake Info Pool
+                http://www.quake-info-pool.net/
+================================================================
+
+While developing a way to load external data from a VisPatch file into the Quake 
+engine, I recognized that most VisPatch files contain data for several maps.
+I enhanced the search process to look for a VisPatch file with the name of the 
+map, and if not found then with the name of the directory the map was loaded 
+from. This worked great for the original id (ID1.VIS) and mission pack maps 
+(HIPNOTIC.VIS and ROGUE.VIS).
+
+But still all VisPatch files for custom levels available at the WaterVis page 
+(which is currently hosted on my homepage) were still not loaded.
+So I had to write a small tool which splits those huge VisPatch files into 
+separate files for each included map, and the VisPatch File Splitter is the result.
+
+It's fairly easy to use. State the big VisPatch file which you want to split, 
+and it will generate VisPatch files for each included map.
+You can also call it with the "-?" parameter for a small help.
+That's all about using it.
+
+Now put the separate VisPatch files in your maps folder and you can play with 
+transparent water without touching the original BSP file with the VisPatch tool. 
+Also you do not need to mess around with all the PAK files of the different 
+addons.
+
+Enjoy
+Maddes
+
+P.S.:
+Source is included as always, use it for whatever you want, there's only one 
+restriction: give me credit in your program and readme.

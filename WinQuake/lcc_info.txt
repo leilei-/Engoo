@@ -1,0 +1,39 @@
+LCC-Win32 compiling information
+===============================
+Unfortunately there are currently (version 2002-01-29) a lot of problems with LCC-Win32.
+If the engine reaches an unknown size in code or data, the executable crashes on startup.
+This also varies between different LCC-Win32 versions:
+* I get a working executable of my GLQuake port from 2002-01-04 with LCC-Win32 
+  version 2001-12-05, WinQuake works when the optimzer was disabled. With later 
+  LCC-Win32 versions no executable works.
+* My source from 2002-02-01, which included only minor changes, only produce a 
+  working GLQuake executable with LCC-Win32 version 2001-12-05. With later LCC-Win32 
+  versions no executable works.
+So take these information to test new versions of LCC-Win32.
+
+The project files have been adapted from the QBism port http://qbism.telefragged.com/
+The OpenGL library is also taken from QBism, the assembler libraries have been recreated.
+For the case you have to change the assembler coding, I added some useful batch
+files to recreate the libraries. Note that you currently need Microsoft's MASM
+to compile the assembler code (see the QSML FAQ at http://www.quake-info-pool.net/
+how to obtain it for free legally).
+
+Before using the project files with WEdit32 you have to adapt them to your directory structure.
+1. Replace D:\Coding\Quake with the directory you extracted the QIP Quake source
+2. Replace D:\Programme\Coding\lcc with the directory you installed LCC
+
+You need the following packages from LCC-Win32 http://www.cs.virginia.edu/~lcc-win32/
+* lccwin32.exe from 2001-12-05(!!!)
+  The later versions, currently 2002-01-23, do not compile Quake correctly and crash when the demo playing starts.
+  The version 2001-12-05 is also available from my homepage.
+* lccdoc.exe from 2001-11-04 or later
+* manual.exe from 2001-11-04 or later
+* win32hlp.exe from 2001-08-06 or later
+* win32apidoc.exe from 2000-12-08 or later
+
+If you want to compile id's original sourcecode, then you have to redo the 
+changes to the source, which are mentioned in my changelog.
+
+Good luck
+Maddes
+Quake Info Pool - http://www.quake-info-pool.net/

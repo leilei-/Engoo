@@ -30,7 +30,106 @@ byte *S_Alloc (int size);
 ResampleSfx
 ================
 */
-void ResampleSfx (sfx_t *sfx, int inrate, int inwidth, byte *data)
+void ResampleSfx (sfx_t *sfx, int inrate, int outrate, int inwidth, byte *data)
+{
+	int		outcount;
+	int		srcsample;
+	float	stepscale;
+	float	stepperscale;
+	float	stepdelta;
+	int		i;
+	int		sample, samplefrac, fracstep;
+	sfxcache_t	*sc;
+//	outrate = shm->speed;
+	int		resampmode = 1;	// 0 - nearest, 1 - linear?
+	sc = Cache_Check (&sfx->cache);
+	if (!sc)
+		return;
+
+	stepscale = (float)inrate / outrate;	// this is usually 0.5, 1, or 2
+
+	outcount = sc->length / stepscale;
+	sc->length = outcount;
+	if (sc->loopstart != -1)
+		sc->loopstart = sc->loopstart / stepscale;
+
+
+	
+	sc->speed = outrate;
+	if (loadas8bit->value)
+		sc->width = 1;
+	else
+		sc->width = inwidth;
+//	sc->stereo = 0;
+	
+// resample / decimate to the current source rate
+
+	if (stepscale == 1 && inwidth == 1 && sc->width == 1)
+	{
+// fast special case
+		for (i=0 ; i<outcount ; i++)
+			((signed char *)sc->data)[i]
+			= (int)( (unsigned char)(data[i]) - 128);
+	}
+	else
+	{
+// general case
+		if (resampmode == 1)
+		{
+		samplefrac = 0;
+		fracstep = stepscale*256;
+	//	stepperscale = samplefrac + fracstep;
+		
+		for (i=0 ; i<outcount ; i++)
+		{
+			srcsample = samplefrac >> 8;
+		
+			samplefrac += fracstep;
+			if (inwidth == 2)
+				sample = LittleShort ( ((short *)data)[srcsample] );
+			else
+				sample = (int)( (unsigned char)(data[srcsample]) - 128) << 8;
+			if (sc->width == 2)
+				((short *)sc->data)[i] = sample;
+			else
+				((signed char *)sc->data)[i] = sample >> 8;
+		}
+		}
+		else
+
+		{
+		samplefrac = 0;
+		fracstep = stepscale*256;
+
+		
+		for (i=0 ; i<outcount ; i++)
+		{
+			srcsample = samplefrac >> 8;
+			samplefrac += fracstep;
+			if (inwidth == 2)
+				sample = LittleShort ( ((short *)data)[srcsample] );
+			else
+				sample = (int)( (unsigned char)(data[srcsample]) - 128) << 8;
+			if (sc->width == 2)
+				((short *)sc->data)[i] = sample;
+			else
+				((signed char *)sc->data)[i] = sample >> 8;
+		}
+		}
+	}
+}
+
+
+
+/*
+================
+CrapSfx
+
+
+  reduces quality... before being resampled. Novelty.
+================
+*/
+void CrapSfx (sfx_t *sfx, int inrate, int inwidth, byte *data)
 {
 	int		outcount;
 	int		srcsample;
@@ -43,19 +142,19 @@ void ResampleSfx (sfx_t *sfx, int inrate, int inwidth, byte *data)
 	if (!sc)
 		return;
 
-	stepscale = (float)inrate / shm->speed;	// this is usually 0.5, 1, or 2
+	stepscale = (float)inrate / spleed;	// this is usually 0.5, 1, or 2
 
 	outcount = sc->length / stepscale;
 	sc->length = outcount;
 	if (sc->loopstart != -1)
 		sc->loopstart = sc->loopstart / stepscale;
 
-	sc->speed = shm->speed;
+	sc->speed = spleed;
 	if (loadas8bit->value)
 		sc->width = 1;
 	else
 		sc->width = inwidth;
-	sc->stereo = 0;
+//	sc->stereo = 0;
 
 // resample / decimate to the current source rate
 
@@ -133,11 +232,12 @@ sfxcache_t *S_LoadSound (sfx_t *s)
 	data = fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
 
 	info = GetWavinfo (s->name, data, com_filesize);
-	if (info.channels != 1)
-	{
-		Con_Printf ("%s is a stereo sample\n",s->name);
-		return NULL;
-	}
+//	if (info.channels != 1)
+//	{
+//		Con_Printf ("%s is a stereo sample\n",s->name);
+//		return NULL;
+//	}
+
 
 	stepscale = (float)info.rate / shm->speed;
 	len = info.samples / stepscale;
@@ -153,8 +253,19 @@ sfxcache_t *S_LoadSound (sfx_t *s)
 	sc->speed = info.rate;
 	sc->width = info.width;
 	sc->stereo = info.channels;
+//	sc->ratio = 8000 / shm->speed; // leilei
+//	if (sc->ratio) Sys_Error("YA");
+	
+	if (spleed){
+		CrapSfx (s, sc->speed, sc->width, data + info.dataofs);
+		ResampleSfx (s, sc->speed, shm->speed, sc->width, data + info.dataofs);
+	}
+	else
+	{
+		
+	ResampleSfx (s, sc->speed, shm->speed, sc->width, data + info.dataofs);
 
-	ResampleSfx (s, sc->speed, sc->width, data + info.dataofs);
+	}
 
 	return sc;
 }

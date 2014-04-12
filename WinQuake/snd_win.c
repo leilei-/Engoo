@@ -17,6 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+
 #include "quakedef.h"
 #include "winquake.h"
 
@@ -189,7 +191,7 @@ sndinitstat SNDDMA_InitDirect (void)
 	WAVEFORMATEX	format, pformat;
 	HRESULT			hresult;
 	int				reps;
-
+	int			rc;
 	memset ((void *)&sn, 0, sizeof (sn));
 
 	shm = &sn;
@@ -197,7 +199,12 @@ sndinitstat SNDDMA_InitDirect (void)
 	shm->channels = 2;
 	shm->samplebits = 16;
 	shm->speed = 11025;
-
+		rc = COM_CheckParm("-sspeed");
+	if (rc)
+		shm->speed = Q_atoi(com_argv[rc+1]);
+		rc = COM_CheckParm("-sspleed");
+	if (rc)
+		spleed = Q_atoi(com_argv[rc+1]);
 	memset (&format, 0, sizeof(format));
 	format.wFormatTag = WAVE_FORMAT_PCM;
     format.nChannels = shm->channels;
@@ -424,7 +431,7 @@ qboolean SNDDMA_InitWav (void)
 	WAVEFORMATEX  format;
 	int				i;
 	HRESULT			hr;
-
+	int rc;
 	snd_sent = 0;
 	snd_completed = 0;
 
@@ -433,6 +440,14 @@ qboolean SNDDMA_InitWav (void)
 	shm->channels = 2;
 	shm->samplebits = 16;
 	shm->speed = 11025;
+		rc = COM_CheckParm("-sspeed");
+	if (rc)
+		shm->speed = Q_atoi(com_argv[rc+1]);
+		
+		rc = COM_CheckParm("-sspleed");
+	if (rc)
+		spleed = Q_atoi(com_argv[rc+1]);
+
 
 	memset (&format, 0, sizeof(format));
 	format.wFormatTag = WAVE_FORMAT_PCM;
@@ -554,11 +569,13 @@ Returns false if nothing is found.
 ==================
 */
 
+
 // 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  start
 //int SNDDMA_Init(void)
 qboolean SNDDMA_Init(void)
 // 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  end
 {
+
 	sndinitstat	stat;
 
 	if (COM_CheckParm ("-wavonly"))
@@ -567,7 +584,6 @@ qboolean SNDDMA_Init(void)
 	dsound_init = wav_init = 0;
 
 	stat = SIS_FAILURE;	// assume DirectSound won't initialize
-
 	/* Init DirectSound */
 	if (!wavonly)
 	{
@@ -614,6 +630,7 @@ qboolean SNDDMA_Init(void)
 	}
 
 	snd_firsttime = false;
+
 
 	if (!dsound_init && !wav_init)
 	{
@@ -725,8 +742,14 @@ SNDDMA_Shutdown
 Reset the sound device for exiting
 ===============
 */
+#ifdef DUMB
+void dumb_exit(void);
+#endif
 void SNDDMA_Shutdown(void)
 {
+#ifdef DUMB
+	dumb_exit();
+#endif
 	FreeSound ();
 }
 

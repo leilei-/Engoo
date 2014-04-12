@@ -201,6 +201,8 @@ void *Z_Malloc (memzone_t *zone, int size)	// 2001-09-20 Enhanced zone handling 
 	return buf;
 }
 
+
+
 void *Z_TagMalloc (memzone_t *zone, int size, int tag)	// 2001-09-20 Enhanced zone handling by Maddes
 {
 	int		extra;
@@ -500,6 +502,8 @@ void *Hunk_AllocName (int size, char *name)
 
 	return (void *)(h+1);
 }
+
+
 
 /*
 ===================
@@ -1021,3 +1025,52 @@ void Memory_Init (void *buf, int size)
 	Cmd_AddCommand ("hunklist", Hunk_Print_f);	// 2001-09-20 Hunklist command by Maddes
 	Cmd_AddCommand ("cachelist", Cache_Print);	// 2001-09-20 Cachelist command by Maddes
 }
+
+
+//allocates without clearing previous temp.
+//safer than my hack that fuh moaned about...
+
+//allocates without clearing previous temp.
+//safer than my hack that fuh moaned about...
+void *Hunk_TempAllocMore (int size)
+{
+	void	*buf;
+#ifdef NOHIGH
+#if TEMPDEBUG>0
+	hnktemps_t *nt;
+	nt = (hnktemps_t*)malloc(size + sizeof(hnktemps_t) + TEMPDEBUG*2);
+	nt->next = hnktemps;
+	nt->len = size;
+	hnktemps = nt;
+	buf = (void *)(nt+1);
+	memset(buf, sentinalkey, TEMPDEBUG);
+	buf = (char *)buf + TEMPDEBUG;
+	memset(buf, 0, size);
+	memset((char *)buf + size, sentinalkey, TEMPDEBUG);
+	return buf;
+#else
+	hnktemps_t *nt;
+	nt = (hnktemps_t*)malloc(size + sizeof(hnktemps_t));
+	nt->next = hnktemps;
+	hnktemps = nt;
+	buf = (void *)(nt+1);
+	memset(buf, 0, size);
+	return buf;
+#endif
+#else
+	
+	if (!hunk_tempactive)
+		return Hunk_TempAlloc(size);
+
+	size = (size+15)&~15;
+
+	hunk_tempactive = false;	//so it doesn't wipe old temp.
+	buf = Hunk_HighAllocName (size, "mtmp");
+	hunk_tempactive = true;
+
+	return buf;
+#endif
+}
+
+
+

@@ -68,9 +68,15 @@ int WIPX_Init (void)
 	int		r;
 	WORD	wVersionRequested;
 
+#ifdef WINDOWS31
+	return -1;
+#endif
+
 	if (COM_CheckParm ("-noipx"))
 		return -1;
 
+	
+		
 // make sure LoadLibrary has happened successfully
 	if (!winsock_lib_initialized)
 		return -1;

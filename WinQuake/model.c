@@ -25,7 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
+#ifdef QSB
+#define	MAX_MOD_KNOWN	4096
+#else
 #define	MAX_MOD_KNOWN	256
+#endif
 model_t	mod_known[MAX_MOD_KNOWN];
 int		mod_numknown;
 
@@ -63,9 +67,10 @@ model_t *Mod_FindName (char *name)
 	int		i;
 	model_t	*mod;
 	model_t	*avail = NULL;
-
+//#ifndef ITSFIX
 	if (!name[0])
 		Sys_Error ("Mod_ForName: NULL name");
+//#endif
 
 //
 // search the currently loaded models
@@ -156,10 +161,7 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 // load the file
 //
 // 2001-09-12 Returning information about loaded file by Maddes  start
-/*
-	buf = (unsigned *)COM_LoadStackFile (mod->name, stackbuf, sizeof(stackbuf));
-	if (!buf)
-*/
+
 	fileinfo = COM_LoadStackFile (mod->name, stackbuf, sizeof(stackbuf));
 	if (!fileinfo)
 // 2001-09-12 Returning information about loaded file by Maddes  end
@@ -184,19 +186,22 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 
 // call the apropriate loader
 	mod->needload = NL_PRESENT;
-
+	mod->dontshadow = 1;	
 	switch (LittleLong(*(unsigned *)buf))
 	{
 	case IDPOLYHEADER:
 		Mod_LoadAliasModel (mod, buf);
+		mod->dontshadow = 0;	
 		break;
 
 	case IDSPRITEHEADER:
 		Mod_LoadSpriteModel (mod, buf);
+		
 		break;
 
 	default:
 		Mod_LoadBrushModel (mod, buf, fileinfo);	// 2001-09-12 .ENT support by Maddes
+		
 		break;
 	}
 
@@ -212,19 +217,142 @@ model_t *Mod_LoadModel (model_t *mod, qboolean crash)
 ===============================================================================
 */
 
+
+void R_LightsHere(vec3_t org, int radius, vec3_t color, int key)
+{
+	//entity_t *anty;
+	dlight_t *dl;
+	int lnum = key;
+
+	
+//	Con_Printf("got fed %f %f %f %i %i\n", org[0], org[1], org[2], radius, key);
+
+//	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
+	if (dl = CL_AllocDlight (lnum)){
+		//	dl = CL_AllocDlight (lnum);
+			VectorCopy (org, dl->origin);
+			VectorCopy (color, dl->color);
+			VectorCopy (color, dl->flashcolor);
+		//	dl->flashcolor[0] = 1;
+		//	dl->flashcolor[1] = 1;
+		//	dl->flashcolor[2] = 1;
+			dl->flashcolor[3] = 0.1f;
+		//	dl->color[0] = 1f;
+		//	dl->color[1] = 1f;
+		//	dl->color[2] = 1f;
+			dl->unmark = 1;	// important
+			dl->radius  = radius;
+			
+						
+			
+		//dl->radius = radius;
+			dl->die = cl.time + 0xFFFFFF;
+		//	dl->decay = 0;
+			
+		//	R_FlareTest(org, 12, 23, 33, 255, 0, NULL);
+	}
+
+
+};
+// Yoinked directly from FTEQW by Spike. We need to parse this just for coronas
+// only......or maybe...............point...................lightsbutthatsforanotherday
+
+void R_LoadRTLights(void)
+{
+	dlight_t *dl;
+	char fname[MAX_QPATH];
+	loadedfile_t *file;
+	char *end;
+	int style;
+	vec3_t org;
+	float radius;
+	char carbmarpnarm;
+	float corona;
+	
+	vec3_t rgb;
+
+	COM_StripExtension(cl.worldmodel->name, fname);
+	strncat(fname, ".rtlights", MAX_QPATH-1);
+
+	file = COM_LoadTempFile(fname);
+
+		
+	if (!file)
+		return;
+	while(1)
+	{
+		end = strchr(file->data, '\n');
+		if (!end)
+			end = file->data + strlen(file->data);
+		if (end == file->data)
+			break;
+		*end = '\0';
+
+		file->data = COM_Parse(file->data);
+		org[0] = atof(com_token);
+		file->data = COM_Parse(file->data);
+		org[1] = atof(com_token);
+		file->data = COM_Parse(file->data);
+		org[2] = atof(com_token);
+
+		file->data = COM_Parse(file->data);
+		radius = atof(com_token);
+
+		file->data = COM_Parse(file->data);
+		rgb[0] = atof(com_token);
+		file->data = COM_Parse(file->data);
+		rgb[1] = atof(com_token);
+		file->data = COM_Parse(file->data);
+		rgb[2] = atof(com_token);
+		//R_LightsHere(org,666, rgb);
+		file->data = COM_Parse(file->data);
+		style = atoi(com_token);
+
+		file->data = COM_Parse(file->data);
+		style = atof(com_token);
+
+		file->data = COM_Parse(file->data);
+		corona = atof(com_token);
+	
+		// We got a corona, so let's make it happen.
+		if (corona){
+				//Con_Printf("we got a %f %f %f %f %f %f %f %i %f %f in here\n", org[0], org[1], org[2], radius, rgb[0], rgb[1], rgb[2], style, style, corona);
+			R_FlareTest(org,11,(int)rgb[0] * 255,(int)rgb[1] * 255,(int)rgb[2] * 255,0,NULL);
+		
+//						R_LightsHere(org, radius, rgb);
+		}
+	// testing the wlights using rtlight data. I want to really load the entities list.
+		{
+//		if (radius){
+			
+
+		}	
+		file->data = end+1;
+	}
+}
+
+
+
+
 /*
 =================
 Mod_LoadTextures
 =================
 */
+extern cvar_t *temp2;
+
+
+
 void Mod_LoadTextures (lump_t *l)
 {
-	int		i, j, pixels, num, max, altmax;
+	int		i, j, pixels, num, max, altmax, ao;
 	miptex_t	*mt;
 	texture_t	*tx, *tx2;
+		int pb;
 	texture_t	*anims[10];
 	texture_t	*altanims[10];
 	dmiptexlump_t *m;
+	qboolean alphaed;
 
 	if (!l->filelen)
 	{
@@ -251,6 +379,32 @@ void Mod_LoadTextures (lump_t *l)
 
 		if ( (mt->width & 15) || (mt->height & 15) )
 			Sys_Error ("Texture %s is not 16 aligned", mt->name);
+	
+	{
+		if (!mt->offsets[0])	//external hl texture.
+			{
+			int pb = 1; // pixelbuffer stuff, but we only use 8bit software
+
+			pixels = mt->width*pb*mt->height/64*85;
+
+			tx = Hunk_AllocName (sizeof(texture_t) +pixels, mt->name );	//allocate enough to cover it.
+			tx->pixbytes = pb;
+			loadmodel->textures[i] = tx;
+
+			memcpy (tx->name, mt->name, sizeof(tx->name));
+			tx->width = mt->width;
+			tx->height = mt->height;
+			for (j=0 ; j<MIPLEVELS ; j++)
+				tx->offsets[j] = 0;//mt->offsets[j] + sizeof(texture_t) - sizeof(miptex_t);
+			// the pixels immediately follow the structures
+			memset ( tx+1, 7, pixels);	//set it all to 7 for no particular reason.
+
+			continue;
+			}
+		
+			else
+			{
+
 		pixels = mt->width*mt->height/64*85;
 		tx = Hunk_AllocName (sizeof(texture_t) +pixels, loadname );
 		loadmodel->textures[i] = tx;
@@ -261,8 +415,319 @@ void Mod_LoadTextures (lump_t *l)
 		for (j=0 ; j<MIPLEVELS ; j++)
 			tx->offsets[j] = mt->offsets[j] + sizeof(texture_t) - sizeof(miptex_t);
 		// the pixels immediately follow the structures
-		memcpy ( tx+1, mt+1, pixels);
 
+	
+		if (loadmodel->fromgame == fg_halflife)
+		
+				//
+				// HLTEX - reading as 24bit
+				//
+				{	
+			if (coloredlights == 2){
+				int k;
+				byte *in;
+				byte *out;
+				out = (byte *)(tx+1);
+				in = W_ConvertWAD3Texture(mt);
+				tx->offsets[0] = (char *)out - (char *)tx;for (j = 0; j < mt->width*mt->height; j++, in+=4)
+				{if (in[3] == 0)	*out++ = 255;	else *out++ = BestColor(in[0],in[1],in[2], 0, 239);	}
+			
+		
+				in = out-mt->width*mt->height;	//shrink mips.
+				tx->offsets[1] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=2)	for (k = 0; k < tx->width; k+=2) *out++ = in[k + tx->width*j];
+				tx->offsets[2] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=4)	for (k = 0; k < tx->width; k+=4) *out++ = in[k + tx->width*j];
+				tx->offsets[3] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=8)	for (k = 0; k < tx->width; k+=8) *out++ = in[k + tx->width*j];				
+					
+				
+			}
+
+				//
+				// HLTEX - reading as 24bit, converting to 8bit
+				//
+			else
+			{
+				int k;
+				byte *in;
+				byte *out;
+				out = (byte *)(tx+1);
+				in = W_ConvertWAD3Texture(mt);
+				tx->offsets[0] = (char *)out - (char *)tx;for (j = 0; j < mt->width*mt->height; j++, in+=4)
+			
+				{if (in[3] == 0)	*out++ = 255;	else *out++ = BestColor(in[0],in[1],in[2], 0, 239);	}
+				in = out-mt->width*mt->height;	//shrink mips.
+				tx->offsets[1] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=2)	for (k = 0; k < tx->width; k+=2) *out++ = in[k + tx->width*j];
+				tx->offsets[2] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=4)	for (k = 0; k < tx->width; k+=4) *out++ = in[k + tx->width*j];
+				tx->offsets[3] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=8)	for (k = 0; k < tx->width; k+=8) *out++ = in[k + tx->width*j];
+							
+			}
+				}
+#ifndef EGAHACK
+				else
+
+					if (rmap_ready){
+					// Read and remap inappropriately
+						int k;
+				byte *in;
+				byte *out;
+				out = (byte *)(tx+1);
+				in = RemapTex(mt);
+			
+				tx->offsets[0] = (char *)out - (char *)tx;for (j = 0; j < mt->width*mt->height; j++, in+=4)
+				{if (in[3] == 0)		*out++ = 255;	else{ *out++ =	BestColor(in[0],in[1],in[2], 0, 239);	}}
+				in = out-mt->width*mt->height;	//shrink mips.
+				//out = (byte *)(tx+1);
+				tx->offsets[1] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=2)	for (k = 0; k < tx->width; k+=2) *out++ = in[k + tx->width*j];
+				tx->offsets[2] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=4)	for (k = 0; k < tx->width; k+=4) *out++ = in[k + tx->width*j];
+				tx->offsets[3] = (char *)out - (char *)tx;for (j = 0; j < tx->height; j+=8)	for (k = 0; k < tx->width; k+=8) *out++ = in[k + tx->width*j];
+
+					}
+#endif	
+					else{
+
+			{
+					memcpy ( tx+1, mt+1, pixels);	// bring in ye olde quake textures
+					
+					
+			}
+
+					}
+					
+				}
+		}
+		if (!strncmp(mt->name,"sky",3))
+			R_InitSky (tx);
+			// Grab a color to sample for our particle system.
+				{
+					tx->pcolor = FindOurColor(tx);
+				//y	if (tx->pcolor < host_fullbrights)
+				//	Con_Printf("%s has color %i\n", tx->name, tx->pcolor);
+			//		else
+//						Con_Printf("%s has color %i AND IS FREAKING FULLBRIGHT\n", tx->name, tx->pcolor);
+				}
+	}
+
+//
+// sequence the animations
+//
+	for (i=0 ; i<m->nummiptex ; i++)
+	{
+		tx = loadmodel->textures[i];
+		if (!tx || tx->name[0] != '+')
+			continue;
+		if (tx->anim_next)
+			continue;	// already sequenced
+
+	// find the number of frames in the animation
+		memset (anims, 0, sizeof(anims));
+		memset (altanims, 0, sizeof(altanims));
+
+		max = tx->name[1];
+		altmax = 0;
+		if (max >= 'a' && max <= 'z')
+			max -= 'a' - 'A';
+		if (max >= '0' && max <= '9')
+		{
+			max -= '0';
+			altmax = 0;
+			anims[max] = tx;
+			max++;
+		}
+		else if (max >= 'A' && max <= 'J')
+		{
+			altmax = max - 'A';
+			max = 0;
+			altanims[altmax] = tx;
+			altmax++;
+		}
+		else
+			Sys_Error ("Bad animating texture %s", tx->name);
+
+		for (j=i+1 ; j<m->nummiptex ; j++)
+		{
+			tx2 = loadmodel->textures[j];
+			if (!tx2 || tx2->name[0] != '+')
+				continue;
+			if (strcmp (tx2->name+2, tx->name+2))
+				continue;
+
+			num = tx2->name[1];
+			if (num >= 'a' && num <= 'z')
+				num -= 'a' - 'A';
+			if (num >= '0' && num <= '9')
+			{
+				num -= '0';
+				anims[num] = tx2;
+				if (num+1 > max)
+					max = num + 1;
+			}
+			else if (num >= 'A' && num <= 'J')
+			{
+				num = num - 'A';
+				altanims[num] = tx2;
+				if (num+1 > altmax)
+					altmax = num+1;
+			}
+			else
+				Sys_Error ("Bad animating texture %s", tx->name);
+		}
+
+#define	ANIM_CYCLE	2
+	// link them all together
+		for (j=0 ; j<max ; j++)
+		{
+			tx2 = anims[j];
+			
+			if (!tx2)
+			tx2 = anims[j+1];		// leilei - TFN bb2 workaround
+		//		Sys_Error ("Missing frame %i of %s",j, tx->name); 
+			tx2->anim_total = max * ANIM_CYCLE; 
+			tx2->anim_min = j * ANIM_CYCLE;
+			tx2->anim_max = (j+1) * ANIM_CYCLE;
+			tx2->anim_next = anims[ (j+1)%max ];
+			if (altmax)
+				tx2->alternate_anims = altanims[0];
+		}
+		for (j=0 ; j<altmax ; j++)
+		{
+			tx2 = altanims[j];
+			if (!tx2)
+	//		tx2 = altanims[0];
+				Sys_Error ("Missing frame %i of %s",j, tx->name);
+			tx2->anim_total = altmax * ANIM_CYCLE;
+			tx2->anim_min = j * ANIM_CYCLE;
+			tx2->anim_max = (j+1) * ANIM_CYCLE;
+			tx2->anim_next = altanims[ (j+1)%altmax ];
+			if (max)
+				tx2->alternate_anims = anims[0];
+		}
+	}
+
+}
+
+
+
+// For the truecolor renderer only
+void Mod_LoadTextures32 (lump_t *l)
+{
+	int		i, j, pixels, num, max, altmax, ao;
+	miptex_t	*mt;
+	texture_t	*tx, *tx2;
+
+	texture_t	*anims[10];
+	texture_t	*altanims[10];
+	int pb;
+	dmiptexlump_t *m;
+
+			
+	pb = 4;
+
+	if (!l->filelen)
+	{
+		loadmodel->textures = NULL;
+		return;
+	}
+	m = (dmiptexlump_t *)(mod_base + l->fileofs);
+
+	m->nummiptex = LittleLong (m->nummiptex);
+
+	loadmodel->numtextures = m->nummiptex;
+	loadmodel->textures = Hunk_AllocName (m->nummiptex * sizeof(*loadmodel->textures) , loadname);
+
+	for (i=0 ; i<m->nummiptex ; i++)
+	{
+		m->dataofs[i] = LittleLong(m->dataofs[i]);
+		if (m->dataofs[i] == -1)
+			continue;
+		mt = (miptex_t *)((byte *)m + m->dataofs[i]);
+		mt->width = LittleLong (mt->width);
+		mt->height = LittleLong (mt->height);
+
+		for (j=0 ; j<MIPLEVELS ; j++)
+			mt->offsets[j] = LittleLong (mt->offsets[j]);
+
+
+		if ( (mt->width & 15) || (mt->height & 15) )
+			Sys_Error ("Texture %s is not 16 aligned", mt->name);
+	
+	
+		
+		if (!mt->offsets[0])	//external hl texture.
+			{
+
+			pixels = mt->width*4*mt->height/64*85;
+/*			
+			tx = Hunk_AllocName (sizeof(texture_t) +pixels, mt->name );	//allocate enough to cover it.
+			tx->pixbytes = pb;
+
+			loadmodel->textures[i] = tx;
+
+			memcpy (tx->name, mt->name, sizeof(tx->name));
+			tx->width = mt->width;
+			tx->height = mt->height;
+			for (j=0 ; j<MIPLEVELS ; j++)
+				tx->offsets[j] = mt->offsets[j] + sizeof(texture_t) - sizeof(miptex_t);
+			// the pixels immediately follow the structures
+			memset ( tx+1, 7, pixels);	//set it all to 7 for no particular reason.
+*/
+			continue;
+			}
+		
+			else if (loadmodel->fromgame == fg_halflife) // interna hl texture
+			{
+				//
+				// HLTEX - reading as 24bit
+				//
+			
+
+			// Reading as 24bit strictly for 15bit dither mode
+			
+			
+			pixels = (mt->width*pb*mt->height)*85/64;
+		
+			tx = Hunk_AllocName (sizeof(texture_t) +pixels, loadname );
+			tx->pixbytes = pb;
+			loadmodel->textures[i] = tx;
+			
+			memcpy (tx->name, mt->name, sizeof(tx->name));
+			tx->width = mt->width;
+			tx->height = mt->height;
+
+			for (j=0 ; j<MIPLEVELS ; j++)
+				tx->offsets[j] = (mt->offsets[j]-sizeof(miptex_t))*4 + sizeof(texture_t);
+
+			// the pixels immediately follow the structures
+				
+				memcpy ( tx+1, W_ConvertWAD3TextureFTE(mt,&mt->width,&mt->height, 0), pixels);
+
+				
+			}
+
+				// NON HALFLIFE (Quake) Textures
+			else{
+				{
+					// TODO: Upconvert Quake to 32-bit (should be easy, but i'm not debugging that right now)
+			int pb = 4;
+			
+			pixels = (mt->width*pb*mt->height)*85/64;
+		
+			tx = Hunk_AllocName (sizeof(texture_t) +pixels, loadname );
+			tx->pixbytes = 4;
+			loadmodel->textures[i] = tx;
+			
+			memcpy (tx->name, mt->name, sizeof(tx->name));
+			tx->width = mt->width;
+			tx->height = mt->height;
+			for (j=0 ; j<MIPLEVELS ; j++)
+				tx->offsets[j] = (mt->offsets[j]-sizeof(miptex_t))*4 + sizeof(texture_t);
+			// the pixels immediately follow the structures
+				memcpy ( tx+1, W_ConvertWAD3TextureFTEQ(mt,	&mt->width,&mt->height), pixels);			
+			}
+	
+	
+					
+					
+				
+		}
 		if (!strncmp(mt->name,"sky",3))
 			R_InitSky (tx);
 	}
@@ -337,9 +802,11 @@ void Mod_LoadTextures (lump_t *l)
 		for (j=0 ; j<max ; j++)
 		{
 			tx2 = anims[j];
+			
 			if (!tx2)
-				Sys_Error ("Missing frame %i of %s",j, tx->name);
-			tx2->anim_total = max * ANIM_CYCLE;
+			tx2 = anims[j+1];		// leilei - TFN bb2 workaround
+		//		Sys_Error ("Missing frame %i of %s",j, tx->name); 
+			tx2->anim_total = max * ANIM_CYCLE; 
 			tx2->anim_min = j * ANIM_CYCLE;
 			tx2->anim_max = (j+1) * ANIM_CYCLE;
 			tx2->anim_next = anims[ (j+1)%max ];
@@ -350,6 +817,7 @@ void Mod_LoadTextures (lump_t *l)
 		{
 			tx2 = altanims[j];
 			if (!tx2)
+	//		tx2 = altanims[0];
 				Sys_Error ("Missing frame %i of %s",j, tx->name);
 			tx2->anim_total = altmax * ANIM_CYCLE;
 			tx2->anim_min = j * ANIM_CYCLE;
@@ -361,12 +829,131 @@ void Mod_LoadTextures (lump_t *l)
 	}
 }
 
+
 /*
 =================
 Mod_LoadLighting
+Mostly a lazy modified FTE snippet
 =================
 */
+extern	int truecolor;
 void Mod_LoadLighting (lump_t *l)
+{
+		
+
+	int		i, poo;
+	byte	*in, *out, *data;
+	byte	d;
+	char	litname[1024];
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
+
+	loadmodel->lightdata = NULL;
+
+	if (!l->filelen)
+	{
+		loadmodel->lightdata = NULL;
+		return;
+	}
+	if (coloredlights && external_lit || truecolor)
+	{
+		strcpy(litname, loadmodel->name);
+		COM_StripExtension(loadmodel->name, litname);
+		COM_DefaultExtension(litname, ".lit");
+		fileinfo = COM_LoadHunkFile(litname);
+		if (fileinfo)
+		{
+			Con_DPrintf("%s loaded from %s\n", litname, fileinfo->path->pack ? fileinfo->path->pack->filename : fileinfo->path->filename);
+			data = fileinfo->data;	
+			if (data[0] == 'Q' && data[1] == 'L' && data[2] == 'I' && data[3] == 'T')
+			{
+				i = LittleLong(((int *)data)[1]);
+				if (i == 1)
+				{
+					loadmodel->lightdata = data + 8;	
+					return;
+				}
+				else
+					Con_Printf("Unknown .LIT file version (%d)\n", i);
+			}
+			else
+				Con_Printf("Corrupt .LIT file (old version?), ignoring\n");
+					
+		}
+
+		if (loadmodel->fromgame == fg_halflife || loadmodel->fromgame == fg_quake2 || loadmodel->fromgame == fg_quake3)	//half-life levels use 24 bit anyway.
+		{
+			loadmodel->lightdata = Hunk_AllocName ( l->filelen, loadname);
+			memcpy (loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
+		}
+		else if (!external_lit->string)
+		{
+			loadmodel->lightdata = Hunk_AllocName ( l->filelen, loadname);
+			memcpy (loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
+	
+				
+			
+		}
+		else
+		{
+		//expand to 24 bit
+			int i;
+			qbyte *dest, *src = mod_base + l->fileofs;
+			loadmodel->lightdata = Hunk_AllocName ( l->filelen*3, loadname);
+			dest = loadmodel->lightdata;
+			for (i = 0; i<l->filelen; i++)
+			{
+				dest[0] = *src;
+				dest[1] = *src;
+				dest[2] = *src;
+
+				src++;
+				dest+=3;
+		
+			}
+				
+	
+		}
+	}
+	else
+	{
+		if (loadmodel->fromgame == fg_halflife || loadmodel->fromgame == fg_quake2 || loadmodel->fromgame == fg_quake3)
+		{
+			int i;
+			qbyte *out;
+			qbyte *in;
+			out = loadmodel->lightdata = Hunk_AllocName ( l->filelen/3, loadname);
+			in = mod_base + l->fileofs;	//24 bit to luminance.
+			for (i = 0; i < l->filelen; i+=3)
+				*out++ = ((int)in[i] + (int)in[i] + (int)in[i])/3;
+
+		}
+		else
+			if (loadmodel->fromgame == fg_quakeold) // Quake v0.x lightmaps lack overbrights
+		{
+			int i;
+			qbyte *out;
+			qbyte *in;
+			out = loadmodel->lightdata = Hunk_AllocName ( l->filelen, loadname);
+			in = mod_base + l->fileofs;	
+			for (i = 0; i < l->filelen; i+=1)
+				*out++ = ((int)in[i])>>1;
+			
+		}
+		else
+		{//standard Quake
+			loadmodel->lightdata = Hunk_AllocName ( l->filelen, loadname);
+			memcpy (loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
+			
+		}
+	}
+
+
+}
+
+
+
+// old funciton
+void Mod_FLoadLighting (lump_t *l)
 {
 	if (!l->filelen)
 	{
@@ -376,6 +963,7 @@ void Mod_LoadLighting (lump_t *l)
 	loadmodel->lightdata = Hunk_AllocName ( l->filelen, loadname);
 	memcpy (loadmodel->lightdata, mod_base + l->fileofs, l->filelen);
 }
+
 
 /*
 ================
@@ -451,7 +1039,7 @@ void Mod_LoadFaces (lump_t *l)
 
 	loadmodel->surfaces = out;
 	loadmodel->numsurfaces = count;
-
+	
 	for ( surfnum=0 ; surfnum<count ; surfnum++, in++, out++)
 	{
 		out->firstedge = LittleLong(in->firstedge);
@@ -470,17 +1058,43 @@ void Mod_LoadFaces (lump_t *l)
 		CalcSurfaceExtents (out);
 
 	// lighting info
+	// lighting info
 
 		for (i=0 ; i<MAXLIGHTMAPS ; i++)
 			out->styles[i] = in->styles[i];
 		i = LittleLong(in->lightofs);
+				if (i == -1)
+			out->samples = NULL;
 		if (i == -1)
 			out->samples = NULL;
+		else if (coloredlights)
+		{
+			if (loadmodel->fromgame == fg_halflife)
+				out->samples = loadmodel->lightdata + i;
+			else
+			out->samples = loadmodel->lightdata + i * 3;
+		}
 		else
-			out->samples = loadmodel->lightdata + i;
-
+		{
+			if (loadmodel->fromgame == fg_halflife)
+				out->samples = loadmodel->lightdata + i/3;
+			else if (loadmodel->fromgame == fg_quakeold)
+				out->samples = loadmodel->lightdata + i;
+			else
+				out->samples = loadmodel->lightdata + i;
+		}
 	// set the drawing flags flag
-
+	//	if (!strncmp(out->texinfo->texture->name,"light",5) || !strncmp(out->texinfo->texture->name,"dem",3)|| !strncmp(out->texinfo->texture->name,"rune",4))	// light hack
+	//	{
+	//		out->flags |= ( SURF_FLARE);
+	//		continue;
+	//	}
+		// for the d_mipdetail 64 setting - keep buttons and other small textures sharp while allowing the rest to blur out
+				if (out->texinfo->texture->height < 33 && out->texinfo->texture->width < 33)
+		{
+			out->flags |= ( SURF_DONTMIP64);
+			continue;
+		}
 		if (!strncmp(out->texinfo->texture->name,"sky",3))	// sky
 		{
 			out->flags |= (SURF_DRAWSKY | SURF_DRAWTILED);
@@ -489,7 +1103,10 @@ void Mod_LoadFaces (lump_t *l)
 
 		if (!strncmp(out->texinfo->texture->name,"*",1))		// turbulent
 		{
-			out->flags |= (SURF_DRAWTURB | SURF_DRAWTILED);
+			out->flags |= (SURF_DRAWTURB | SURF_DRAWTILED | SURF_DRAWTRANSLUCENT); // no lava/water check. we're trying to emulate dp/glq behavior here
+			if (strncmp(out->texinfo->texture->name, "*lava", 3))
+					out->flags |= SURF_MIRROR;	// mirror not the lava
+			//out->flags |= (SURF_DRAWTILED | SURF_DRAWTRANSLUCENT); // no lava/water check. we're trying to emulate dp/glq behavior here
 			for (i=0 ; i<2 ; i++)
 			{
 				out->extents[i] = 16384;
@@ -497,7 +1114,15 @@ void Mod_LoadFaces (lump_t *l)
 			}
 			continue;
 		}
+
+//		if (!strncmp(out->texinfo->texture->name,"window02_1",10))	// sky
+//		{
+//			out->flags |= ( SURF_MIRROR| SURF_DRAWTILED);
+//			continue;
+//		}
+
 	}
+	
 }
 
 /*
@@ -598,9 +1223,10 @@ void * Mod_LoadAliasGroup (void * pin, int *pframeindex, int numv,
 	for (i=0 ; i<numframes ; i++)
 	{
 		*poutintervals = LittleFloat (pin_intervals->interval);
-		if (*poutintervals <= 0.0)
-			Sys_Error ("Mod_LoadAliasGroup: interval<=0");
-
+		if (*poutintervals <= 0.0){
+			*poutintervals = 0.1; // leilei - force
+		//	Sys_Error ("Mod_LoadAliasGroup: interval<=0, %s sucks", loadname);
+		}
 		poutintervals++;
 		pin_intervals++;
 	}
@@ -609,6 +1235,7 @@ void * Mod_LoadAliasGroup (void * pin, int *pframeindex, int numv,
 
 	for (i=0 ; i<numframes ; i++)
 	{
+				paliasgroup->frames[i].numframes = numframes; // Manoel Kasimier - model interpolation
 		ptemp = Mod_LoadAliasFrame (ptemp,
 									&paliasgroup->frames[i].frame,
 									numv,
@@ -618,6 +1245,58 @@ void * Mod_LoadAliasGroup (void * pin, int *pframeindex, int numv,
 	}
 
 	return ptemp;
+}
+
+
+
+/*
+=============
+Mod_AvgPixel
+leilei
+based on John Carmack quake2 code
+=============
+*/
+void Mod_AvgPixel (model_t *mod, int skinnum, int count, byte *skin)
+{
+	int		r,g,b;
+	int		i;
+	int		vis;
+	int		pix;
+	int		bestcolor;
+	int		fullbright;
+
+	if (coloredlights){
+//	mod->avgcol[0+skinnum] = 1;
+//	mod->avgcol[1+skinnum] = 1;
+//	mod->avgcol[2+skinnum] = 1;
+			return;
+	}
+	
+	vis = 0;
+	r = g = b = 0;
+	fullbright = 0;
+	for (i=0 ; i<count ; i++)
+	{
+		pix = skin[i];
+		
+		r += host_basepal[pix*3];
+		g += host_basepal[pix*3+1];
+		b += host_basepal[pix*3+2];
+		vis++;
+	}
+		
+	r /= vis;
+	g /= vis;
+	b /= vis;
+
+	// error diffusion
+//	r += d_red;
+//	g += d_green;
+//	b += d_blue;
+//	mod->avgcol[0+skinnum] = r / 255;
+//	mod->avgcol[1+skinnum] = g / 255;
+//	mod->avgcol[2+skinnum] = b / 255;
+//	return pal;
 }
 
 
@@ -637,22 +1316,7 @@ void * Mod_LoadAliasSkin (void * pin, int *pskinindex, int skinsize,
 	pinskin = (byte *)pin;
 	*pskinindex = (byte *)pskin - (byte *)pheader;
 
-	if (r_pixbytes == 1)
-	{
-		Q_memcpy (pskin, pinskin, skinsize);
-	}
-	else if (r_pixbytes == 2)
-	{
-		pusskin = (unsigned short *)pskin;
-
-		for (i=0 ; i<skinsize ; i++)
-			pusskin[i] = d_8to16table[pinskin[i]];
-	}
-	else
-	{
-		Sys_Error ("Mod_LoadAliasSkin: driver set invalid r_pixbytes: %d\n",
-				 r_pixbytes);
-	}
+	Q_memcpy (pskin, pinskin, skinsize);
 
 	pinskin += skinsize;
 
@@ -844,6 +1508,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 											&pskindesc[i].skin,
 											skinsize, pheader);
 		}
+//			Mod_AvgPixel(mod, numskins, 56, &pskindesc[i].pcachespot);
 	}
 
 //
@@ -861,7 +1526,12 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 		pstverts[i].s = LittleLong (pinstverts[i].s) << 16;
 		pstverts[i].t = LittleLong (pinstverts[i].t) << 16;
 	}
-
+#ifdef MHINTERPOL
+	R_CheckAliasVerts (pmodel->numverts);
+#endif
+#ifdef INTERPOL7
+	R_CheckAliasVerts (pmodel->numverts);
+#endif
 //
 // set up the triangles
 //
@@ -872,14 +1542,20 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 
 	for (i=0 ; i<pmodel->numtris ; i++)
 	{
-		int		j;
+		//int		j;
 
 		ptri[i].facesfront = LittleLong (pintriangles[i].facesfront);
 
-		for (j=0 ; j<3 ; j++)
+	//	leilei - unrolled
 		{
-			ptri[i].vertindex[j] =
-					LittleLong (pintriangles[i].vertindex[j]);
+			ptri[i].vertindex[0] =
+					LittleLong (pintriangles[i].vertindex[0]);
+
+			ptri[i].vertindex[1] =
+					LittleLong (pintriangles[i].vertindex[1]);
+
+			ptri[i].vertindex[2] =
+					LittleLong (pintriangles[i].vertindex[2]);
 		}
 	}
 
@@ -926,6 +1602,9 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 	mod->mins[0] = mod->mins[1] = mod->mins[2] = -16;
 	mod->maxs[0] = mod->maxs[1] = mod->maxs[2] = 16;
 
+
+	
+
 //
 // move the complete, relocatable alias model to the cache
 //
@@ -938,6 +1617,8 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 	memcpy (mod->cache.data, pheader, total);
 
 	Hunk_FreeToLowMark (start);
+
+
 }
 
 //=============================================================================
@@ -947,7 +1628,7 @@ void Mod_LoadAliasModel (model_t *mod, void *buffer)
 Mod_LoadSpriteFrame
 =================
 */
-void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe)
+void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe, int version)
 {
 	dspriteframe_t		*pinframe;
 	mspriteframe_t		*pspriteframe;
@@ -979,7 +1660,36 @@ void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe)
 
 	if (r_pixbytes == 1)
 	{
+		if (version == SPRITE32_VERSION)
+		{	//downgrade quality
+
+		//	ppixin = (unsigned char *)(pinframe + 1);
+		//	ppixout = (unsigned char *)&pspriteframe->p.d.data[0];
+		//	ppixin = (unsigned char *)(pinframe + 1);
+		//	ppixout = (unsigned char *)&pspriteframe->pixels[0];
+		//	ppixout = &pspriteframe->pixels[0];
+
+			for (i=0 ; i<size ; i++)
+			{
+		//		if (ppixin[i*4+3] < 128)
+		//			ppixout[i] = 255;	//transparent.
+			//	else
+			//		ppixout[i] = palmap[ppixin[i*4]][ppixin[i*4+1]][ppixin[i*4+2]];
+			}
+			size *= 4;
+		}
+		else
+		//	Q/_memcpy (&pspriteframe->p.d.data[0], (qbyte *)(pinframe + 1), size);
 		Q_memcpy (&pspriteframe->pixels[0], (byte *)(pinframe + 1), size);
+		// leilei - quick palette translation
+	if (rmap_ready){
+		int bah;
+		for (bah = 0; bah < pspriteframe->width*pspriteframe->height; bah++)
+			pspriteframe->pixels[bah] = coltranslate[pspriteframe->pixels[bah]];
+		
+		}
+
+
 	}
 	else if (r_pixbytes == 2)
 	{
@@ -1004,7 +1714,7 @@ void * Mod_LoadSpriteFrame (void * pin, mspriteframe_t **ppframe)
 Mod_LoadSpriteGroup
 =================
 */
-void * Mod_LoadSpriteGroup (void * pin, mspriteframe_t **ppframe)
+void * Mod_LoadSpriteGroup (void * pin, mspriteframe_t **ppframe, int version)
 {
 	dspritegroup_t		*pingroup;
 	mspritegroup_t		*pspritegroup;
@@ -1044,7 +1754,7 @@ void * Mod_LoadSpriteGroup (void * pin, mspriteframe_t **ppframe)
 
 	for (i=0 ; i<numframes ; i++)
 	{
-		ptemp = Mod_LoadSpriteFrame (ptemp, &pspritegroup->frames[i]);
+		ptemp = Mod_LoadSpriteFrame (ptemp, &pspritegroup->frames[i], version);
 	}
 
 	return ptemp;
@@ -1065,13 +1775,18 @@ void Mod_LoadSpriteModel (model_t *mod, void *buffer)
 	int					numframes;
 	int					size;
 	dspriteframetype_t	*pframetype;
-
+	int					spr32;		// leilei 
 	pin = (dsprite_t *)buffer;
 
 	version = LittleLong (pin->version);
+
+	if (version != 32)
 	if (version != SPRITE_VERSION)
-		Sys_Error ("%s has wrong version number "
+		Sys_Error ("%s has wrong version number"
 				 "(%i should be %i)", mod->name, version, SPRITE_VERSION);
+
+	if (version == 32)
+			spr32 = 1;	// yep it's a sprite32.
 
 	numframes = LittleLong (pin->numframes);
 
@@ -1115,13 +1830,13 @@ void Mod_LoadSpriteModel (model_t *mod, void *buffer)
 		{
 			pframetype = (dspriteframetype_t *)
 					Mod_LoadSpriteFrame (pframetype + 1,
-										 &psprite->frames[i].frameptr);
+										 &psprite->frames[i].frameptr, version);
 		}
 		else
 		{
 			pframetype = (dspriteframetype_t *)
 					Mod_LoadSpriteGroup (pframetype + 1,
-										 &psprite->frames[i].frameptr);
+										 &psprite->frames[i].frameptr, version);
 		}
 	}
 

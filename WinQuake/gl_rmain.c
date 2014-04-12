@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // r_main.c
 
 #include "quakedef.h"
-
+#include "mathlib.h"
 entity_t	r_worldentity;
 
 qboolean	r_cache_thrash;		// compatability
@@ -47,7 +47,18 @@ int			playertextures;		// up to 16 color translated skins
 int			mirrortexturenum;	// quake texturenum, not gltexturenum
 qboolean	mirror;
 mplane_t	*mirror_plane;
+cvar_t  *r_lerpmodels;
+cvar_t  *r_lowdetail;
+cvar_t  *r_lowworld;
 
+
+
+cvar_t  *r_shift1;	// Only used for debugging
+cvar_t  *r_shift2;	// Too
+cvar_t  *r_lowmodels;
+cvar_t  *r_coloredlights;
+cvar_t  *r_coloreddyns;
+cvar_t  *r_menucolor;
 //
 // view origin
 //
@@ -55,7 +66,12 @@ vec3_t	vup;
 vec3_t	vpn;
 vec3_t	vright;
 vec3_t	r_origin;
-
+cvar_t  *r_particlespray;
+cvar_t  *r_particleblood;
+cvar_t  *r_particleset;
+cvar_t  *r_flares;
+int		particlespray;
+int		particleblood;
 float	r_world_matrix[16];
 float	r_base_world_matrix[16];
 
@@ -525,6 +541,7 @@ void R_DrawAliasModel (entity_t *e)
 	}
 // 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
+
 	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
 	{
 		if (cl_dlights[lnum].die >= cl.time)
@@ -540,6 +557,7 @@ void R_DrawAliasModel (entity_t *e)
 				ambientlight += add;
 				//ZOID models should be affected by dlights as well
 				shadelight += add;
+					R_LightPoint(currententity->origin);	// lightcolor is all that matters from this
 */
 				lightcolor[0] += add * cl_dlights[lnum].color[0];
 				lightcolor[1] += add * cl_dlights[lnum].color[1];
@@ -739,17 +757,6 @@ R_DrawViewModel
 */
 void R_DrawViewModel (void)
 {
-// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
-/*
-	float		ambient[4], diffuse[4];
-	int			j;
-	int			lnum;
-	vec3_t		dist;
-	float		add;
-	dlight_t	*dl;
-	int			ambientlight, shadelight;
-*/
-// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	if (!r_drawviewmodel->value)
 		return;
@@ -807,6 +814,7 @@ void R_DrawViewModel (void)
 	// hack the depth range to prevent view model from poking into walls
 	glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
 	R_DrawAliasModel (currententity);
+
 	glDepthRange (gldepthmin, gldepthmax);
 }
 

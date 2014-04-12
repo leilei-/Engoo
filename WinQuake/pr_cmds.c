@@ -43,12 +43,76 @@ char *pr_extensions[] =
 	"DP_QC_RANDOMVEC",
 	"DP_QC_MINMAXBOUND",
 	"DP_QC_FINDFLOAT",
-
 	"DP_QC_COPYENTITY",
 	"DP_SV_SETCOLOR",
 	"DP_QC_FINDCHAIN",
 	"DP_QC_FINDCHAINFLOAT",
 // 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+// 2010-11-02 More Darkplaces extensions added by leilei start
+	"DP_EF_ADDITIVE",	
+	"DP_EF_BLUE",		
+	"DP_EF_RED",		
+	"DP_EF_NODRAW",
+	"DP_EF_FULLBRIGHT",
+//	"DP_ENT_ALPHA",
+	"DP_MOVETYPEBOUNCEMISSILE",	
+	"DP_LITSUPPORT",	// finally!
+	"FRIK_FILE",	
+	"TQ_RAILTRAIL",	
+	"TQ_RAIN",	
+	"TQ_SNOW",	
+	// To be added! QSB Proposed extensions laundry list:
+	/*
+
+
+	DP_GFX_EXTERNALTEXTURES	// may be unneccessary, but needed for md2/md3
+	DP_GFX_SKYBOX
+	DP_CL_LOADSKY
+	DP_BUTTONUSE	// there is +use, but nothing to the actual +buttonuse
+	DP_CON_SET
+	DP_CON_SETA		// i think this is added by maddes, but unextensioned
+	DP_ENT_SCALE	// some skeleton scaling stuff in already
+	DP_ENT_EXTERIORMODELTOCLIENT
+	DP_ENT_VIEWMODEL	// this one is tough as it involves matrix math
+	DP_INPUTBUTTONS
+	DP_MONSTERWALK
+	DP_MOVETYPEFOLLOW	// movetype_follow in currently is 'quake2' stuff
+	DP_QC_CVAR_STRING
+	DP_QC_FINDFLAGS
+	DP_QC_FS_SEARCH
+	DP_QC_UNLIMITEDTEMPSTRINGS
+	DP_QC_TRACE_MOVETYPE_WORLDONLY
+	DP_QC_VECTOANGLES_WITH_ROLL
+	DP_QUAKE2_MODEL	// do we really need crappy md2? GUYS...
+	DP_SND_DIRECTIONLESSATTNNONE	// and cvared, too. quakeguy death uses attnnone
+	DP_SND_FAKETRACKS	// sort of in for midi, but not ogg or mod at the moment
+	DP_SOLIDCORPSE
+	DP_SV_DRAWONLYTOCLIENT
+	DP_SV_ENTITYCONTENTSTRANSITION
+	DP_SV_MOVETYPESTEP_LANDEVENT	// oof!
+	DP_SV_POINTSOUND
+	DP_SV_NODRAWTOCLIENT		// good for 'parental lock', and germany
+	DP_SV_PRECACHEANYTIME
+	DP_SV_ROTATINGBMODEL	// this in sort of
+	DP_TE_STANDARDEFFECTBUILTINS
+	FTE_TE_STANDARDEFFECTBUILTINS	// both i think may be implemented. untested
+	DP_VIEWZOOM				// simple in concept but this one is very hard to do in wq
+	KRIMZON_SV_PARSECLIENTCOMMAND	
+	FTE_QC_CHECKPVS
+	FTE_STRINGS
+	NEH_RESTOREGAME
+	QSB_FOG
+	QSB_GAMEPLAYFIXES
+	QSB_MOVINGSOUNDS	// lol i can do this
+
+
+
+
+
+
+
+
+  */
 };
 
 int pr_numextensions = sizeof(pr_extensions)/sizeof(pr_extensions[0]);
@@ -306,7 +370,7 @@ void PF_setsize (void)
 	SetMinMaxSize (e, min, max, false);
 }
 
-
+void THE_precache_model (char *barf);
 /*
 =================
 PF_setmodel
@@ -329,8 +393,15 @@ void PF_setmodel (void)
 		if (!strcmp(*check, m))
 			break;
 
-	if (!*check)
-		PR_RunError ("no precache: %s\n", m);
+		if (!*check){
+
+		//PR_RunError ("no precache: %s\n", m);
+			THE_precache_model(m);
+			//e->v.model = NULL;
+			return;
+			
+
+		}
 
 
 	e->v.model = m - pr_strings;
@@ -338,10 +409,15 @@ void PF_setmodel (void)
 
 	mod = sv.models[(int)e->v.modelindex];	// Mod_ForName (m, true);
 
-	if (mod)
+	if (mod){
 		SetMinMaxSize (e, mod->mins, mod->maxs, true);
+
+	}
 	else
+	{
 		SetMinMaxSize (e, vec3_origin, vec3_origin, true);
+		
+	}
 }
 
 /*
@@ -375,6 +451,14 @@ void PF_sprint (void)
 	char		*s;
 	client_t	*client;
 	int			entnum;
+#ifdef GLOBOT
+edict_t		*ent;
+	ent = G_EDICT(OFS_PARM0);	
+
+	if (!ent->bot.isbot)
+	{
+
+#endif
 
 	entnum = G_EDICTNUM(OFS_PARM0);
 	s = PF_VarString(1);
@@ -389,6 +473,9 @@ void PF_sprint (void)
 
 	MSG_WriteChar (&client->message,svc_print);
 	MSG_WriteString (&client->message, s );
+#ifdef GLOBOT
+		}
+#endif
 }
 
 
@@ -406,7 +493,14 @@ void PF_centerprint (void)
 	char		*s;
 	client_t	*client;
 	int			entnum;
+#ifdef GLOBOT
+edict_t		*ent;
+	ent = G_EDICT(OFS_PARM0);	
 
+	if (!ent->bot.isbot)
+	{
+
+#endif
 	entnum = G_EDICTNUM(OFS_PARM0);
 	s = PF_VarString(1);
 
@@ -420,6 +514,9 @@ void PF_centerprint (void)
 
 	MSG_WriteChar (&client->message,svc_centerprint);
 	MSG_WriteString (&client->message, s );
+#ifdef GLOBOT
+		}
+#endif
 }
 
 
@@ -664,6 +761,47 @@ void PF_sound (void)
 	SV_StartSound (entity, channel, sample, volume, attenuation);
 }
 
+
+/*
+=================
+PF_sound3
+
+With a pitch
+
+=================
+*/
+
+void PF_sound3 (void)
+{
+	char		*sample;
+	int			channel;
+	edict_t		*entity;
+	int 		volume;
+	float		pitch;
+//	float flags;
+	float attenuation;
+
+	entity = G_EDICT(OFS_PARM0);
+	channel = G_FLOAT(OFS_PARM1);
+	sample = G_STRING(OFS_PARM2);
+	volume = G_FLOAT(OFS_PARM3) * 255;
+	attenuation = G_FLOAT(OFS_PARM4);
+	pitch = G_FLOAT(OFS_PARM5);
+	Con_Printf ("pitch got %i\n", pitch);
+//	flags = G_FLOAT(OFS_PARM6);
+
+	if (volume < 0 || volume > 255)
+		Sys_Error ("SV_StartSound2: volume = %i", volume);
+
+	if (attenuation < 0 || attenuation > 4)
+		Sys_Error ("SV_StartSound2: attenuation = %f", attenuation);
+
+	if (channel < 0 || channel > 7)
+		Sys_Error ("SV_StartSound2: channel = %i", channel);
+
+	SV_StartSound2 (entity, channel, sample, volume, attenuation, pitch); //, flags);
+
+}
 /*
 =================
 PF_break
@@ -889,7 +1027,15 @@ void PF_stuffcmd (void)
 	int		entnum;
 	char	*str;
 	client_t	*old;
+#ifdef GLOBOT
+	edict_t		*ent;
+	static qboolean	next_is_value;
+	ent = G_EDICT(OFS_PARM0);	
+	 next_is_value = false;
+	if (!ent->bot.isbot)
+	{
 
+#endif
 	entnum = G_EDICTNUM(OFS_PARM0);
 	if (entnum < 1 || entnum > svs.maxclients)
 		PR_RunError ("Parm 0 not a client");
@@ -899,6 +1045,56 @@ void PF_stuffcmd (void)
 	host_client = &svs.clients[entnum-1];
 	Host_ClientCommands ("%s", str);
 	host_client = old;
+#ifdef GLOBOT
+		}
+		// MAD UGLY HACK TO GET TEAM FORTRESS TO WORK WITH GLOBOT
+	else
+	{
+		str = G_STRING (OFS_PARM1);
+
+		if (str[0] == 'c' &&
+			str[1] == 'o' &&
+			str[2] == 'l' &&
+			str[3] == 'o' &&
+			str[4] == 'r')
+		{
+			next_is_value = true;
+			return;
+		}
+		else if (next_is_value)
+		{
+			int		value;
+
+			Con_Printf (str);
+
+			next_is_value = false;
+
+			entnum = G_EDICTNUM(OFS_PARM0);
+			old = &svs.clients[entnum-1];
+
+			if (str[0] == '4')
+				value = 4;
+			else if (str[0] == '1' && str[1] == '1')
+				value = 11;
+			else if (str[0] == '1' && str[1] == '2')
+				value = 12;
+			else if (str[0] == '1' && str[1] == '3')
+				value = 13;
+			else
+				return;
+
+			old->colors = value * 16 + value;
+			old->edict->v.team = value + 1;
+
+		// send notification to all clients
+			MSG_WriteByte (&sv.reliable_datagram, svc_updatecolors);
+			MSG_WriteByte (&sv.reliable_datagram, old - svs.clients);
+			MSG_WriteByte (&sv.reliable_datagram, old->colors);
+		}
+	}
+	// MAD UGLY HACK TO GET TEAM FORTRESS TO WORK WITH GLOBOT
+
+#endif
 }
 
 /*
@@ -990,7 +1186,7 @@ void PF_findradius (void)
 	float	rad;
 	float	*org;
 	vec3_t	eorg;
-	int		i, j;
+	int		i;//, j;
 
 	chain = (edict_t *)sv.edicts;
 
@@ -1004,8 +1200,10 @@ void PF_findradius (void)
 			continue;
 		if (ent->v.solid == SOLID_NOT)
 			continue;
-		for (j=0 ; j<3 ; j++)
-			eorg[j] = org[j] - (ent->v.origin[j] + (ent->v.mins[j] + ent->v.maxs[j])*0.5);
+//		leilei - unrolled
+			eorg[0] = org[0] - (ent->v.origin[0] + (ent->v.mins[0] + ent->v.maxs[0])*0.5);
+			eorg[1] = org[1] - (ent->v.origin[1] + (ent->v.mins[1] + ent->v.maxs[1])*0.5);
+			eorg[2] = org[2] - (ent->v.origin[2] + (ent->v.mins[2] + ent->v.maxs[2])*0.5);
 		if (Length(eorg) > rad)
 			continue;
 
@@ -1090,6 +1288,7 @@ void PF_Remove (void)
 	edict_t	*ed;
 
 	ed = G_EDICT(OFS_PARM0);
+
 	ED_Free (ed);
 }
 
@@ -1236,6 +1435,36 @@ void PF_precache_model (void)
 			return;
 	}
 	PR_RunError ("PF_precache_model: overflow");
+}
+
+// leilei - for debuggereeeng, plz don't use!
+void THE_precache_model (char *barf)
+{
+	char	*s;
+	int		i;
+
+//	if (sv.state != ss_loading)
+//		PR_RunError ("PF_Precache_*: Precache can only be done in spawn functions");
+
+	s = barf;
+	
+	PR_CheckEmptyString (s);
+
+	for (i=0 ; i<MAX_MODELS ; i++)
+	{
+		if (!sv.model_precache[i])
+		{
+			sv.model_precache[i] = s;
+			sv.models[i] = Mod_ForName (s, true);
+			//Sys_Error("it  load. %s. It is model %i. How bitchin is that!", s, i);
+			return;
+		}
+		if (!strcmp(sv.model_precache[i], s)){
+			//Sys_Error("it didn't load. %s", s);
+			return;
+		}
+	}
+	PR_RunError ("THE_precache_model: overflow");
 }
 
 
@@ -1453,15 +1682,19 @@ vector aim(entity, missilespeed)
 =============
 */
 cvar_t	*sv_aim;
-
+extern float gunaimtime;
 void PF_aim (void)
 {
 	edict_t	*ent, *check, *bestent;
 	vec3_t	start, dir, end, bestdir;
-	int		i, j;
+	vec3_t	aimang;
+	int		i;
 	trace_t	tr;
 	float	dist, bestdist;
 //	float	speed;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
+// debug
+	extern particle_t	*active_particles, *free_particles;
+	particle_t	*p;
 
 	ent = G_EDICT(OFS_PARM0);
 //	speed = G_FLOAT(OFS_PARM1);	// 2001-12-10 Reduced compiler warnings by Jeff Ford
@@ -1495,9 +1728,10 @@ void PF_aim (void)
 			continue;
 		if (teamplay->value && ent->v.team > 0 && ent->v.team == check->v.team)
 			continue;	// don't aim at teammate
-		for (j=0 ; j<3 ; j++)
-			end[j] = check->v.origin[j]
-			+ 0.5*(check->v.mins[j] + check->v.maxs[j]);
+		// leilei - unrolled
+			end[0] = check->v.origin[0]+ 0.5*(check->v.mins[0] + check->v.maxs[0]);
+			end[1] = check->v.origin[1]+ 0.5*(check->v.mins[1] + check->v.maxs[1]);
+			end[2] = check->v.origin[2]+ 0.5*(check->v.mins[2] + check->v.maxs[2]);
 		VectorSubtract (end, start, dir);
 		VectorNormalize (dir);
 		dist = DotProduct (dir, pr_global_struct->v_forward);
@@ -1517,13 +1751,47 @@ void PF_aim (void)
 		dist = DotProduct (dir, pr_global_struct->v_forward);
 		VectorScale (pr_global_struct->v_forward, dist, end);
 		end[2] = dir[2];
+
+		
 		VectorNormalize (end);
 		VectorCopy (end, G_VECTOR(OFS_RETURN));
+
+		VectorCopy (end, aimang);
+	//	VectorSubtract (end, dir, aimang);
+		VectorNormalize(aimang);
 	}
 	else
 	{
 		VectorCopy (bestdir, G_VECTOR(OFS_RETURN));
+		VectorCopy (bestdir, aimang);
+	//	VectorSubtract (bestdir, dir, aimang);
 	}
+
+#ifdef LOOKANGLE
+	// leilei - try to hack it in here...
+	{
+		vec3_t	sem;
+		int eh;
+		VectorNormalize(dir);
+		VectorNormalize(bestdir);
+		VectorSubtract(dir, bestdir, sem);
+		//VectorNormalize(sem);
+		for (eh=0; eh<3; eh++){
+	//		if (sem[eh] < 2 && sem[eh] > -2)
+		//		sem[eh] = 0;
+				
+		}
+		
+	gunaimtime = host_frametime; // set the last time we aimed the gun (for interpolation)
+	Con_DPrintf ("%f %f %f AIM\n", aimang[0], aimang[1], aimang[2]);
+	Con_DPrintf ("%f %f %f DIR\n", dir[0], dir[1], dir[2]);
+	Con_DPrintf ("%f %f %f BESTDIR\n", bestdir[0], bestdir[1], bestdir[2]);
+	Con_DPrintf ("%f %f %f START\n", start[0], start[1], start[2]);
+	cl.aimangle[0] = sem[0];
+	cl.aimangle[1] = sem[1];
+	cl.aimangle[2] = sem[2];
+	}
+#endif
 }
 
 /*
@@ -1694,6 +1962,12 @@ sizebuf_t *WriteDest (void)
 
 void PF_WriteByte (void)
 {
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
 // 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
@@ -1708,6 +1982,12 @@ void PF_WriteByte (void)
 
 void PF_WriteChar (void)
 {
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
 // 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
@@ -1722,7 +2002,13 @@ void PF_WriteChar (void)
 
 void PF_WriteShort (void)
 {
-// 2000-05-02 NVS SVC by Maddes  start
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
+	// 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteShort (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
@@ -1736,7 +2022,13 @@ void PF_WriteShort (void)
 
 void PF_WriteLong (void)
 {
-// 2000-05-02 NVS SVC by Maddes  start
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
+	// 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteLong (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
@@ -1750,7 +2042,13 @@ void PF_WriteLong (void)
 
 void PF_WriteAngle (void)
 {
-// 2000-05-02 NVS SVC by Maddes  start
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
+	// 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteAngle (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
@@ -1764,7 +2062,13 @@ void PF_WriteAngle (void)
 
 void PF_WriteCoord (void)
 {
-// 2000-05-02 NVS SVC by Maddes  start
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
+	// 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteCoord (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
@@ -1778,7 +2082,13 @@ void PF_WriteCoord (void)
 
 void PF_WriteString (void)
 {
-// 2000-05-02 NVS SVC by Maddes  start
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
+	// 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteString (G_FLOAT(OFS_PARM0), G_STRING(OFS_PARM1), NULL);
@@ -1793,7 +2103,13 @@ void PF_WriteString (void)
 
 void PF_WriteEntity (void)
 {
-// 2000-05-02 NVS SVC by Maddes  start
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
+	// 2000-05-02 NVS SVC by Maddes  start
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteShort (G_FLOAT(OFS_PARM0), G_EDICTNUM(OFS_PARM1), NULL);
@@ -1813,6 +2129,12 @@ void (float to, float f) WriteFloat
 */
 void PF_WriteFloat (void)
 {
+#ifdef GLOBOT
+		edict_t	*ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
+
+	if (G_FLOAT(OFS_PARM0) == MSG_ONE && ent->bot.isbot)
+		return;
+#endif
 	if (sv.nvs_msgwrites)
 	{
 		NVS_WriteFloat (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
@@ -1842,11 +2164,48 @@ void PF_makestatic (void)
 	MSG_WriteByte (&sv.signon, ent->v.frame);
 	MSG_WriteByte (&sv.signon, ent->v.colormap);
 	MSG_WriteByte (&sv.signon, ent->v.skin);
-	for (i=0 ; i<3 ; i++)
-	{
-		MSG_WriteCoord(&sv.signon, ent->v.origin[i]);
-		MSG_WriteAngle(&sv.signon, ent->v.angles[i]);
-	}
+	// leilei - unrolled
+
+		MSG_WriteCoord(&sv.signon, ent->v.origin[0]);
+		MSG_WriteAngle(&sv.signon, ent->v.angles[0]);
+		MSG_WriteCoord(&sv.signon, ent->v.origin[1]);
+		MSG_WriteAngle(&sv.signon, ent->v.angles[1]);
+		MSG_WriteCoord(&sv.signon, ent->v.origin[2]);
+		MSG_WriteAngle(&sv.signon, ent->v.angles[2]);
+
+#ifdef ALPHASCALE
+
+if(dpprotocol)
+		{
+		float	alpha=1;
+		float	glowcolor = 0;
+		float	glowsize = 0;
+
+		float	scale = 1;
+		int		bits=0;
+		eval_t  *val;
+
+		
+		if (val = GETEDICTFIELDVALUE(ent, pr_field_alpha)  )
+				alpha = val->_float;
+
+		if (alpha < 1)
+				bits |= U_ALPHA;
+
+		MSG_WriteLong(&sv.signon, bits);
+		
+		if (bits & U_ALPHA)
+			MSG_WriteFloat (&sv.signon, alpha);
+		if (bits & U_GLOWSIZE)
+			MSG_WriteFloat (&sv.signon, glowsize);
+		if (bits & U_GLOWCOLOR)
+			MSG_WriteFloat (&sv.signon, glowcolor);
+		MSG_WriteShort(&sv.signon, ent->v.effects);
+
+		}
+
+#endif
+
 
 // throw the entity away now
 	ED_Free (ent);
@@ -1864,7 +2223,13 @@ void PF_setspawnparms (void)
 	edict_t	*ent;
 	int		i;
 	client_t	*client;
+#ifdef GLOBOT
+	ent = G_EDICT(OFS_PARM0);	
 
+	if (!ent->bot.isbot)
+	{
+
+#endif
 	ent = G_EDICT(OFS_PARM0);
 	i = NUM_FOR_EDICT(ent);
 	if (i < 1 || i > svs.maxclients)
@@ -1875,6 +2240,9 @@ void PF_setspawnparms (void)
 
 	for (i=0 ; i< NUM_SPAWN_PARMS ; i++)
 		(&pr_global_struct->parm1)[i] = client->spawn_parms[i];
+#ifdef GLOBOT
+		}
+#endif
 }
 
 /*
@@ -2839,6 +3207,246 @@ void PF_randomvec (void)
 	VectorCopy (temp, G_VECTOR(OFS_RETURN));
 }
 
+// goldquake inheritance
+
+
+void PF_min(void)
+{
+	if (pr_argc >= 3)
+	{
+		int i;
+		float f = G_FLOAT(OFS_PARM0);
+		for (i = 1; i < pr_argc; i++)
+			if (f > G_FLOAT(OFS_PARM0+i*3))
+				f = G_FLOAT(OFS_PARM0+i*3);
+		G_FLOAT(OFS_RETURN) = f;
+	}
+	else
+	{
+		float a = G_FLOAT(OFS_PARM0);
+		float b = G_FLOAT(OFS_PARM1);
+
+		G_FLOAT(OFS_RETURN) = min(a, b);
+	}
+}
+
+void PF_max(void)
+{
+	if (pr_argc >= 3)
+	{
+		int i;
+		float f = G_FLOAT(OFS_PARM0);
+		for (i = 1; i < pr_argc; i++)
+			if (f < G_FLOAT(OFS_PARM0+i*3))
+				f = G_FLOAT(OFS_PARM0+i*3);
+		G_FLOAT(OFS_RETURN) = f;
+	}
+	else
+	{
+		float a = G_FLOAT(OFS_PARM0);
+		float b = G_FLOAT(OFS_PARM1);
+
+		G_FLOAT(OFS_RETURN) = max(a, b);
+	}
+}
+
+void PF_bound(void)
+{
+	float xmin = G_FLOAT(OFS_PARM0);
+	float x = G_FLOAT(OFS_PARM1);
+	float xmax = G_FLOAT(OFS_PARM2);
+
+	if (x < xmin)
+		x = xmin;
+	if (x > xmax)
+		x = xmax;
+
+	G_FLOAT(OFS_RETURN) = x;
+}
+
+void PF_te_blood(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_BLOOD);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+	MSG_WriteChar(&sv.datagram, bound(-128, (int)G_VECTOR(OFS_PARM1)[0], 127));
+	MSG_WriteChar(&sv.datagram, bound(-128, (int)G_VECTOR(OFS_PARM1)[1], 127));
+	MSG_WriteChar(&sv.datagram, bound(-128, (int)G_VECTOR(OFS_PARM1)[2], 127));
+	MSG_WriteByte(&sv.datagram, bound(0, (int)G_FLOAT(OFS_PARM2), 255));
+}
+
+void PF_te_bloodshower(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_BLOODSHOWER);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[2]);
+	MSG_WriteCoord(&sv.datagram, G_FLOAT(OFS_PARM2));
+	MSG_WriteShort(&sv.datagram, (int)bound(0, G_FLOAT(OFS_PARM3), 65535));
+}
+
+void PF_te_gunshot(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_GUNSHOT);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_spike(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_SPIKE);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_superspike(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_SUPERSPIKE);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_explosion(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_EXPLOSION);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_tarexplosion(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_TAREXPLOSION);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_wizspike(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_WIZSPIKE);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_knightspike(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_KNIGHTSPIKE);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_lavasplash(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_LAVASPLASH);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_teleport(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_TELEPORT);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+
+void PF_te_explosion2(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_EXPLOSION2);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+	MSG_WriteByte(&sv.datagram, (int)G_FLOAT(OFS_PARM1));
+	MSG_WriteByte(&sv.datagram, (int)G_FLOAT(OFS_PARM2));
+}
+
+void PF_te_lightning1(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_LIGHTNING1);
+	MSG_WriteShort(&sv.datagram, G_EDICTNUM(OFS_PARM0));
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[2]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[2]);
+}
+
+void PF_te_lightning2(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_LIGHTNING2);
+	MSG_WriteShort(&sv.datagram, G_EDICTNUM(OFS_PARM0));
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[2]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[2]);
+}
+
+void PF_te_lightning3(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_LIGHTNING3);
+	MSG_WriteShort(&sv.datagram, G_EDICTNUM(OFS_PARM0));
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[2]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[2]);
+}
+
+void PF_te_beam(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_BEAM);
+	MSG_WriteShort(&sv.datagram, G_EDICTNUM(OFS_PARM0));
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM1)[2]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM2)[2]);
+}
+
+// !
+/*
+void PF_te_tei_bigexplosion(void)
+{
+	MSG_WriteByte(&sv.datagram, svc_temp_entity);
+	MSG_WriteByte(&sv.datagram, TE_TEI_BIG); // whoops, i stopped typing here
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[0]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[1]);
+	MSG_WriteCoord(&sv.datagram, G_VECTOR(OFS_PARM0)[2]);
+}
+*/
+
 /*
 =================
 PF_copyentity
@@ -3117,45 +3725,44 @@ ebfs_builtin_t pr_ebfs_builtins[] =
 	{   0, "zone", PF_strzone },		// 0 indicates that this entry is just for remapping (because of name and number change)
 	{   0, "unzone", PF_strunzone },
 // 2001-09-20 QuakeC string manipulation by FrikaC/Maddes  end
+	{ 322, "sound3", PF_sound3 },				// leilei - Sound Pitch Builtin
 
 // 2001-11-15 DarkPlaces general builtin functions by LordHavoc  start
 	{ 400, "copyentity", PF_copyentity },
 	{ 401, "setcolor", PF_setcolor },
 	{ 402, "findchain", PF_findchain },
 	{ 403, "findchainfloat", PF_findchainfloat },
-// not implemented yet
-/*
-	{ 404, "effect", PF_... },
-	{ 405, "te_blood", PF_... },
-	{ 406, "te_bloodshower", PF_... },
-	{ 407, "te_explosionrgb", PF_... },
-	{ 408, "te_particlecube", PF_... },
-	{ 409, "te_particlerain", PF_... },
-	{ 410, "te_particlesnow", PF_... },
-	{ 411, "te_spark", PF_... },
-	{ 412, "te_gunshotquad", PF_... },
-	{ 413, "te_spikequad", PF_... },
-	{ 414, "te_superspikequad", PF_... },
-	{ 415, "te_explosionquad", PF_... },
-	{ 416, "te_smallflash", PF_... },
-	{ 417, "te_customflash", PF_... },
-	{ 418, "te_gunshot", PF_... },
-	{ 419, "te_spike", PF_... },
-	{ 420, "te_superspike", PF_... },
-	{ 421, "te_explosion", PF_... },
-	{ 422, "te_tarexplosion", PF_... },
-	{ 423, "te_wizspike", PF_... },
-	{ 424, "te_knightspike", PF_... },
-	{ 425, "te_lavasplash", PF_... },
-	{ 426, "te_teleport", PF_... },
-	{ 427, "te_explosion2", PF_... },
-	{ 428, "te_lightning1", PF_... },
-	{ 429, "te_lightning2", PF_... },
-	{ 430, "te_lightning3", PF_... },
-	{ 431, "te_beam", PF_... },
-	{ 432, "vectorvectors", PF_... },
-*/
-// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+	{ 404, "te_gunshot", PF_te_gunshot },	
+	{ 405, "te_blood", PF_te_blood },				
+	{ 406, "te_bloodshower", PF_te_bloodshower },				
+	{ 411, "te_gunshot", PF_te_gunshot },	// te_spark
+	{ 418, "te_gunshot", PF_te_gunshot },	
+	{ 419, "te_spike", PF_te_spike },	
+	{ 420, "te_superspike", PF_te_superspike },	
+	{ 421, "te_explosion", PF_te_explosion },	
+	{ 422, "te_tarexplosion", PF_te_tarexplosion },	
+	{ 423, "te_wizspike", PF_te_wizspike },	
+	{ 424, "te_knightspike", PF_te_knightspike },	
+	{ 425, "te_lavasplash", PF_te_lavasplash },	
+	{ 426, "te_teleport", PF_te_teleport },	
+	{ 427, "te_explosion2", PF_te_explosion2 },	
+	{ 428, "te_lightning1", PF_te_lightning1 },	
+	{ 429, "te_lightning2", PF_te_lightning2 },	
+	{ 430, "te_lightning3", PF_te_lightning3 },	
+	{ 431, "te_beam", PF_te_beam },	
+//	{ 432, "te_rain", PF_te_rain },	
+//	{ 433, "te_snow", PF_te_snow },	
+//	{ 433, "te_gunshot", PF_te_gunshot },	// te_plasmaburn
+//	{ 433, "te_gunshot", PF_te_gunshot },	// te_plasmaburn
+//	{ 433, "te_gunshot", PF_te_gunshot },	// te_plasmaburn
+//	{ 432, "vectorvectors", PF_te_vectorvectors }
+
+
+
+
+
+
+
 };
 
 int pr_ebfs_numbuiltins = sizeof(pr_ebfs_builtins)/sizeof(pr_ebfs_builtins[0]);

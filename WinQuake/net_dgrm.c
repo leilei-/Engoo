@@ -106,6 +106,7 @@ unsigned long banMask = 0xffffffff;
 
 void NET_Ban_f (void)
 {
+#ifndef WINDOWS31
 	char	addrStr [32];
 	char	maskStr [32];
 	void	(*print) (char *fmt, ...);
@@ -156,6 +157,7 @@ void NET_Ban_f (void)
 			print("BAN ip_address [mask]\n");
 			break;
 	}
+#endif
 }
 #endif
 
@@ -772,7 +774,9 @@ int Datagram_Init (void)
 
 	myDriverLevel = net_driverlevel;
 	Cmd_AddCommand ("net_stats", NET_Stats_f);
-
+#ifdef WINDOWS31
+	return -1;
+#endif
 	if (COM_CheckParm("-nolan"))
 		return -1;
 

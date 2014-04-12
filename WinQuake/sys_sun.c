@@ -71,10 +71,10 @@ int findhandle (void)
 
 /*
 ================
-filelength
+firelength
 ================
 */
-int filelength (FILE *f)
+int firelength (FILE *f)
 {
     int             pos;
     int             end;
@@ -101,7 +101,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	return -1;
     }
     sys_handles[i].hFile = f;
-    sys_handles[i].nLen = filelength(f);
+    sys_handles[i].nLen = firelength(f);
     sys_handles[i].nPos = 0;
     sys_handles[i].pMap = mmap( 0, sys_handles[i].nLen, PROT_READ, MAP_SHARED, fileno( sys_handles[i].hFile ), 0 );
     if (!sys_handles[i].pMap || (sys_handles[i].pMap == (char *)-1))

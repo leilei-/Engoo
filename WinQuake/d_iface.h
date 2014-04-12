@@ -22,7 +22,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WARP_WIDTH		320
 #define WARP_HEIGHT		200
 
-#define MAX_LBM_HEIGHT	480
+
+// LEI low detail hack
+#define LOW_WIDTH		160
+#define LOW_HEIGHT		100
+
+
+
+#define MAX_LBM_HEIGHT	1024 // was 480 and was 200
 
 typedef struct
 {
@@ -31,23 +38,6 @@ typedef struct
 	float	zi;
 } emitpoint_t;
 
-typedef enum {
-	pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2
-} ptype_t;
-
-// !!! if this is changed, it must be changed in d_ifacea.h too !!!
-typedef struct particle_s
-{
-// driver-usable fields
-	vec3_t		org;
-	float		color;
-// drivers never touch the following fields
-	struct particle_s	*next;
-	vec3_t		vel;
-	float		ramp;
-	float		die;
-	ptype_t		type;
-} particle_t;
 
 #define PARTICLE_Z_CLIP	8.0
 
@@ -64,12 +54,13 @@ typedef struct polydesc_s {
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
 typedef struct finalvert_s {
-	int		v[6];		// u, v, s, t, l, 1/z
+	int		v[9];		// u, v, s, t, l, 1/z, ASMME r, g, b
 	int		flags;
 	float	reserved;
 } finalvert_t;
 
-// !!! if this is changed, it must be changed in d_ifacea.h too !!!
+
+//s is changed, it must be changed in d_ifacea.h too !!!
 typedef struct
 {
 	void				*pskin;
@@ -129,6 +120,11 @@ extern float	r_aliasuvscale;		// scale-up factor for screen u and v
 extern int		r_pixbytes;
 extern qboolean	r_dowarp;
 
+
+// Fake Res
+extern int	r_docrap;		// 160x100
+extern int	reflectpass;	// 320x200, for water reflection
+
 extern affinetridesc_t	r_affinetridesc;
 extern spritedesc_t		r_spritedesc;
 extern zpointdesc_t		r_zpointdesc;
@@ -149,8 +145,12 @@ void D_EndDirectRect (int x, int y, int width, int height);
 void D_PolysetDraw (void);
 void D_PolysetDrawFinalVerts (finalvert_t *fv, int numverts);
 void D_DrawParticle (particle_t *pparticle);
+void D_DrawParticle_A33 (particle_t *pparticle);
+void D_DrawParticle_A66 (particle_t *pparticle);
+void D_DrawParticle_Add (particle_t *pparticle);
+void D_DrawParticle_Fog (particle_t *pparticle);
 void D_DrawPoly (void);
-void D_DrawSprite (void);
+void D_DrawSprite (int isthisaparticle);
 void D_DrawSurfaces (void);
 void D_DrawZPoint (void);
 void D_EnableBackBufferAccess (void);
@@ -161,6 +161,7 @@ void D_SetupFrame (void);
 void D_StartParticles (void);
 void D_TurnZOn (void);
 void D_WarpScreen (void);
+void D_CrapScreen (void);
 
 void D_FillRect (vrect_t *vrect, int color);
 void D_DrawRect (void);
@@ -184,6 +185,7 @@ extern byte				*r_skysource;
 
 extern void *acolormap;	// FIXME: should go away
 
+
 //=======================================================================//
 
 // callbacks to Quake
@@ -199,11 +201,16 @@ typedef struct
 	int			surfmip;	// mipmapped ratio of surface texels / world pixels
 	int			surfwidth;	// in mipmapped texels
 	int			surfheight;	// in mipmapped texels
+#ifdef EXPREND
+	pixel_t		*shadowdat;	// destination for generated shadows
+#endif
+
 } drawsurf_t;
 
 extern drawsurf_t	r_drawsurf;
 
 void R_DrawSurface (void);
+void R_DrawSurface32 (void);
 void R_GenTile (msurface_t *psurf, void *pdest);
 
 
@@ -226,4 +233,19 @@ extern int		c_surf;
 extern vrect_t	scr_vrect;
 
 extern byte		*r_warpbuffer;
+extern byte		*r_lowbuffer;
+extern byte		*r_fogbuffer;
+#ifdef WATERREFLECTIONS
+extern byte		*r_reflectbuffer;
+extern byte		*r_shadowbuffer;
+
+extern byte		*r_lowreflectbuffer;
+extern byte		*r_warpreflectbuffer;
+#endif
+/*extern byte		*r_res2buffer;
+extern byte		*r_res3buffer;
+extern byte		*r_res4buffer;
+extern byte		*r_res5buffer;
+
+*/
 

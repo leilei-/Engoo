@@ -28,6 +28,7 @@ typedef struct vmode_s {
 	float		aspect;
 	unsigned	rowbytes;
 	int			planar;
+
 	int			numpages;
 	void		*pextradata;
 	int			(*setmode)(viddef_t *vid, struct vmode_s *pcurrentmode);
@@ -40,6 +41,7 @@ typedef struct vmode_s {
 								   int height);
 	void		(*enddirectrect)(viddef_t *vid, struct vmode_s *pcurrentmode,
 								 int x, int y, int width, int height);
+
 } vmode_t;
 
 // vid_wait settings
@@ -59,6 +61,10 @@ extern cvar_t	*vid_nopageflip;
 extern cvar_t	*_vid_wait_override;
 
 extern unsigned char colormap256[32][256];
+
+// LEILEI EGA MODE
+extern unsigned char colormap16[4][256];
+// LEILEI EGA MODE
 
 extern void	*vid_surfcache;
 extern int	vid_surfcachesize;

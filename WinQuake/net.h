@@ -28,7 +28,11 @@ struct qsockaddr
 
 #define	NET_NAMELEN			64
 
+#ifdef QSB_NET
+#define NET_MAXMESSAGE		65536
+#else
 #define NET_MAXMESSAGE		8192
+#endif
 #define NET_HEADERSIZE		(2 * sizeof(unsigned int))
 #define NET_DATAGRAMSIZE	(MAX_DATAGRAM + NET_HEADERSIZE)
 

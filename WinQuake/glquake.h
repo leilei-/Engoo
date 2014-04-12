@@ -128,12 +128,12 @@ typedef struct
 } drawsurf_t;
 
 
-typedef enum {
-	pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2
-} ptype_t;
+//typedef enum {
+	//pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2, pt_fastgrav, pt_smoke, pt_decel, pt_blood, pt_add, pt_staticfade, pt_addfade,pt_staticfadeadd, pt_slowgravaddfade, pt_bloodsplatten, pt_bloodsplat, pt_blooddrip, pt_bloodrun, pt_bloodfloor, pt_trail, pt_spark, pt_snow, pt_fire6, pt_decal, pt_flare, pt_flare_will_die, pt_sparkvel
+//} ptype_t;
 
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
-typedef struct particle_s
+typedef struct farticle_s
 {
 // driver-usable fields
 	vec3_t		org;
@@ -144,7 +144,17 @@ typedef struct particle_s
 	float		ramp;
 	float		die;
 	ptype_t		type;
-} particle_t;
+
+
+	// NEW STRUCTS
+	float		alpha;
+//	float		splatter;
+	int	blend;
+	float alphavel;
+	int lit;
+	int polor;
+	int trail;
+} farticle_t;
 
 
 //====================================================
@@ -280,3 +290,11 @@ void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
 void R_RotateForEntity (entity_t *e);
 void R_StoreEfrags (efrag_t **ppefrag);
 // 2001-12-10 Reduced compiler warnings by Jeff Ford  end
+
+
+
+
+
+
+void GrabColorMap(void);
+void MakeMy15to8(void);

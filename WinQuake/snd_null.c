@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 
 cvar_t	*bgmvolume;
+cvar_t	*midivolume;
 cvar_t	*volume;
 
 
@@ -37,6 +38,7 @@ S_Init_Cvars (void)
 {
 	volume = Cvar_Get ("volume", "0.7", CVAR_ARCHIVE|CVAR_ORIGINAL);
 	bgmvolume = Cvar_Get ("bgmvolume", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	midivolume = Cvar_Get ("midivolume", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
 }
 // 2001-09-18 New cvar system by Maddes (Init)  end
 
@@ -75,6 +77,10 @@ void S_StaticSound (sfx_t *sfx, vec3_t origin, float vol, float attenuation)
 }
 
 void S_StartSound (int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float fvol,  float attenuation)
+{
+}
+
+void S_StartSound2 (int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float fvol,  float attenuation, int pitch)
 {
 }
 

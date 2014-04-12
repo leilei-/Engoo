@@ -37,8 +37,13 @@ m*_t structures are in-memory
 #define	EF_MUZZLEFLASH 			2
 #define	EF_BRIGHTLIGHT 			4
 #define	EF_DIMLIGHT 			8
+#define	EF_ADDITIVE 			32
+#define	EF_BLUE					64
+#define	EF_RED		 			128
 
+#define	EF_FLAME				1024
 
+// TODO FIXME: sync gl port
 /*
 ==============================================================================
 
@@ -330,7 +335,7 @@ extern	mtriangle_t	triangles[MAXALIASTRIS];
 extern	trivertx_t	*poseverts[MAXALIASFRAMES];
 
 //===================================================================
-
+typedef enum {fg_quake, fg_quake2, fg_quake3, fg_halflife, fg_new, fg_doom, fg_quakeold} fromgame_t;	//useful when we have very similar model types. (eg quake/halflife bsps)
 //
 // Whole model
 //
@@ -420,7 +425,10 @@ typedef struct model_s
 // additional model data
 //
 	cache_user_t	cache;		// only access through Mod_Extradata
-
+// NEW STRUCTS
+	fromgame_t	fromgame;	// fteqw 'from game' check
+	byte		*avgcol;		// leilei for coloring dimlight/brightlight glows
+	int			dontshadow;
 } model_t;
 
 //============================================================================

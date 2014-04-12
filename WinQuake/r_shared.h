@@ -30,8 +30,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAXWORKINGVERTS	(MAXVERTS+4)	// max points in an intermediate
 										//  polygon (while processing)
 // !!! if this is changed, it must be changed in d_ifacea.h too !!!
-#define	MAXHEIGHT		1024
-#define	MAXWIDTH		1280
+#define	MAXHEIGHT		1536
+#define	MAXWIDTH		2560
 #define MAXDIMENSION	((MAXHEIGHT > MAXWIDTH) ? MAXHEIGHT : MAXWIDTH)
 
 #define SIN_BUFFER_SIZE	(MAXDIMENSION+CYCLE)
@@ -39,12 +39,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define INFINITE_DISTANCE	0x10000		// distance that's always guaranteed to
 										//  be farther away than anything in
 										//  the scene
-
+int		sb_scaled;		// leilei - scaled stuff.
+int		console_scaled;		// leilei - scaled stuff.
+int		menu_scaled;		// leilei - scaled stuff.
 //===================================================================
 
 extern void	R_DrawLine (polyvert_t *polyvert0, polyvert_t *polyvert1);
 
 extern int		cachewidth;
+extern int		cacheheight;
 extern pixel_t	*cacheblock;
 extern int		screenwidth;
 
@@ -53,21 +56,34 @@ extern	float	pixelAspect;
 extern int		r_drawnpolycount;
 
 extern cvar_t	*r_clearcolor;
-
+extern cvar_t	*r_lerpmodels;
+extern cvar_t	*r_lerpmove;
 extern int	sintable[SIN_BUFFER_SIZE];
 extern int	intsintable[SIN_BUFFER_SIZE];
-
+extern int	atableofnothingtable[SIN_BUFFER_SIZE];
+extern int	smoothtable[32768][3];
+extern int		noisetable[512][5];		// a table for table
+extern mplane_t	*mirror_plane;
 extern	vec3_t	vup, base_vup;
 extern	vec3_t	vpn, base_vpn;
 extern	vec3_t	vright, base_vright;
 extern	entity_t		*currententity;
+//extern	model_t			*currentmodel;
+extern	float	viewmatrix[3][4];
 
+#ifdef QSB
+#define NUMSTACKEDGES		8192
+#define	MINEDGES			NUMSTACKEDGES
+#define NUMSTACKSURFACES	8192
+#define MINSURFACES			NUMSTACKSURFACES
+#define	MAXSPANS			3000
+#else
 #define NUMSTACKEDGES		2400
 #define	MINEDGES			NUMSTACKEDGES
 #define NUMSTACKSURFACES	800
 #define MINSURFACES			NUMSTACKSURFACES
 #define	MAXSPANS			3000
-
+#endif
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
 typedef struct espan_s
 {
@@ -96,6 +112,7 @@ typedef struct surf_s
 	float		d_ziorigin, d_zistepu, d_zistepv;
 
 	int			pad[2];				// to 64 bytes
+
 } surf_t;
 
 extern	surf_t	*surfaces, *surface_p, *surf_max;
@@ -152,6 +169,12 @@ typedef struct edge_s
 	medge_t			*owner;
 } edge_t;
 
+
+
+
+
 #endif	// _R_SHARED_H_
 
 #endif	// GLQUAKE
+
+

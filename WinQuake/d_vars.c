@@ -41,6 +41,7 @@ fixed16_t	sadjust, tadjust, bbextents, bbextentt;
 
 pixel_t			*cacheblock;
 int				cachewidth;
+int				cacheheight;
 pixel_t			*d_viewbuffer;
 short			*d_pzbuffer;
 unsigned int	d_zrowbytes;
@@ -48,3 +49,10 @@ unsigned int	d_zwidth;
 
 #endif	// !id386
 
+// leilei
+#ifdef WATERREFLECTIONS
+pixel_t			*d_reflectbuffer;
+#endif
+#ifdef EXPREND
+pixel_t			*d_shadowbuffer;
+#endif

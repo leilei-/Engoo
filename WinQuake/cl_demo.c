@@ -342,6 +342,10 @@ void CL_FinishTimeDemo (void)
 	if (!time)
 		time = 1;
 	Con_Printf ("%i frames %5.1f seconds %5.1f fps\n", frames, time, frames/time);
+#ifdef BENCH
+	// lei - bomb to the prompt with results
+		Sys_Error ("%i frames %5.1f seconds %5.1f fps\n", frames, time, frames/time);
+#endif
 }
 
 /*

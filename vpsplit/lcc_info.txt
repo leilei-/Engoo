@@ -1,0 +1,3 @@
+Before using the project files with WEdit32 you have to adapt them to your directory structure.
+1. Replace D:\Coding\Quake with the directory you extracted the QIP Quake source
+2. Replace D:\Programme\Coding\lcc with the directory you installed LCC

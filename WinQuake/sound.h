@@ -36,6 +36,7 @@ typedef struct sfx_s
 {
 	char 	name[MAX_QPATH];
 	cache_user_t	cache;
+
 } sfx_t;
 
 // !!! if this is changed, it much be changed in asm_i386.h too !!!
@@ -47,6 +48,8 @@ typedef struct
 	int 	width;
 	int 	stereo;
 	byte	data[1];		// variable sized
+	int		flags;			// leilei - sound flags!
+	float	ratio;			// leilei - variable sample rate playback
 } sfxcache_t;
 
 typedef struct
@@ -77,6 +80,11 @@ typedef struct
 	vec3_t	origin;			// origin of sound effect
 	vec_t	dist_mult;		// distance multiplier (attenuation/clipK)
 	int		master_vol;		// 0-255 master volume
+
+
+	// ASMME - NEW STRUCTS
+
+	int     step;			// AJA - Pitch shift
 } channel_t;
 
 typedef struct
@@ -93,6 +101,7 @@ void S_Init (void);
 void S_Startup (void);
 void S_Shutdown (void);
 void S_StartSound (int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float fvol,  float attenuation);
+void S_StartSound2 (int entnum, int entchannel, sfx_t *sfx, vec3_t origin, float fvol,  float attenuation, int pitch);
 void S_StaticSound (sfx_t *sfx, vec3_t origin, float vol, float attenuation);
 void S_StopSound (int entnum, int entchannel);
 void S_StopAllSounds(qboolean clear);
@@ -127,8 +136,15 @@ void SNDDMA_Shutdown(void);
 // User-setable variables
 // ====================================================================
 
+#ifdef QSB
+#define	MAX_CHANNELS			512
+#define	MAX_DYNAMIC_CHANNELS	128
+
+#else
 #define	MAX_CHANNELS			128
 #define	MAX_DYNAMIC_CHANNELS	8
+
+#endif
 
 
 extern	channel_t   channels[MAX_CHANNELS];
@@ -174,4 +190,12 @@ void SNDDMA_Submit(void);
 void S_AmbientOff (void);
 void S_AmbientOn (void);
 
+#ifdef DUMB
+extern struct	DUH *duh;
+extern struct	DUH_SIGRENDERER *sr;
 #endif
+
+#endif
+
+
+float	spleed;	// leilei - stupid 'crapify sound' parameter.

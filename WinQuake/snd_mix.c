@@ -27,14 +27,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define DWORD	unsigned long
 #endif
 
-#define	PAINTBUFFER_SIZE	512
+#define	PAINTBUFFER_SIZE	2048
 portable_samplepair_t paintbuffer[PAINTBUFFER_SIZE];
 int		snd_scaletable[32][256];
 int 	*snd_p, snd_linear_count, snd_vol;
 short	*snd_out;
-
+extern cvar_t	*s_underwater;
 void Snd_WriteLinearBlastStereo16 (void);
-
+int		playersnd;		// leilei - dsp effects
 #if	!id386
 void Snd_WriteLinearBlastStereo16 (void)
 {
@@ -61,7 +61,7 @@ void Snd_WriteLinearBlastStereo16 (void)
 	}
 }
 #endif
-
+void SND_PaintDumb(int count);
 void S_TransferStereo16 (int endtime)
 {
 	int		lpos;
@@ -246,7 +246,7 @@ void S_TransferPaintBuffer(int endtime)
 #endif
 }
 
-
+extern cvar_t		*temp1;
 /*
 ===============================================================================
 
@@ -258,6 +258,11 @@ CHANNEL MIXING
 void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int endtime);
 void SND_PaintChannelFrom16 (channel_t *ch, sfxcache_t *sc, int endtime);
 
+void SND_PaintChannelFrom8_II (channel_t *ch, sfxcache_t *sc, int endtime);
+void SND_PaintChannelFrom16_II (channel_t *ch, sfxcache_t *sc, int endtime);
+
+
+
 void S_PaintChannels(int endtime)
 {
 	int 	i;
@@ -265,7 +270,7 @@ void S_PaintChannels(int endtime)
 	channel_t *ch;
 	sfxcache_t	*sc;
 	int		ltime, count;
-
+	int poop;	
 	while (paintedtime < endtime)
 	{
 	// if paintbuffer is smaller than DMA buffer
@@ -280,6 +285,7 @@ void S_PaintChannels(int endtime)
 		ch = channels;
 		for (i=0; i<total_channels ; i++, ch++)
 		{
+			
 			if (!ch->sfx)
 				continue;
 			if (!ch->leftvol && !ch->rightvol)
@@ -287,7 +293,13 @@ void S_PaintChannels(int endtime)
 			sc = S_LoadSound (ch->sfx);
 			if (!sc)
 				continue;
+			
+	if (ch->step < 5)
+			ch->step = 256; // ambient suck hack
+	if (sc->loopstart > 1)
+				ch->step = 256; // loop suck hack
 
+			
 			ltime = paintedtime;
 
 			while (ltime < end)
@@ -299,10 +311,31 @@ void S_PaintChannels(int endtime)
 
 				if (count > 0)
 				{
+
 					if (sc->width == 1)
-						SND_PaintChannelFrom8(ch, sc, count);
+						SND_PaintChannelFrom8_II(ch, sc, count);
 					else
-						SND_PaintChannelFrom16(ch, sc, count);
+						SND_PaintChannelFrom16_II(ch, sc, count);
+
+
+
+					// lol?
+			//		SND_PaintChannelFrom8_II(ch, sc, count + 8);
+			//		SND_PaintChannelFrom8_II(ch, sc, count + 16);
+
+#ifdef DUMB
+				//		SND_PaintDumb(count);
+					
+					/*
+	long duh_sigrenderer_generate_samples(
+	DUH_SIGRENDERER *sigrenderer,
+	float volume, float delta,
+	long size, sample_t **samples);
+
+					*/
+
+#endif
+
 
 					ltime += count;
 				}
@@ -312,7 +345,11 @@ void S_PaintChannels(int endtime)
 				{
 					if (sc->loopstart >= 0)
 					{
-						ch->pos = sc->loopstart;
+//						ch->pos = sc->loopstart;
+//						ch->end = ltime + sc->length - ch->pos;
+
+						// leilei - HACK!
+						ch->pos =  sc->loopstart >> 8;	
 						ch->end = ltime + sc->length - ch->pos;
 					}
 					else
@@ -343,9 +380,9 @@ void SND_InitScaletable (void)
 
 #if	!id386
 
-void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int count)
+void SND_PaintChanneledFrom8 (channel_t *ch, sfxcache_t *sc, int count)
 {
-	int 	data;
+//	int 	data;
 	int		*lscale, *rscale;
 	unsigned char *sfx;
 	int		i;
@@ -354,45 +391,251 @@ void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int count)
 		ch->leftvol = 255;
 	if (ch->rightvol > 255)
 		ch->rightvol = 255;
-
 	lscale = snd_scaletable[ch->leftvol >> 3];
 	rscale = snd_scaletable[ch->rightvol >> 3];
-	sfx = (signed char *)sc->data + ch->pos;
-
-	for (i=0 ; i<count ; i++)
+	if (sc->stereo)
 	{
-		data = sfx[i];
-		paintbuffer[i].left += lscale[data];
-		paintbuffer[i].right += rscale[data];
-	}
+		// LordHavoc: stereo sound support, and optimizations
+		sfx = (unsigned char *)sc->data + ch->pos * 2;
 
+		for (i=0 ; i<count ; i++)
+		{
+			paintbuffer[i].left += lscale[*sfx++];
+			paintbuffer[i].right += rscale[*sfx++];
+		}
+		
+	}
+	else
+	{
+	//	sfx = (unsigned char *)sc->data + ch->pos;
+	    sfx = (signed char *)sc->data;  //AJA - pitch shift
+
+		for (i=0 ; i<count ; i++)
+		{
+			paintbuffer[i].left += lscale[*sfx];
+			paintbuffer[i].right += rscale[*sfx++];
+
+
+		}
+	
+		
+
+	}
 	ch->pos += count;
 }
 
 #endif	// !id386
 
+extern cvar_t *temp2;
+extern cvar_t *temp3;
 
-void SND_PaintChannelFrom16 (channel_t *ch, sfxcache_t *sc, int count)
-{
-	int data;
-	int left, right;
-	int leftvol, rightvol;
-	signed short *sfx;
-	int	i;
+void
+ SND_PaintChannelFrom8_II(channel_t *ch, sfxcache_t *sc, int count)
+ {
+     int data;
+	 unsigned char dater;
+     int *lscale, *rscale;
+	 int lscale2, rscale2;
+     unsigned char *sfx;
+     int i;
+	 int	verb;	// leilei - lame processing test
+	 int ah;
+	 float	arb;
+	 float	sterp;
+     if (ch->leftvol > 255)
+       ch->leftvol = 255;
+     if (ch->rightvol > 255)
+       ch->rightvol = 255;
+ //	if (ch->step < 5)
+//			ch->step = 256; // ambient suck hack
+     lscale = snd_scaletable[ch->leftvol >> 3];
+     rscale = snd_scaletable[ch->rightvol >> 3];
 
-	leftvol = ch->leftvol;
-	rightvol = ch->rightvol;
-	sfx = (signed short *)sc->data + ch->pos;
 
-	for (i=0 ; i<count ; i++)
+	 sterp = ch->step * host_timescale->value;
+	if (sc->stereo > 1)
 	{
-		data = sfx[i];
-		left = (data * leftvol) >> 8;
-		right = (data * rightvol) >> 8;
-		paintbuffer[i].left += left;
-		paintbuffer[i].right += right;
+		
+		// LordHavoc: stereo sound support, and optimizations
+
+
+	// leilei - VERY BAD attempt at stereo sound support
+    
+	sfx = (unsigned char *)sc->data;
+	
+	sfx = (unsigned char *)sc->data;
+     for (i = 0; i < count; i++)
+     {
+		
+			data = (sfx[ch->pos >> 8]);
+		dater = (sfx[ch->pos * 2 >> 8]);
+	//		paintbuffer[i].left += lscale[*sfx++];
+	//		paintbuffer[i].right += rscale[*sfx++];
+        
+		paintbuffer[i].left += lscale[dater++];
+		
+		paintbuffer[i].right += rscale[dater++];
+		
+		
+
+	//ch->step *= host_timescale->value; // slowmo sounds hack	
+      ch->pos += (sterp);
+	  
+      if ((ch->pos >> 8) >= sc->length) break;
+
+
+	}
+	}
+	else
+	{
+    sfx = (signed char *)sc->data;  //@@@
+ 
+     for (i = 0; i < count; i++)
+     {
+
+      //@@@
+      data = sfx[ch->pos >> 8];
+  //      paintbuffer[i].left += lscale[data];
+//        paintbuffer[i].right += rscale[data];
+
+ 			// dumb DSP effects test test
+
+
+	  // This makes it sound muffled. Might use for underwater?
+		//if (playersnd == 2){
+		if ((sc->flags == 2 || playersnd == 2) && s_underwater->value > 1){
+	
+		for (verb = 1; verb > 8; verb++)
+		{
+
+					lscale2 = lscale[data];// / verb;
+					rscale2 = rscale[data];// / verb;
+			paintbuffer[i].left  += lscale2;
+			paintbuffer[i].right += rscale2;
+		}
+		}
+		else
+		{
+        paintbuffer[i].left += lscale[data];
+        paintbuffer[i].right += rscale[data];
+		}
+      //@@@
+
+
+	/*	{
+			int ehhh;
+			for (ehhh=0; ehhh<count; ehhh++){
+				if (ehhh > count+8)
+					paintbuffer[ehhh+8].left += 0;
+				else
+				paintbuffer[ehhh+8].left += paintbuffer[ehhh].left * 0.2;
+			}
+		}*/
+      ch->pos += sterp;
+      if ((ch->pos >> 8) >= sc->length) break;
+    }
+	
 	}
 
-	ch->pos += count;
-}
+ } 
 
+
+void SND_PaintChannelFrom16_II(channel_t *ch, sfxcache_t *sc, int count)
+ {
+   int data;
+   int left, right;
+   int leftvol, rightvol;
+   signed short *sfx;
+   float sterp;
+   int i;
+   int	verb, arb; // leilei
+ 
+   leftvol = ch->leftvol;
+   rightvol = ch->rightvol;
+   	sterp = ch->step * host_timescale->value;
+	if (ch->step < 5)
+			ch->step = 256; // ambient suck hack
+
+  sfx = (signed short *)sc->data;  //@@@
+	
+   for (i = 0; i < count; i++)
+   {
+
+    data = sfx[ch->pos >> 8];  //@@@
+
+     left = (data * leftvol) >> 8;
+     right = (data * rightvol) >> 8;
+//     paintbuffer[i].left += left;
+ //    paintbuffer[i].right += right;
+
+ //	leilei - dsp "effects"
+
+	 		if ((sc->flags == 2 || playersnd == 2) && s_underwater->value > 1){
+				
+		for (verb = 22; verb < 58; verb++)
+		{
+			arb = 1.2 / verb;
+	//	    paintbuffer[i+verb].left += (left * (arb));
+	//		paintbuffer[i+verb].right += (right * (arb));
+			paintbuffer[i+verb].left += left * 0.05;
+		  paintbuffer[i+verb].right += right * 0.04;
+		}
+		}
+		else
+		{
+		  paintbuffer[i].left += left;
+		  paintbuffer[i].right += right;
+		}
+
+    //@@@
+    ch->pos += sterp;
+    if ((ch->pos >> 8) >= sc->length) break;
+  }
+} 
+
+union {
+	short s16[8192];
+	char s8[16384];
+} suffer;
+
+void SND_PaintDumb(int count)
+{
+   int data;
+   int left, right;
+   int leftvol, rightvol;
+   signed short *sfx;
+   //DUH		*sptr [2048];
+   int i;
+   int	verb, arb; // leilei
+	
+//   leftvol = ch->leftvol;
+  // rightvol = ch->rightvol;
+
+	// put the dumb thing in
+//	duh_render(sr,16,0,1 ,0, 2048, sptr);
+//	duh_start_sigrenderer(duh, 0, 1, 0);
+//	duh_sigrenderer_generate_samples(sr, 0, 1, ltime, 0);
+//	duh_render(44100,16,0,1 ,0, 16384, suffer);
+//	duh_start_sigrenderer(duh, 0, 1, 0);
+//	duh_sigrenderer_generate_samples(sr, 0, 1, count, 0);
+	
+	Con_Printf("painting dumb\n");	
+	
+
+
+   for (i = 0; i < count; i++)
+   {
+
+//    data = sfx[ch->pos >> 8];  //@@@
+
+  //   left = (data * leftvol) >> 8;
+  //   right = (data * rightvol) >> 8;
+//
+//	 paintbuffer[i].left += left;
+//	  paintbuffer[i].right += right;
+
+    //@@@
+   // ch->pos += ch->step;
+ //   if ((ch->pos >> 8) >= sc->length) break;
+  }
+} 

@@ -76,9 +76,7 @@ void SV_CheckAllEnts (void)
 			continue;
 		if (check->v.movetype == MOVETYPE_PUSH
 		|| check->v.movetype == MOVETYPE_NONE
-#ifdef QUAKE2
 		|| check->v.movetype == MOVETYPE_FOLLOW
-#endif
 		|| check->v.movetype == MOVETYPE_NOCLIP)
 			continue;
 
@@ -158,6 +156,7 @@ qboolean SV_RunThink (edict_t *ent)
 	pr_global_struct->self = EDICT_TO_PROG(ent);
 	pr_global_struct->other = EDICT_TO_PROG(sv.edicts);
 	PR_ExecuteProgram (ent->v.think);
+
 	return !ent->free;
 }
 
@@ -509,9 +508,7 @@ void SV_PushMove (edict_t *pusher, float movetime)
 			continue;
 		if (check->v.movetype == MOVETYPE_PUSH
 		|| check->v.movetype == MOVETYPE_NONE
-#ifdef QUAKE2
 		|| check->v.movetype == MOVETYPE_FOLLOW
-#endif
 		|| check->v.movetype == MOVETYPE_NOCLIP)
 			continue;
 
@@ -1114,9 +1111,20 @@ SV_Physics_Client
 Player character actions
 ================
 */
+#ifdef GLOBOT
+
+
+void BotPreFrame (client_t *client);
+void BotPostFrame (client_t *client);
+#endif
+
 void SV_Physics_Client (edict_t	*ent, int num)
 {
+#ifdef GLOBOT
+	if (!svs.clients[num-1].active && !ent->bot.Active)
+#else
 	if ( ! svs.clients[num-1].active )
+#endif
 		return;		// unconnected slot
 
 //
@@ -1125,7 +1133,11 @@ void SV_Physics_Client (edict_t	*ent, int num)
 	pr_global_struct->time = sv.time;
 	pr_global_struct->self = EDICT_TO_PROG(ent);
 	PR_ExecuteProgram (pr_global_struct->PlayerPreThink);
-
+		
+#ifdef GLOBOT
+		if (ent->bot.isbot)
+		BotPreFrame (&svs.clients[num-1]);
+#endif
 //
 // do a move
 //
@@ -1186,6 +1198,11 @@ void SV_Physics_Client (edict_t	*ent, int num)
 	pr_global_struct->time = sv.time;
 	pr_global_struct->self = EDICT_TO_PROG(ent);
 	PR_ExecuteProgram (pr_global_struct->PlayerPostThink);
+	
+#ifdef GLOBOT
+		if (ent->bot.isbot)
+		BotPostFrame (&svs.clients[num-1]);
+#endif
 }
 
 //============================================================================
@@ -1203,7 +1220,6 @@ void SV_Physics_None (edict_t *ent)
 	SV_RunThink (ent);
 }
 
-#ifdef QUAKE2
 /*
 =============
 SV_Physics_Follow
@@ -1218,8 +1234,6 @@ void SV_Physics_Follow (edict_t *ent)
 	VectorAdd (PROG_TO_EDICT(ent->v.aiment)->v.origin, ent->v.v_angle, ent->v.origin);
 	SV_LinkEdict (ent, true);
 }
-#endif
-
 /*
 =============
 SV_Physics_Noclip
@@ -1256,16 +1270,13 @@ SV_CheckWaterTransition
 void SV_CheckWaterTransition (edict_t *ent)
 {
 	int		cont;
-#ifdef QUAKE2
 	vec3_t	point;
 
 	point[0] = ent->v.origin[0];
 	point[1] = ent->v.origin[1];
 	point[2] = ent->v.origin[2] + ent->v.mins[2] + 1;
-	cont = SV_PointContents (point);
-#else
 	cont = SV_PointContents (ent->v.origin);
-#endif
+
 	if (!ent->v.watertype)
 	{	// just spawned here
 		ent->v.watertype = cont;
@@ -1277,7 +1288,9 @@ void SV_CheckWaterTransition (edict_t *ent)
 	{
 		if (ent->v.watertype == CONTENTS_EMPTY)
 		{	// just crossed into water
+
 			SV_StartSound (ent, 0, "misc/h2ohit1.wav", 255, 1);
+		
 		}
 		ent->v.watertype = cont;
 		ent->v.waterlevel = 1;
@@ -1286,11 +1299,20 @@ void SV_CheckWaterTransition (edict_t *ent)
 	{
 		if (ent->v.watertype != CONTENTS_EMPTY)
 		{	// just crossed into water
+		//	vec3_t nothin;
+	//		nothin[0] = ent->v.velocity[0] * -0.1;
+	//		nothin[1] = ent->v.velocity[1] * -0.1;
+	//		nothin[2] = ent->v.velocity[2] * -0.5;
+	//		R_ParticleBloodSplash(point, nothin, 44);
 			SV_StartSound (ent, 0, "misc/h2ohit1.wav", 255, 1);
+			//R_Splash(point, ent->v.velocity, 85, 36, ent->v.velocity[2]);
+			
+			
 		}
 		ent->v.watertype = CONTENTS_EMPTY;
 		ent->v.waterlevel = cont;
 	}
+	
 }
 
 /*
@@ -1330,24 +1352,22 @@ void SV_Physics_Toss (edict_t *ent)
 
 	SV_CheckVelocity (ent);
 
-// add gravity
-	if (! ((int)ent->v.flags & FL_ONGROUND)
-		&& ent->v.movetype != MOVETYPE_FLY
-		&& ent->v.movetype != MOVETYPE_BOUNCEMISSILE
-		&& ent->v.movetype != MOVETYPE_FLYMISSILE)
-			SV_AddGravity (ent);
 
 #else
 // if onground, return without moving
+
 	if ( ((int)ent->v.flags & FL_ONGROUND) )
 		return;
 
 	SV_CheckVelocity (ent);
 
 // add gravity
-	if (ent->v.movetype != MOVETYPE_FLY
-	&& ent->v.movetype != MOVETYPE_FLYMISSILE)
-		SV_AddGravity (ent);
+// add gravity
+	if (! ((int)ent->v.flags & FL_ONGROUND)
+		&& ent->v.movetype != MOVETYPE_FLY
+		&& ent->v.movetype != MOVETYPE_BOUNCEMISSILE
+		&& ent->v.movetype != MOVETYPE_FLYMISSILE)
+			SV_AddGravity (ent);
 #endif
 
 // move angles
@@ -1369,10 +1389,9 @@ void SV_Physics_Toss (edict_t *ent)
 
 	if (ent->v.movetype == MOVETYPE_BOUNCE)
 		backoff = 1.5;
-#ifdef QUAKE2
+
 	else if (ent->v.movetype == MOVETYPE_BOUNCEMISSILE)
 		backoff = 2.0;
-#endif
 	else
 		backoff = 1;
 
@@ -1381,16 +1400,15 @@ void SV_Physics_Toss (edict_t *ent)
 // stop if on ground
 	if (trace.plane.normal[2] > 0.7)
 	{
-#ifdef QUAKE2
 		if (ent->v.velocity[2] < 60 || (ent->v.movetype != MOVETYPE_BOUNCE && ent->v.movetype != MOVETYPE_BOUNCEMISSILE))
-#else
-		if (ent->v.velocity[2] < 60 || ent->v.movetype != MOVETYPE_BOUNCE)
-#endif
+
 		{
 			ent->v.flags = (int)ent->v.flags | FL_ONGROUND;
 			ent->v.groundentity = EDICT_TO_PROG(trace.ent);
+
 			VectorCopy (vec3_origin, ent->v.velocity);
 			VectorCopy (vec3_origin, ent->v.avelocity);
+
 		}
 	}
 
@@ -1417,112 +1435,7 @@ This is also used for objects that have become still on the ground, but
 will fall if the floor is pulled out from under them.
 =============
 */
-#ifdef QUAKE2
-void SV_Physics_Step (edict_t *ent)
-{
-	qboolean	wasonground;
-	qboolean	inwater;
-	qboolean	hitsound = false;
-	float		*vel;
-	float		speed, newspeed, control;
-	float		friction;
-	edict_t		*groundentity;
 
-	groundentity = PROG_TO_EDICT(ent->v.groundentity);
-	if ((int)groundentity->v.flags & FL_CONVEYOR)
-		VectorScale(groundentity->v.movedir, groundentity->v.speed, ent->v.basevelocity);
-	else
-		VectorCopy(vec_origin, ent->v.basevelocity);
-//@@
-	pr_global_struct->time = sv.time;
-	pr_global_struct->self = EDICT_TO_PROG(ent);
-	PF_WaterMove();
-
-	SV_CheckVelocity (ent);
-
-	wasonground = (int)ent->v.flags & FL_ONGROUND;
-//	ent->v.flags = (int)ent->v.flags & ~FL_ONGROUND;
-
-	// add gravity except:
-	//   flying monsters
-	//   swimming monsters who are in the water
-	inwater = SV_CheckWater(ent);
-	if (! wasonground)
-		if (!((int)ent->v.flags & FL_FLY))
-			if (!(((int)ent->v.flags & FL_SWIM) && (ent->v.waterlevel > 0)))
-			{
-				if (ent->v.velocity[2] < sv_gravity->value*-0.1)
-					hitsound = true;
-				if (!inwater)
-					SV_AddGravity (ent);
-			}
-
-	if (!VectorCompare(ent->v.velocity, vec_origin) || !VectorCompare(ent->v.basevelocity, vec_origin))
-	{
-		ent->v.flags = (int)ent->v.flags & ~FL_ONGROUND;
-		// apply friction
-		// let dead monsters who aren't completely onground slide
-		if (wasonground)
-			if (!(ent->v.health <= 0.0 && !SV_CheckBottom(ent)))
-			{
-				vel = ent->v.velocity;
-				speed = sqrt(vel[0]*vel[0] +vel[1]*vel[1]);
-				if (speed)
-				{
-					friction = sv_friction->value;
-
-					control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
-					newspeed = speed - host_frametime*control*friction;
-
-					if (newspeed < 0)
-						newspeed = 0;
-					newspeed /= speed;
-
-					vel[0] = vel[0] * newspeed;
-					vel[1] = vel[1] * newspeed;
-				}
-			}
-
-		VectorAdd (ent->v.velocity, ent->v.basevelocity, ent->v.velocity);
-		SV_FlyMove (ent, host_frametime, NULL);
-		VectorSubtract (ent->v.velocity, ent->v.basevelocity, ent->v.velocity);
-
-		// determine if it's on solid ground at all
-		{
-			vec3_t	mins, maxs, point;
-			int		x, y;
-
-			VectorAdd (ent->v.origin, ent->v.mins, mins);
-			VectorAdd (ent->v.origin, ent->v.maxs, maxs);
-
-			point[2] = mins[2] - 1;
-			for	(x=0 ; x<=1 ; x++)
-				for	(y=0 ; y<=1 ; y++)
-				{
-					point[0] = x ? maxs[0] : mins[0];
-					point[1] = y ? maxs[1] : mins[1];
-					if (SV_PointContents (point) == CONTENTS_SOLID)
-					{
-						ent->v.flags = (int)ent->v.flags | FL_ONGROUND;
-						break;
-					}
-				}
-
-		}
-
-		SV_LinkEdict (ent, true);
-
-		if ((int)ent->v.flags & FL_ONGROUND)
-			if (!wasonground)
-				if (hitsound)
-					SV_StartSound (ent, 0, "demon/dland2.wav", 255, 1);
-	}
-
-// regular thinking
-	SV_RunThink (ent);
-	SV_CheckWaterTransition (ent);
-}
-#else
 void SV_Physics_Step (edict_t *ent)
 {
 	qboolean	hitsound;
@@ -1552,7 +1465,7 @@ void SV_Physics_Step (edict_t *ent)
 
 	SV_CheckWaterTransition (ent);
 }
-#endif
+
 
 //============================================================================
 
@@ -1633,19 +1546,15 @@ void SV_Physics (void)
 			SV_Physics_Pusher (ent);
 		else if (ent->v.movetype == MOVETYPE_NONE)
 			SV_Physics_None (ent);
-#ifdef QUAKE2
 		else if (ent->v.movetype == MOVETYPE_FOLLOW)
 			SV_Physics_Follow (ent);
-#endif
 		else if (ent->v.movetype == MOVETYPE_NOCLIP)
 			SV_Physics_Noclip (ent);
 		else if (ent->v.movetype == MOVETYPE_STEP)
 			SV_Physics_Step (ent);
 		else if (ent->v.movetype == MOVETYPE_TOSS
 		|| ent->v.movetype == MOVETYPE_BOUNCE
-#ifdef QUAKE2
 		|| ent->v.movetype == MOVETYPE_BOUNCEMISSILE
-#endif
 		|| ent->v.movetype == MOVETYPE_FLY
 		|| ent->v.movetype == MOVETYPE_FLYMISSILE)
 			SV_Physics_Toss (ent);
@@ -1721,6 +1630,7 @@ trace_t SV_Trace_Toss (edict_t *ent, edict_t *ignore)
 	}
 //	p->color = 224;
 	host_frametime = save_frametime;
+	
 	return trace;
 }
 //#endif	// 2001-09-16 Quake 2 builtin functions by id/Maddes

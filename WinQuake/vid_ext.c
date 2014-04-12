@@ -699,6 +699,9 @@ int VID_ExtraInitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 
 	lvid->maxwarpwidth = WARP_WIDTH;
 	lvid->maxwarpheight = WARP_HEIGHT;
+	lvid->maxlowwidth = 160;
+	lvid->maxlowheight = 200;
+
 
 	VGA_pcurmode = pcurrentmode;
 

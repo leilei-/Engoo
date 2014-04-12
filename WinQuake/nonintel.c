@@ -40,6 +40,28 @@ void R_Surf8Patch ()
 
 /*
 ================
+R_Surf8Patchfast
+================
+*/
+void R_Surf8Patchfast ()
+{
+	// we only patch code on 486
+}
+
+
+
+/*
+================
+R_Surf8PatchRGB
+================
+*/
+void R_Surf8PatchRGB ()
+{
+	// we only patch code on Intel
+}
+
+/*
+================
 R_Surf16Patch
 ================
 */

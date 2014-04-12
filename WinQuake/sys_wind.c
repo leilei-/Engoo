@@ -36,7 +36,12 @@ FILE IO
 
 // 1999-12-23 More PAK files support by Maddes  start
 //#define	MAX_HANDLES		10
+
+#ifdef QSB
+#define	MAX_HANDLES		100
+#else
 #define	MAX_HANDLES		64
+#endif
 // 1999-12-23 More PAK files support by Maddes  end
 FILE	*sys_handles[MAX_HANDLES];
 
@@ -53,10 +58,10 @@ int		findhandle (void)
 
 /*
 ================
-filelength
+firelength
 ================
 */
-int filelength (FILE *f)
+int firelength (FILE *f)
 {
 	int		pos;
 	int		end;
@@ -85,7 +90,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	sys_handles[i] = f;
 	*hndl = i;
 
-	return filelength(f);
+	return firelength(f);
 }
 
 int Sys_FileOpenWrite (char *path)
@@ -212,7 +217,7 @@ void Sys_Sleep (void)
 void Sys_SendKeyEvents (void)
 {
 }
-
+#if !id386
 void Sys_HighFPPrecision (void)
 {
 }
@@ -220,7 +225,7 @@ void Sys_HighFPPrecision (void)
 void Sys_LowFPPrecision (void)
 {
 }
-
+#endif
 char *Sys_ConsoleInput (void)
 {
 	static char	text[256];

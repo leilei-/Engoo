@@ -25,6 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // a pixel can be one, two, or four bytes
 typedef byte pixel_t;
 
+typedef byte faxel_t;
+typedef byte taxel_t;
+typedef byte haxel_t;
+
+
 typedef struct vrect_s
 {
 	int				x,y,width,height;
@@ -35,6 +40,9 @@ typedef struct
 {
 	pixel_t			*buffer;		// invisible buffer
 	pixel_t			*colormap;		// 256 * VID_GRADES size
+#ifdef EGA
+	pixel_t			*egamap;		// 256 * VID_GRADES size
+#endif
 	unsigned short	*colormap16;	// 256 * VID_GRADES size
 	int				fullbright;		// index of first fullbright color
 	unsigned		rowbytes;	// may be > width if displayed in a window
@@ -49,13 +57,24 @@ typedef struct
 	unsigned		conheight;
 	int				maxwarpwidth;
 	int				maxwarpheight;
+
+	int				maxlowwidth;
+	int				maxlowheight;
 	pixel_t			*direct;		// direct drawing to framebuffer, if not
+	unsigned		vconwidth;		// leilei 
+	unsigned		vconheight;
 									//  NULL
+
+#ifdef WATERREFLECTIONS
+	pixel_t			*reflectbuffer;		// leilei - water reflection buffer
+	pixel_t			*shadowbuffer;		// leilei - shadow map buffer
+#endif
+	int				stretched;			// leilei
 } viddef_t;
 
 extern	viddef_t	vid;				// global video state
 extern	unsigned short	d_8to16table[256];
-extern	unsigned	d_8to24table[256];
+//extern	unsigned	d_8to24table[256];
 extern void (*vid_menudrawfn)(void);
 extern void (*vid_menukeyfn)(int key);
 
@@ -80,6 +99,25 @@ int VID_SetMode (int modenum, unsigned char *palette);
 // sets the mode; only used by the Quake engine for resetting to mode 0 (the
 // base mode) on memory allocation failures
 
+void SCR_StretchInit (void);
+void SCR_StretchRefresh (void);
+// if used, refreshes the stretch width/height to avoid clamping the screen
+
+
+
 void VID_HandlePause (qboolean pause);
 // called only on Win32, when pause happens, so the mouse can be released
+
+extern byte globalcolormap[VID_GRADES*256], lastglobalcolor, *lastsourcecolormap;
+
+extern	viddef_t	vid;				// global video state
+extern	unsigned short	d_8to16table[256];
+#ifdef statictest
+extern unsigned	 	d_8to24table[256];
+#else
+extern	unsigned 	d_8to24table[256];
+#endif
+extern	unsigned	d_8to24TranslucentTable[256];
+extern void (*vid_menudrawfn)(void);
+extern void (*vid_menukeyfn)(int key);
 

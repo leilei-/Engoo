@@ -49,6 +49,27 @@ typedef struct
 	byte	translations[VID_GRADES*256];
 } scoreboard_t;
 
+
+
+// tochris
+
+
+typedef struct
+{
+	float					msgtime;
+	float					startlerp;
+	float					deltalerp;
+	float					frametime;
+	float					syncbase;
+
+	entity_state_t			baseline;		// to fill in defaults in updates
+	entity_state_t			prev;
+	entity_state_t			current;
+
+	vec3_t					lerp_origin;
+} centity_t;
+
+
 typedef struct
 {
 	int		destcolor[3];
@@ -59,9 +80,13 @@ typedef struct
 #define	CSHIFT_DAMAGE	1
 #define	CSHIFT_BONUS	2
 #define	CSHIFT_POWERUP	3
-#define	NUM_CSHIFTS		4
+#define	CSHIFT_EXTRA	4
+#define	CSHIFT_EXTRA2	5
+#define	CSHIFT_EXTRA3	6
+#define	NUM_CSHIFTS		7
 
 #define	NAME_LENGTH	64
+
 
 
 //
@@ -70,7 +95,19 @@ typedef struct
 
 #define	SIGNONS		4			// signon messages to receive before connected
 
-#define	MAX_DLIGHTS		32
+#ifdef QSB
+#define	MAX_DLIGHTS		512	// may slow down 
+#else
+#define	MAX_DLIGHTS		32 
+#endif
+#define	MAX_SHADOWS		64		// was 12442
+
+#define	MAX_FLARES		1024		// was not existing
+#define	MAX_WLIGHTS		36 
+#define	MAX_LIGHTSFROMWORLD		256
+
+
+
 typedef struct
 {
 	vec3_t	origin;
@@ -79,17 +116,49 @@ typedef struct
 	float	decay;				// drop this each second
 	float	minlight;			// don't add when contributing less
 	int		key;
+	
 #ifdef QUAKE2
-	qboolean	dark;			// subtracts light instead of adding
+	
 #endif
 // 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
-	float	color[3];			// color dynamic lightning (not flashblend), Quake default: 1.0/1.0/1.0
+	vec3_t	color;				// LordHavoc: .lit support
 	float	flashcolor[4];		// flashblend color, RGBA, alpha is for screen flash, Quake default: 1.0/0.5/0.0/0.2
+	qboolean	dark;			// subtracts light instead of adding
 // 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
+	qboolean	unmark;			// world dynamic light; don't mark the world.	also useful for muzzleflashes
 } dlight_t;
 
+// leilei - shadowhack
+typedef struct
+{
+	vec3_t	origin;
+	float	radius;
+	float	hard;			// don't add when contributing less
+	float	minlight;
+	int		key;
+	float	die;				
+} shadow_t;
 
+
+typedef struct
+{
+	vec3_t	origin;
+	float	radius;
+	int		key;
+	vec3_t	color;
+	float	flashcolor[4];		// flashblend color, RGBA, alpha is for screen flash, Quake default: 1.0/0.5/0.0/0.2
+	float	die;
+	float	decay;
+	
+} wlight_t;
+
+
+
+#ifdef QSB
+#define	MAX_BEAMS	256
+#else
 #define	MAX_BEAMS	24
+#endif
 typedef struct
 {
 	int		entity;
@@ -98,8 +167,12 @@ typedef struct
 	vec3_t	start, end;
 } beam_t;
 
-#define	MAX_EFRAGS		640
 
+#ifdef QSB
+#define	MAX_EFRAGS		2048
+#else
+#define	MAX_EFRAGS		640
+#endif
 #define	MAX_MAPSTRING	2048
 #define	MAX_DEMOS		8
 #define	MAX_DEMONAME	16
@@ -206,9 +279,11 @@ typedef struct
 	double		oldtime;		// previous cl.time, time-oldtime is used
 								// to decay light values and smooth step ups
 
-
+	// how long it has been since the previous client frame in real time
+	// (not game time, for that use cl.time - cl.oldtime)
+	double realframetime;
 	float		last_received_message;	// (realtime) for net trouble icon
-
+	double		gundrawtime;
 //
 // information that is static for the entire time connected to a server
 //
@@ -243,6 +318,38 @@ typedef struct
 // architectually ugly but it works
 	int			light_level;
 #endif
+
+//#ifdef PROTO
+	// used by bob
+	qboolean oldonground;
+	double lastongroundtime;
+	double hitgroundtime;
+	float bob2_smooth;
+	float bobfall_speed;
+	float bobfall_swing;
+
+	// previous gun angles (for leaning effects)
+	vec3_t gunangles_prev;
+	vec3_t gunangles_highpass;
+	vec3_t gunangles_adjustment_lowpass;
+	vec3_t gunangles_adjustment_highpass;
+	// previous gun angles (for leaning effects)
+	vec3_t gunorg_prev;
+	vec3_t gunorg_highpass;
+	vec3_t gunorg_adjustment_lowpass;
+	vec3_t gunorg_adjustment_highpass;
+
+//#endif
+#ifdef VMTOC
+	// Sajt: added this stuff
+	vec3_t weapon_origin;
+	vec3_t weapon_angles;
+#endif
+
+#ifdef LOOKANGLE
+		vec3_t		aimangle;		// temporary offset
+		vec3_t		lookangle;		// temporary offset
+#endif
 } client_state_t;
 
 
@@ -268,6 +375,9 @@ extern	cvar_t	*cl_autofire;
 
 extern	cvar_t	*cl_shownet;
 extern	cvar_t	*cl_nolerp;
+
+extern	cvar_t	*cl_sbar;
+extern	cvar_t	*cl_hudswap;
 
 extern	cvar_t	*cl_pitchdriftspeed;
 extern	cvar_t	*lookspring;
@@ -312,6 +422,8 @@ extern	entity_t		*cl_static_entities;
 // 2001-09-20 Configurable entity limits by Maddes  end
 extern	lightstyle_t	cl_lightstyle[MAX_LIGHTSTYLES];
 extern	dlight_t		cl_dlights[MAX_DLIGHTS];
+extern	wlight_t		cl_wlights[MAX_WLIGHTS];
+extern	shadow_t		cl_shadows[MAX_SHADOWS];
 // 2001-09-20 Configurable entity limits by Maddes  start
 //extern	entity_t		cl_temp_entities[MAX_TEMP_ENTITIES];
 extern	entity_t		*cl_temp_entities;
@@ -326,6 +438,13 @@ extern	beam_t			cl_beams[MAX_BEAMS];
 dlight_t *CL_AllocDlight (int key);
 void	CL_DecayLights (void);
 
+
+
+
+shadow_t *CL_AllocShadow (int key);
+
+wlight_t *CL_AllocWlight (int key);
+
 void CL_Init (void);
 
 void CL_EstablishConnection (char *host);
@@ -337,8 +456,11 @@ void CL_Signon4 (void);
 void CL_Disconnect (void);
 void CL_Disconnect_f (void);
 void CL_NextDemo (void);
-
+#ifdef QSB
+#define			MAX_VISEDICTS	MAX_EDICTS
+#else
 #define			MAX_VISEDICTS	256
+#endif
 extern	int				cl_numvisedicts;
 extern	entity_t		*cl_visedicts[MAX_VISEDICTS];
 

@@ -192,6 +192,7 @@ LSpanLoop:
 //
 // now start the FDIV for the end of the span
 //
+
 	cmpl	$8,%ecx
 	ja		LSetupNotLast1
 

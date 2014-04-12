@@ -31,25 +31,26 @@ surfcache_t	*sc_rover, *sc_base;
 
 #define GUARDSIZE	4
 
-int D_SurfaceCacheForRes (int width, int height)
+int     D_SurfaceCacheForRes (int width, int height)
 {
-	int	size, pix;
+	int             size, pix;
 
 	if (COM_CheckParm ("-surfcachesize"))
 	{
 		size = Q_atoi(com_argv[COM_CheckParm("-surfcachesize")+1]) * 1024;
 		return size;
 	}
-
+	
 	size = SURFCACHE_SIZE_AT_320X200;
 
 	pix = width*height;
 	if (pix > 64000)
 		size += (pix-64000)*3;
-
+		
 
 	return size;
 }
+
 
 void D_CheckCacheGuard (void)
 {
@@ -126,17 +127,28 @@ void D_FlushCaches (void)
 D_SCAlloc
 =================
 */
-surfcache_t *D_SCAlloc (int width, int size)
+extern int ditheredrend;
+/*
+=================
+D_SCAlloc
+=================
+*/
+surfcache_t     *D_SCAlloc (int width, int bpp, int size)
 {
-	surfcache_t	*new;
-	qboolean	wrapped_this_time;
+	surfcache_t             *new;
+	qboolean                wrapped_this_time;
 
 	if ((width < 0) || (width > 256))
 		Sys_Error ("D_SCAlloc: bad cache width %d\n", width);
 
-	if ((size <= 0) || (size > 0x10000))
+	
+//	if (ditheredrend)
+	if ((size <= 0) || (size > 0x20000))		// leilei - DITHERDITHER
 		Sys_Error ("D_SCAlloc: bad cache size %d\n", size);
-
+//	else
+//	if ((size <= 0) || (size > 0x10000))		
+//	Sys_Error ("D_SCAlloc: bad cache size %d\n", size);
+	
 	size = (int)&((surfcache_t *)0)->data[size];
 	size = (size + 3) & ~3;
 	if (size > sc_size)
@@ -153,12 +165,12 @@ surfcache_t *D_SCAlloc (int width, int size)
 		}
 		sc_rover = sc_base;
 	}
-
+		
 // colect and free surfcache_t blocks until the rover block is large enough
 	new = sc_rover;
 	if (sc_rover->owner)
 		*sc_rover->owner = NULL;
-
+	
 	while (new->size < size)
 	{
 	// free another
@@ -167,7 +179,7 @@ surfcache_t *D_SCAlloc (int width, int size)
 			Sys_Error ("D_SCAlloc: hit the end of memory");
 		if (sc_rover->owner)
 			*sc_rover->owner = NULL;
-
+			
 		new->size += sc_rover->size;
 		new->next = sc_rover->next;
 	}
@@ -185,13 +197,16 @@ surfcache_t *D_SCAlloc (int width, int size)
 	}
 	else
 		sc_rover = new->next;
-
+	
 	new->width = width;
 // DEBUG
 	if (width > 0)
-		new->height = (size - sizeof(*new) + sizeof(new->data)) / width;
+		new->height = (size - sizeof(*new) + sizeof(new->data)) / (width*bpp);
 
-	new->owner = NULL;	// should be set properly after return
+	new->bytesperpix = bpp;
+	//	new->height = (size - sizeof(*new) + sizeof(new->data)) / width;
+
+	new->owner = NULL;              // should be set properly after return
 
 	if (d_roverwrapped)
 	{
@@ -199,13 +214,15 @@ surfcache_t *D_SCAlloc (int width, int size)
 			r_cache_thrash = true;
 	}
 	else if (wrapped_this_time)
-	{
+	{       
 		d_roverwrapped = true;
 	}
 
-	D_CheckCacheGuard ();	// DEBUG
+D_CheckCacheGuard ();   // DEBUG
 	return new;
 }
+
+
 
 
 /*
@@ -253,6 +270,9 @@ int D_log2 (int num)
 	return c;
 }
 
+#ifdef EXPREND
+extern	int shadowpass;
+#endif
 //=============================================================================
 
 /*
@@ -260,10 +280,11 @@ int D_log2 (int num)
 D_CacheSurface
 ================
 */
+extern int truecolor;
 surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 {
 	surfcache_t	*cache;
-
+	int	merp;
 //
 // if the surface is animating or flashing, flush the cache
 //
@@ -278,7 +299,7 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 //
 	cache = surface->cachespots[miplevel];
 
-	if (cache && !cache->dlight && surface->dlightframe != r_framecount
+	if (cache && !cache->dlight && surface->dlightframe != r_framecount && surface->shadowframe != r_framecount
 			&& cache->texture == r_drawsurf.texture
 			&& cache->lightadj[0] == r_drawsurf.lightadj[0]
 			&& cache->lightadj[1] == r_drawsurf.lightadj[1]
@@ -295,24 +316,43 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	r_drawsurf.rowbytes = r_drawsurf.surfwidth;
 	r_drawsurf.surfheight = surface->extents[1] >> miplevel;
 
+	merp = 1;
+
+if (truecolor)
+	merp = 4;
+
 //
 // allocate memory if needed
 //
 	if (!cache)	// if a texture just animated, don't reallocate it
 	{
-		cache = D_SCAlloc (r_drawsurf.surfwidth,
-						   r_drawsurf.surfwidth * r_drawsurf.surfheight);
+
+if (coloredlights == 2 || truecolor)
+		cache = D_SCAlloc (r_drawsurf.surfwidth, merp, r_drawsurf.surfwidth * r_drawsurf.surfheight * 2);	// leilei - DITHERDITHER
+else if (inthedos)	
+		cache = D_SCAlloc (r_drawsurf.surfwidth, 1, r_drawsurf.surfwidth * r_drawsurf.surfheight);	// leilei - can't go as high in dos :(
+else
+		cache = D_SCAlloc (r_drawsurf.surfwidth, 1, r_drawsurf.surfwidth * r_drawsurf.surfheight * 2);	// leilei - also increased this.
 		surface->cachespots[miplevel] = cache;
 		cache->owner = &surface->cachespots[miplevel];
 		cache->mipscale = surfscale;
 	}
 
-	if (surface->dlightframe == r_framecount)
+	if (surface->dlightframe == r_framecount || surface->shadowframe == r_framecount )
 		cache->dlight = 1;
 	else
 		cache->dlight = 0;
 
+
+#ifdef EXPREND
+//	if (!shadowpass)
+		cache->dlight = 1; // force it
+#endif
 	r_drawsurf.surfdat = (pixel_t *)cache->data;
+#ifdef EXPREND
+	r_drawsurf.shadowdat = (pixel_t *)cache->data;
+
+#endif
 
 	cache->texture = r_drawsurf.texture;
 	cache->lightadj[0] = r_drawsurf.lightadj[0];
@@ -326,9 +366,12 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 	r_drawsurf.surf = surface;
 
 	c_surf++;
+	if (truecolor)
+	R_DrawSurface32 ();
+	else
 	R_DrawSurface ();
 
 	return surface->cachespots[miplevel];
 }
 
-
+// l

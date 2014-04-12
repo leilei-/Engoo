@@ -38,12 +38,14 @@ qpic_t		*draw_backtile;
 int			translate_texture;
 int			char_texture;
 
+
+int dyncolor;
 typedef struct
 {
 	int		texnum;
 	float	sl, tl, sh, th;
 } glpic_t;
-
+cvar_t  *r_waterblend; // 0 - alpha 1 - additive 2 - multiply 3 - gelmap (ewwww!)
 byte		conback_buffer[sizeof(qpic_t) + sizeof(glpic_t)];
 qpic_t		*conback = (qpic_t *)&conback_buffer;
 
@@ -460,40 +462,9 @@ void Draw_Init (void)
 	for (x=0 ; x<y ; x++)
 		Draw_CharToConback (ver[x], dest+(x<<3));
 
-#if 0
-	conback->width = vid.conwidth;
-	conback->height = vid.conheight;
-
- 	// scale console to vid size
- 	dest = ncdata = Hunk_AllocName(vid.conwidth * vid.conheight, "conback");
-
- 	for (y=0 ; y<vid.conheight ; y++, dest += vid.conwidth)
- 	{
- 		src = cb->data + cb->width * (y*cb->height/vid.conheight);
- 		if (vid.conwidth == cb->width)
- 			memcpy (dest, src, vid.conwidth);
- 		else
- 		{
- 			f = 0;
- 			fstep = cb->width*0x10000/vid.conwidth;
- 			for (x=0 ; x<vid.conwidth ; x+=4)
- 			{
- 				dest[x] = src[f>>16];
- 				f += fstep;
- 				dest[x+1] = src[f>>16];
- 				f += fstep;
- 				dest[x+2] = src[f>>16];
- 				f += fstep;
- 				dest[x+3] = src[f>>16];
- 				f += fstep;
- 			}
- 		}
- 	}
-#else
 	conback->width = cb->width;
 	conback->height = cb->height;
 	ncdata = cb->data;
-#endif
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -572,6 +543,9 @@ void Draw_Character (int x, int y, int num)
 	glVertex2f (x, y+8);
 	glEnd ();
 }
+
+
+
 
 /*
 ================
@@ -1431,3 +1405,162 @@ void GL_SelectTexture (GLenum target)
 	currenttexture = cnttextures[target-TEXTURE0_SGIS];
 	oldtarget = target;
 }
+
+
+
+
+
+
+
+// LAZY
+
+
+
+
+/*
+===============
+BestColor
+===============
+*/
+byte BestColor (int r, int g, int b, int start, int stop)
+{
+	int	i;
+	int	dr, dg, db;
+	int	bestdistortion, distortion;
+	int	berstcolor;
+	byte	*pal;
+
+//
+// let any color go to 0 as a last resort
+//
+	bestdistortion = 256*256*4;
+	berstcolor = 0;
+
+	pal = host_basepal + start*3;
+	for (i=start ; i<= stop ; i++)
+	{
+		dr = r - (int)pal[0];
+		dg = g - (int)pal[1];
+		db = b - (int)pal[2];
+		pal += 3;
+		distortion = dr*dr + dg*dg + db*db;
+		if (distortion < bestdistortion)
+		{
+			if (!distortion)
+				return i;		// perfect match
+
+			bestdistortion = distortion;
+			berstcolor = i;
+		}
+	}
+
+	return berstcolor;
+}
+
+
+
+int BestCol (int r, int g, int b)
+{
+	int	i;
+	int	dr, dg, db;
+	int	bestdistortion, distortion;
+	int	berstcolor;
+	byte	*pal;
+	int start = 1;
+	int stop = 254;
+	bestdistortion = 256*256*4;
+	berstcolor = 0;
+	pal = host_basepal + start*3;
+	for (i=start ; i<= stop ; i++)
+	{
+		dr = r - (int)pal[0];
+		dg = g - (int)pal[1];
+		db = b - (int)pal[2];
+		pal += 3;
+		distortion = dr*dr + dg*dg + db*db;
+		if (distortion < bestdistortion)
+		{
+			if (!distortion)
+				return i;		// perfect match
+
+			bestdistortion = distortion;
+			berstcolor = i;
+		}
+	}
+
+	return berstcolor;
+}
+
+
+// COLOR Translation stuff
+// Came straight out of image.c of Quake2 tools
+byte menumap[256][16];			// Nostalgia in a lookup
+byte gelmap[256];				// Unused id effect TO be used somehow. made redundant by menumap
+byte coltranslate[256];			// TranslateToCustomPal - used for taking one palette to another without going through a whole 8to24to15to8 thing
+pixel_t addTable[256][256];		// Additive blending effect
+pixel_t mulTable[256][256];		// Multiply blending effect (for colormod)
+pixel_t transTable[256][256];	// Alpha blending by 33% and 66%
+
+unsigned short	d_8to16table[256]; // adopted from glquake totally unused?
+unsigned	d_8to24table[256];
+
+
+unsigned char d_15to8table[65536]; // 15to8
+byte	palmap[32][32][32];		// For FindColor's fast 15-bit lookup
+byte	palmap2[64][64][64];		// totally unused
+
+byte	palmapnofb[32][32][32];		// for hl map conversion only
+
+// this is just a lookup table version of the above
+
+int FindColor (int r, int g, int b)
+{
+	int		bestcolor;
+	if (r > 255)r = 255;if (r < 0)r = 0;
+	if (g > 255)g = 255;if (g < 0)g = 0;
+	if (b > 255)b = 255;if (b < 0)b = 0;
+	bestcolor = palmap[r>>3][g>>3][b>>3];
+	return bestcolor;
+}
+
+int FindColorNoFB (int r, int g, int b)
+{
+	int		bestcolor;
+	if (r > 255)r = 255;if (r < 0)r = 0;
+	if (g > 255)g = 255;if (g < 0)g = 0;
+	if (b > 255)b = 255;if (b < 0)b = 0;
+	bestcolor = palmapnofb[r>>3][g>>3][b>>3];
+	return bestcolor;
+}
+
+
+
+void MassiveLookupTablesInit (void)
+{
+	//
+	// when you're on 16/24/32bit color hardware accelleration
+	// lookup tables become a thing of the past.
+	//
+	return;
+}
+
+void InitColorColormaps (void)
+{
+	return;
+}
+
+void InitRemap (void)
+{
+	return;
+}
+
+
+// leilei - gl hack
+void Draw_Character_Scaled (int x, int y, unsigned int num)			{ Draw_Character(x, y, num);};
+void Draw_String_Scaled (int x, int y, char *str)			{ Draw_String(x, y, str); };
+void Draw_TransPic_Scaled (int x, int y, qpic_t *pic) { Draw_TransPic(x,y,pic);};
+
+void MakeMy15to8 (unsigned char *palette) {  return; };
+
+void GrabColorMap () { return; };
+

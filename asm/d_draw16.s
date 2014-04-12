@@ -484,6 +484,7 @@ LSetUp1:
 
 	fdiv	%st(1),%st(0)	// this is what we've gone to all this trouble to
 							//  overlap
+							
 	jmp		LFDIVInFlight2
 
 	.align	4

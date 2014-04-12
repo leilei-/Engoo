@@ -25,8 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 
 extern	cvar_t	*gl_glowmap;	// 1999-12-28 OpenGL fullbright fix by Neal White III
-
+#ifdef QSB
+#define	MAX_MOD_KNOWN	4096
+#else
 #define	MAX_MOD_KNOWN	512
+#endif
 model_t	mod_known[MAX_MOD_KNOWN];
 int		mod_numknown;
 
@@ -576,7 +579,7 @@ void Mod_LoadLighting (lump_t *l)
 		if (fileinfo)
 // 2001-09-12 Returning information about loaded file by Maddes  end
 		{
-			Con_Printf("%s loaded from %s\n", litfilename, fileinfo->path->pack ? fileinfo->path->pack->filename : fileinfo->path->filename);	// 2001-09-12 Displaying where .LIT file is loaded from by Maddes
+			Con_DPrintf("%s loaded from %s\n", litfilename, fileinfo->path->pack ? fileinfo->path->pack->filename : fileinfo->path->filename);	// 2001-09-12 Displaying where .LIT file is loaded from by Maddes
 			data = fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
 			if (data[0] == 'Q' && data[1] == 'L' && data[2] == 'I' && data[3] == 'T')
 			{

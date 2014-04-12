@@ -37,6 +37,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <X11/extensions/xf86dga.h>
 #include <X11/extensions/xf86vmode.h>
 
+#define LOW_WIDTH		160
+#define LOW_HEIGHT		200
+
+
 #define WARP_WIDTH		320
 #define WARP_HEIGHT		200
 
@@ -775,6 +779,8 @@ void VID_Init(unsigned char *palette)
 
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
+	vid.maxlowwidth = LOW_WIDTH;
+	vid.maxlowheight = LOW_HEIGHT;
 	vid.colormap = host_colormap;
 	vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
 

@@ -31,7 +31,12 @@ typedef struct
 	dfunction_t		*f;
 } prstack_t;
 
+#ifdef QSB
+#define	MAX_STACK_DEPTH		256
+#else
 #define	MAX_STACK_DEPTH		32
+#endif
+
 prstack_t	pr_stack[MAX_STACK_DEPTH];
 int			pr_depth;
 
@@ -377,6 +382,7 @@ void PR_ExecuteProgram (func_t fnum)
 	{
 		if (pr_global_struct->self)
 			ED_Print (PROG_TO_EDICT(pr_global_struct->self));
+		if(gamemode != GAME_LASER_ARENA)	// leilei - DIRTY HACK HACK HACK
 		Host_Error ("PR_ExecuteProgram: NULL function");
 	}
 

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // protocol.h -- communications protocols
 
 #define	PROTOCOL_VERSION	15
+#define	DPPROTOCOL_VERSION	96
 
 // if the high bit of the servercmd is set, the low bits are fast update flags:
 #define	U_MOREBITS	(1<<0)
@@ -39,7 +40,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	U_SKIN		(1<<12)
 #define	U_EFFECTS	(1<<13)
 #define	U_LONGENTITY	(1<<14)
+// LordHavoc: protocol extension
+#define U_EXTEND1		(1<<15)
+// LordHavoc: first extend byte
+#define U_DELTA			(1<<16) // no data, while this is set the entity is delta compressed (uses previous frame as a baseline, meaning only things that have changed from the previous frame are sent, except for the forced full update every half second)
+#define U_ALPHA			(1<<17) // 1 byte, 0.0-1.0 maps to 0-255, not sent if exactly 1, and the entity is not sent if <=0 unless it has effects (model effects are checked as well)
+#define U_SCALE			(1<<18) // 1 byte, scale / 16 positive, not sent if 1.0
+#define U_EFFECTS2		(1<<19) // 1 byte, this is .effects & 0xFF00 (second byte)
+#define U_GLOWSIZE		(1<<20) // 1 byte, encoding is float/4.0, unsigned, not sent if 0
+#define U_GLOWCOLOR		(1<<21) // 1 byte, palette index, default is 254 (white), this IS used for darklight (allowing colored darklight), however the particles from a darklight are always black, not sent if default value (even if glowsize or glowtrail is set)
+#define U_COLORMOD		(1<<22) // 1 byte, 3 bit red, 3 bit green, 2 bit blue, this lets you tint an object artifically, so you could make a red rocket, or a blue fiend...
+#define U_EXTEND2		(1<<23) // another byte to follow
+// LordHavoc: second extend byte
+#define U_GLOWTRAIL		(1<<24) // leaves a trail of particles (of color .glowcolor, or black if it is a negative glowsize)
+#define U_VIEWMODEL		(1<<25) // attachs the model to the view (origin and angles become relative to it), only shown to owner, a more powerful alternative to .weaponmodel and such
+#define U_FRAME2		(1<<26) // 1 byte, this is .frame & 0xFF00 (second byte)
+#define U_MODEL2		(1<<27) // 1 byte, this is .modelindex & 0xFF00 (second byte)
+#define U_EXTERIORMODEL	(1<<28) // causes this model to not be drawn when using a first person view (third person will draw it, first person will not)
 
+#define U_UNUSED29		(1<<29) 
+#define U_UNUSED30		(1<<30) 
+#define U_EXTEND3		(1<<31) 
 
 #define	SU_VIEWHEIGHT	(1<<0)
 #define	SU_IDEALPITCH	(1<<1)
@@ -49,7 +70,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	SU_VELOCITY1	(1<<5)
 #define	SU_VELOCITY2	(1<<6)
 #define	SU_VELOCITY3	(1<<7)
-//define	SU_AIMENT		(1<<8)  AVAILABLE BIT
+//#define	SU_AIMENT		(1<<8) // AVAILABLE BIT // (This was taken out of qtest, pretty much what aimangle is)
 #define	SU_ITEMS		(1<<9)
 #define	SU_ONGROUND		(1<<10)		// no data follows, the bit is it
 #define	SU_INWATER		(1<<11)		// no data follows, the bit is it
@@ -60,6 +81,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // a sound with no channel is a local only sound
 #define	SND_VOLUME		(1<<0)		// a byte
 #define	SND_ATTENUATION	(1<<1)		// a byte
+#define	SND_PITCH		(1<<1)		// a byte // LEILEI sound pitch zing
 #define	SND_LOOPING		(1<<2)		// a long
 
 
@@ -130,6 +152,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define svc_cutscene		34
 
+// LH Range is 50-69
+#define svc_trailparticles	60		// [short] entnum [short] effectnum [vector] start [vector] end
+#define svc_pointparticles	61		// [short] effectnum [vector] start [vector] velocity [short] count
+#define svc_pointparticles1	62		// [short] effectnum [vector] start, same as svc_pointparticles except velocity is zero and count is 1
+
+
+// leilei's crappy svc builtins
+#define	svc_sound3			81	
+
+
 #define svc_limit			126	// 2001-09-20 Configurable limits by Maddes
 
 #define svc_extra_version	127	// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes
@@ -162,15 +194,68 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	TE_LAVASPLASH		10
 #define	TE_TELEPORT			11
 #define TE_EXPLOSION2		12
-
-// PGM 01/21/97
 #define TE_BEAM				13
-// PGM 01/21/97
 
-#ifdef QUAKE2
-#define TE_IMPLOSION		14
-#define TE_RAILTRAIL		15
-#endif
+// --------------------------------
+//
+// TomazQuake
+//
+// --------------------------------
+#define TE_SNOW				14	
+#define TE_RAIN				15	
+#define	TE_PLASMA			16	
+#define TE_RAILTRAIL		17
+
+// --------------------------------
+// Hexen II Inheritance
+// Doesn't conflict with the DP te_'s, so why not?
+// --------------------------------
+#define TE_STREAM_LIGHTNING_SMALL		24
+#define TE_STREAM_CHAIN			25
+#define TE_STREAM_SUNSTAFF1		26
+#define TE_STREAM_SUNSTAFF2		27
+#define TE_STREAM_LIGHTNING		28
+#define TE_STREAM_COLORBEAM		29
+#define TE_STREAM_ICECHUNKS		30
+#define TE_STREAM_GAZE			31
+#define TE_STREAM_FAMINE		32
+
+
+
+
+
+
+
+#define TE_BLOOD            50
+#define TE_BLOODSHOWER      52
+
+// Nehahra effects used in the movie (TE_EXPLOSION3 also got written up in a QSG tutorial, hence it's not marked NEH)
+//#define	TE_EXPLOSION3		16 // [vector] origin [coord] red [coord] green [coord] blue
+//#define TE_LIGHTNING4NEH	17 // [string] model [entity] entity [vector] start [vector] end
+
+// LordHavoc: added some TE_ codes (block1 - 50-60)
+//#define	TE_SPARK			51 // [vector] origin [byte] xvel [byte] yvel [byte] zvel [byte] count
+//#define	TE_EXPLOSIONRGB		53 // [vector] origin [byte] red [byte] green [byte] blue
+//#define TE_PARTICLECUBE		54 // [vector] min [vector] max [vector] dir [short] count [byte] color [byte] gravity [coord] randomvel
+//#define TE_PARTICLERAIN		55 // [vector] min [vector] max [vector] dir [short] count [byte] color
+//#define TE_PARTICLESNOW		56 // [vector] min [vector] max [vector] dir [short] count [byte] color
+#define TE_GUNSHOTQUAD		57 // [vector] origin
+#define TE_SPIKEQUAD		58 // [vector] origin
+#define TE_SUPERSPIKEQUAD	59 // [vector] origin
+// LordHavoc: block2 - 70-80
+#define TE_EXPLOSIONQUAD	70 // [vector] origin
+//#define	TE_UNUSED1			71 // unused
+//#define TE_SMALLFLASH		72 // [vector] origin
+//#define TE_CUSTOMFLASH		73 // [vector] origin [byte] radius / 8 - 1 [byte] lifetime / 256 - 1 [byte] red [byte] green [byte] blue
+//#define TE_FLAMEJET			74 // [vector] origin [vector] velocity [byte] count
+#define TE_PLASMABURN		75 // [vector] origin
+// LordHavoc: Tei grabbed these codes
+#define TE_TEI_G3			76 // [vector] start [vector] end [vector] color (WAS ANGLES but there's no 'use' for angles.in dp actually)
+#define TE_TEI_SMOKE		77 // [vector] origin [vector] dir [byte] count
+#define TE_TEI_BIGEXPLOSION	78 // [vector] origin
+#define TE_TEI_PLASMAHIT	79 // [vector} origin [vector] dir [byte] count
+
+
 
 // 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  start
 #define VERSION_NVS			1

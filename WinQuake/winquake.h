@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <mmsystem.h>
 // 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  end
 #define WM_MOUSEWHEEL	0x020A
-
+//#define PROTO
 #ifndef SERVERONLY
 #include <ddraw.h>
 #include <dsound.h>

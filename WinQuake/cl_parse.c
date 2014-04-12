@@ -21,6 +21,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
+#ifdef DUMB
+#include "..\dumb\dumb.h"
+#endif
+
+#ifdef ASS_MIDI
+#ifdef _WIN32
+#include "..\midilib\music.h"
+#else
+#include "..\mididos\music.h"
+#endif				// TODO: Care for Linux
+#endif
+
+extern int	lightingavailable		= 0; // leilei - point lighting, determines if our data is made available
+extern int	lightingcantbeavailable = 0;
+void LoadPointLighting (char *entstring);
 char *svc_strings[] =
 {
 	"svc_bad",
@@ -66,12 +81,14 @@ char *svc_strings[] =
 	"svc_sellscreen",
 	"svc_cutscene",			// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes
 							// added commata
+
+				// leilei
 	"svc 35", "svc 36", "svc 37", "svc 38", "svc 39",
 	"svc 40", "svc 41", "svc 42", "svc 43", "svc 44", "svc 45", "svc 46", "svc 47", "svc 48", "svc 49",
 	"svc 50", "svc 51", "svc 52", "svc 53", "svc 54", "svc 55", "svc 56", "svc 57", "svc 58", "svc 59",
 	"svc 60", "svc 61", "svc 62", "svc 63", "svc 64", "svc 65", "svc 66", "svc 67", "svc 68", "svc 69",
 	"svc 70", "svc 71", "svc 72", "svc 73", "svc 74", "svc 75", "svc 76", "svc 77", "svc 78", "svc 79",
-	"svc 80", "svc 81", "svc 82", "svc 83", "svc 84", "svc 85", "svc 86", "svc 87", "svc 88", "svc 89",
+	"svc 80", "svc_sound3", "svc 82", "svc 83", "svc 84", "svc 85", "svc 86", "svc 87", "svc 88", "svc 89",
 	"svc 90", "svc 91", "svc 92", "svc 93", "svc 94", "svc 95", "svc 96", "svc 97", "svc 98", "svc 99",
 	"svc 100", "svc 101", "svc 102", "svc 103", "svc 104", "svc 105", "svc 106", "svc 107", "svc 108", "svc 109",
 	"svc 110", "svc 111", "svc 112", "svc 113", "svc 114", "svc 115", "svc 116", "svc 117", "svc 118", "svc 119",
@@ -172,6 +189,59 @@ void CL_ParseStartSoundPacket(void)
 	S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
 }
 
+
+/*
+==================
+CL_ParseStartSoundPacket2
+==================
+*/
+void CL_ParseStartSoundPacket2(void)
+{
+	vec3_t  pos;
+	int 	channel, ent;
+	int 	sound_num;
+	int 	volume;
+	int 	field_mask;
+	float 	attenuation;
+	int		pitch;
+	int		i;
+	
+	field_mask = MSG_ReadByte();
+
+	if (field_mask & SND_VOLUME)
+		volume = MSG_ReadByte ();
+	else
+		volume = DEFAULT_SOUND_PACKET_VOLUME;
+
+	if (field_mask & SND_ATTENUATION)
+		attenuation = MSG_ReadByte () / 64.0;
+	else
+		attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;
+
+	channel = MSG_ReadShort ();
+	sound_num = MSG_ReadByte ();
+
+	ent = channel >> 3;
+	channel &= 7;
+
+	
+	if (field_mask & SND_PITCH)
+	pitch = MSG_ReadByte ();
+	else
+		pitch = 100;
+	if (pitch < 1)
+			pitch = 1;
+	if (pitch > 255)
+			pitch = 255;
+
+	if (ent > cl.max_edicts)
+		Host_Error ("CL_ParseStartSoundPacket2: ent = %i", ent);
+
+	for (i=0 ; i<3 ; i++)
+		pos[i] = MSG_ReadCoord ();
+
+	S_StartSound2 (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation, pitch);
+}
 /*
 ==================
 CL_KeepaliveMessage
@@ -233,6 +303,77 @@ void CL_KeepaliveMessage (void)
 	SZ_Clear (&cls.message);
 }
 
+
+// Tomaz - Qc Parsing & HL Maps Begin
+void CL_ParseEntityLump(char *entdata)
+{
+	char *data;
+	char key[128], value[4096];
+	char wadname[128];
+	int i, j, k;
+
+//	skyname[0] = 0;
+	data = entdata;
+	if (!data)
+		return;
+	data = COM_Parse(data);
+
+	if (!data)
+		return; // valid exit
+
+	if (com_token[0] != '{')
+		return; // error
+
+	while (1)
+	{
+		data = COM_Parse(data);
+		if (!data)
+			return; // error
+		if (com_token[0] == '}')
+			return; // since we're just parsing the first ent (worldspawn), exit
+		strcpy(key, com_token);
+		while (key[strlen(key)-1] == ' ') // remove trailing spaces
+			key[strlen(key)-1] = 0;
+		data = COM_Parse(data);
+		if (!data)
+			return; // error
+		strcpy(value, com_token);
+	//	if (!strcmp("sky", key))
+		//	R_SetSkyBox(value);		// TODO FIXME LATER ADDME skyboxes from tochris
+//		else if (!strcmp("skyname", key))
+//			R_SetSkyBox(value);
+	if (!strcmp("wad", key)) // for HalfLife maps
+		{
+			j = 0;
+			for (i = 0;i < 4096;i++)
+				if (value[i] != ';' && value[i] != '\\' && value[i] != '/' && value[i] != ':')
+					break;
+			if (value[i])
+			{
+				for (;i < 4096;i++)
+				{
+					// ignore path - the \\ check is for HalfLife... stupid windoze 'programmers'...
+					if (value[i] == '\\' || value[i] == '/' || value[i] == ':')
+						j = i+1;
+					else if (value[i] == ';' || value[i] == 0)
+					{
+						k = value[i];
+						value[i] = 0;
+						strcpy(wadname, "textures/");
+						strcat(wadname, &value[j]);
+						W_LoadTextureWadFile (wadname, false);
+						j = i+1;                                                
+						if (!k)
+							break;
+					}
+				}
+			}
+		}
+	}
+}
+// Tomaz - Qc Parsing & HL Maps End
+
+
 /*
 ==================
 CL_ParseServerInfo
@@ -251,7 +392,21 @@ void CL_ParseServerInfo (void)
 // wipe the client_state_t struct
 //
 	CL_ClearState ();
+#ifdef DPPROTOCOLS
+		i = MSG_ReadLong ();
+	if (i != PROTOCOL_VERSION && i != DPPROTOCOL_VERSION && i != 250)
+	{
+		Con_Printf ("Server returned version %i, not %i or %i", i, DPPROTOCOL_VERSION, PROTOCOL_VERSION);
+		return;
+	}
+//	Nehahrademcompatibility = false;
+//	if (i == 250)
+//		Nehahrademcompatibility = true;
+//	if (cls.demoplayback && demo_nehahra.value)
+//		Nehahrademcompatibility = true;
+	dpprotocol = i == DPPROTOCOL_VERSION;
 
+#else
 // parse protocol version number
 	i = MSG_ReadLong ();
 	if (i != PROTOCOL_VERSION)
@@ -259,7 +414,7 @@ void CL_ParseServerInfo (void)
 		Con_Printf ("Server returned version %i, not %i\n", i, PROTOCOL_VERSION);	// 2000-01-08 Missing linefeeds fix by Maddes
 		return;
 	}
-
+#endif
 // parse maxclients
 	cl.maxclients = MSG_ReadByte ();
 	if (cl.maxclients < 1 || cl.maxclients > MAX_SCOREBOARD)
@@ -353,6 +508,10 @@ void CL_ParseServerInfo (void)
 	Hunk_Check ();		// make sure nothing is hurt
 
 	noclip_anglehack = false;		// noclip is turned off at start
+
+	R_LoadRTLights();		// Gather coronas from .rtlights files!
+//	LoadPointLighting(sv.worldmodel->entities);	// doesn't seem to work when called here
+
 }
 
 
@@ -365,8 +524,9 @@ If an entities model or origin changes from frame to frame, it must be
 relinked.  Other attributes can change without relinking.
 ==================
 */
+//#ifndef SONOFABITS
 int	bitcounts[16];
-
+//#endif
 void CL_ParseUpdate (int bits)
 {
 	int			i;
@@ -390,22 +550,33 @@ void CL_ParseUpdate (int bits)
 		i = MSG_ReadByte ();
 		bits |= (i<<8);
 	}
+#ifdef SONOFABITS
+	// Tomaz - QC Control Begin
+	if (bits & U_EXTEND1)
+	{
+		bits |= MSG_ReadByte() << 16;
+		if (bits & U_EXTEND2)
+			bits |= MSG_ReadByte() << 24;
+	}
 
+#endif
+	// Tomaz - QC Control End
 	if (bits & U_LONGENTITY)
 		num = MSG_ReadShort ();
 	else
 		num = MSG_ReadByte ();
 
 	ent = CL_EntityNum (num);
-
+//#ifndef SONOFABITS
 	for (i=0 ; i<16 ; i++)
 		if (bits&(1<<i))
 			bitcounts[i]++;
-
+//#endif
 	if (ent->msgtime != cl.mtime[1])
 		forcelink = true;	// no previous frame to lerp from
 	else
 		forcelink = false;
+
 
 	ent->msgtime = cl.mtime[0];
 
@@ -421,6 +592,19 @@ void CL_ParseUpdate (int bits)
 	model = cl.model_precache[modnum];
 	if (model != ent->model)
 	{
+#ifdef MHINTERPOL
+		// if the model has changed we must also reset the interpolation data
+      // pose1 and pose2 are critical as they might be pointing to invalid frames in the new model!!!
+      ent->frame_start_time = 0;
+      //ent->frame_interval = 0;
+      ent->lastpose = ent->currpose = 0;
+      //ent->translate_start_time = 0;
+      //ent->origin1[0] = ent->origin1[1] = ent->origin1[2] = 0;
+      //ent->origin2[0] = ent->origin2[1] = ent->origin2[2] = 0;
+      //ent->rotate_start_time = 0;
+      //ent->angles1[0] = ent->angles1[1] = ent->angles1[2] = 0;
+      //ent->angles2[0] = ent->angles2[1] = ent->angles2[2] = 0;
+#endif
 		ent->model = model;
 	// automatic animation (torches, etc) can be either all together
 	// or randomized
@@ -482,9 +666,11 @@ void CL_ParseUpdate (int bits)
 	else
 		ent->skinnum = ent->baseline.skin;
 #endif
-
 	if (bits & U_EFFECTS)
-		ent->effects = MSG_ReadByte();
+	ent->effects = (ent->effects & 0xFF00) | MSG_ReadByte();
+
+//	if (bits & U_EFFECTS)
+//		ent->effects = MSG_ReadByte();
 	else
 		ent->effects = ent->baseline.effects;
 
@@ -519,8 +705,39 @@ void CL_ParseUpdate (int bits)
 	else
 		ent->msg_angles[0][2] = ent->baseline.angles[2];
 
+#ifdef SCALEE
+			ent->scale2 = 1.0f;
+#endif
+#ifdef ALPHASCALE
+
+	if(dpprotocol){
+	if (bits & U_ALPHA)
+			ent->alpha = MSG_ReadFloat ();
+//		else
+	//		ent->alpha = 1.0f;
+#ifdef SCALEE
+	if (bits & U_SCALE)
+		ent->scale2 = MSG_ReadFloat();
+	else
+		ent->scale2 = 1.0f;
+#endif
+	
+	if (bits & U_GLOWCOLOR)
+			ent->glowcolor = MSG_ReadFloat ();
+			else
+			ent->glowcolor = 0;
+	if (bits & U_GLOWSIZE)
+			ent->glowsize = MSG_ReadFloat ();
+		else
+			ent->glowsize = 0;
+	}
+#endif
 	if ( bits & U_NOLERP )
 		ent->forcelink = true;
+#ifdef VMTOC
+	if ( bits & U_VIEWMODEL )
+		ent->viewmodel = true;	
+#endif
 
 	if ( forcelink )
 	{	// didn't have an update last message
@@ -560,6 +777,7 @@ CL_ParseClientdata
 Server information pertaining to this client only
 ==================
 */
+extern int skipbob;
 void CL_ParseClientdata (int bits)
 {
 	int		i, j;
@@ -575,6 +793,9 @@ void CL_ParseClientdata (int bits)
 		cl.idealpitch = 0;
 
 	VectorCopy (cl.mvelocity[0], cl.mvelocity[1]);
+
+	// leilei - unrolled
+	/*
 	for (i=0 ; i<3 ; i++)
 	{
 		if (bits & (SU_PUNCH1<<i) )
@@ -585,6 +806,35 @@ void CL_ParseClientdata (int bits)
 			cl.mvelocity[0][i] = MSG_ReadChar()*16;
 		else
 			cl.mvelocity[0][i] = 0;
+	}
+*/
+	{	
+		if (bits & (SU_PUNCH1<<0) )
+			cl.punchangle[0] = MSG_ReadChar();
+		else
+			cl.punchangle[0] = 0;
+		if (bits & (SU_VELOCITY1<<0) )
+			cl.mvelocity[0][0] = MSG_ReadChar()*16;
+		else
+			cl.mvelocity[0][0] = 0;
+
+		if (bits & (SU_PUNCH1<<1) )
+			cl.punchangle[1] = MSG_ReadChar();
+		else
+			cl.punchangle[1] = 0;
+		if (bits & (SU_VELOCITY1<<1) )
+			cl.mvelocity[0][1] = MSG_ReadChar()*16;
+		else
+			cl.mvelocity[0][1] = 0;
+	
+		if (bits & (SU_PUNCH1<<2) )
+			cl.punchangle[2] = MSG_ReadChar();
+		else
+			cl.punchangle[2] = 0;
+		if (bits & (SU_VELOCITY1<<2) )
+			cl.mvelocity[0][2] = MSG_ReadChar()*16;
+		else
+			cl.mvelocity[0][2] = 0;
 	}
 
 // [always sent]	if (bits & SU_ITEMS)
@@ -625,6 +875,7 @@ void CL_ParseClientdata (int bits)
 	{
 		cl.stats[STAT_WEAPON] = i;
 		Sbar_Changed ();
+
 	}
 
 	i = MSG_ReadShort ();
@@ -669,6 +920,7 @@ void CL_ParseClientdata (int bits)
 			Sbar_Changed ();
 		}
 	}
+
 }
 
 /*
@@ -676,6 +928,7 @@ void CL_ParseClientdata (int bits)
 CL_NewTranslation
 =====================
 */
+extern byte *gelmap [256];
 void CL_NewTranslation (int slot)
 {
 	int		i, j;
@@ -712,6 +965,7 @@ void CL_NewTranslation (int slot)
 		else
 			for (j=0 ; j<16 ; j++)
 				dest[BOTTOM_RANGE+j] = source[bottom+15-j];
+		
 	}
 }
 
@@ -757,7 +1011,48 @@ void CL_ParseStatic (void)
 	ent->colormap = vid.colormap;
 	ent->skinnum = ent->baseline.skin;
 	ent->effects = ent->baseline.effects;
+	//ent->model->dontshadow = 1; // leilei - shadowhack - prevent torches from shadowing
+				// FIXME: Crashes After The Fall!
+#ifdef ALPHASCALE
 
+	//	Why did Makaqu need this? 
+	// Not like anyone will ever alpha their static entities anyway
+	// This stuff breaks demo playback for some reason
+	// But right now this is not important, we do not need it
+if(dpprotocol)
+	{
+
+		int		bits;
+		bits = MSG_ReadLong();
+	
+		if (bits & U_ALPHA)
+			ent->alpha = MSG_ReadFloat ();
+//		else
+//			ent->alpha = 0;
+#ifdef SCALEE
+		if (bits & U_SCALE)
+			ent->scale2 = MSG_ReadFloat ();
+#endif
+		if (bits & U_GLOWSIZE)
+			ent->glowsize = MSG_ReadFloat ();
+		else
+			ent->glowsize = 0;
+		if (bits & U_GLOWCOLOR)
+			ent->glowcolor = MSG_ReadFloat ();
+		else
+			ent->glowcolor = 0;
+			
+		ent->effects = MSG_ReadShort();
+			
+	//	ent->glowsize = 0;
+	//	ent->glowcolor = 0;
+	//	ent->alpha = 1.0f;
+#ifdef SCALEE
+		ent->scale2 = 1.0f;
+#endif
+	}
+
+#endif
 	VectorCopy (ent->baseline.origin, ent->origin);
 	VectorCopy (ent->baseline.angles, ent->angles);
 	R_AddEfrags (ent);
@@ -774,8 +1069,10 @@ void CL_ParseStaticSound (void)
 	int			sound_num, vol, atten;
 	int			i;
 
-	for (i=0 ; i<3 ; i++)
-		org[i] = MSG_ReadCoord ();
+	
+		org[0] = MSG_ReadCoord ();
+		org[1] = MSG_ReadCoord ();
+		org[2] = MSG_ReadCoord ();
 	sound_num = MSG_ReadByte ();
 	vol = MSG_ReadByte ();
 	atten = MSG_ReadByte ();
@@ -860,7 +1157,109 @@ void CL_ParseLimit (void)
 
 
 #define SHOWNET(x) if(cl_shownet->value==2)Con_Printf ("%3i:%s\n", msg_readcount-1, x);
+int	whatamiplaying;
+void MIDIHIJACK(int i, qboolean loop)
+{
+ // no allegro, no midi.
 
+
+	// or is it?
+
+#ifdef ASS_MIDI
+	char trackname[512];
+	loadedfile_t	*fileinfo;
+	
+	
+		// Load our MIDI file into memory
+	sprintf(trackname, "sound/cdtracks/track%03i.mid", i);
+	fileinfo = COM_LoadHunkFile(trackname);
+	if (!fileinfo){
+			Con_SafePrintf ("Can't load MIDI file %s\n", trackname);	
+			MUSIC_StopSong(); // stop the dam music
+			whatamiplaying = 666;
+			return;}
+
+
+		
+
+		whatamiplaying = i;
+
+
+	MUSIC_PlaySong( fileinfo->data, 1 );
+	  	Con_DPrintf ("MIDI system - %s\n", MUSIC_ErrorString( MUSIC_Error ) );
+	
+
+#endif
+
+}
+
+
+
+#ifdef DUMB 
+
+// All our dumb stuff will happen in this function.
+// this just 'ooh a cd track'. then plays the mod file accordioning to number.
+// .......
+	loadedfile_t	*thesong;
+void DUMBHIJACK(int i, qboolean loop)
+{
+	char trackname[512];
+	loadedfile_t	*fileinfo;
+	
+//	sprintf(trackname, "sound/cdtracks/track%03i.mod", i);
+	sprintf(trackname, "sound/cdtracks/isotoxin.s3m", i);
+	thesong = COM_LoadHunkFile(trackname);
+	if (!thesong){
+			Con_SafePrintf ("The song %s can not be loaded. \ngod freak in dam it hell and bush\n", trackname);	
+		return;}
+
+			Con_SafePrintf (trackname);		// haha @ quakec habits
+			Con_SafePrintf (" has loaded as hunk\n");	
+	//		dumb_load_mod_quick(trackname);
+			//dumbfile_open(trackname);
+		//DUMBFILE f = dumbfile_open_ex(fileinfo->data, duhfile);
+//		duhsong = dumb_read_mod_quick(*duhfile);
+	//	duh_start_sigrenderer(duhsong, 0, 2, 0);
+
+		//	Con_SafePrintf ("damn..\n");	
+
+	
+	// you don't have testeng so this will crash. get your own damn mod files
+	//duh = dumb_load_mod("testeng/sound/cdtracks/track004.mod");
+	if(thesong)
+	//	duh = thesong->path;
+	//duh = dumb_load_mod("val/sound/cdtracks/phantom.it");
+	duh = dumb_load_s3m("val/sound/cdtracks/isotoxin.s3m");
+	if (!duh) {
+					Con_Printf("DUH OUCH! CAN NOT LOAD THE DUMB MOD!\n");
+					}
+	else
+					Con_Printf("YES..... I CAN\n");
+	sr = duh_start_sigrenderer(duh, 0, 2, 0);
+		
+		if (!sr) {
+		unload_duh(duh);
+		
+		Con_Printf("DUH OUCH! can't play into the dumb buffer! goh dumb it!\n");
+	}
+		else
+			Con_Printf("THE SIGRENDERER'S STARTED.\n");
+
+ //register_dumbfile_system(&duhfile);
+ 
+}
+#else
+
+
+void DUMBHIJACK(int i, qboolean loop)
+{
+	// no dumb, full intelligence.
+		return;
+}
+#endif
+
+void Host_Autosavegame_f(void);
+extern cvar_t *autosaver;
 /*
 =====================
 CL_ParseServerMessage
@@ -931,8 +1330,19 @@ void CL_ParseServerMessage (void)
 
 		case svc_version:
 			i = MSG_ReadLong ();
+#ifdef DPPROTOCOLS
+			if (i != PROTOCOL_VERSION && i != DPPROTOCOL_VERSION && i != 250)
+				Host_Error ("CL_ParseServerMessage: Server is protocol %i, not %i or %i", i, DPPROTOCOL_VERSION, PROTOCOL_VERSION);
+	//		Nehahrademcompatibility = false;
+	//		if (i == 250)
+	//			Nehahrademcompatibility = true;
+//			if (cls.demoplayback && demo_nehahra.value)
+	//			Nehahrademcompatibility = true;
+			dpprotocol = i == DPPROTOCOL_VERSION;
+#else
 			if (i != PROTOCOL_VERSION)
 				Host_Error ("CL_ParseServerMessage: Server is protocol %i instead of %i", i, PROTOCOL_VERSION);
+#endif
 			break;
 
 		case svc_disconnect:
@@ -1028,6 +1438,7 @@ void CL_ParseServerMessage (void)
 
 		case svc_particle:
 			R_ParseParticleEffect ();
+			
 			break;
 
 		case svc_spawnbaseline:
@@ -1073,6 +1484,12 @@ void CL_ParseServerMessage (void)
 
 		case svc_killedmonster:
 			cl.stats[STAT_MONSTERS]++;
+			if (autosaver->value){
+				if (cl.stats[STAT_MONSTERS] > (cl.stats[STAT_TOTALMONSTERS] * 0.5) && !autosaved_monsthalfkilled){
+				autosaved_monsthalfkilled = 155;
+				Host_Autosavegame_f();
+				}
+				}
 			break;
 
 		case svc_foundsecret:
@@ -1095,8 +1512,18 @@ void CL_ParseServerMessage (void)
 		case svc_spawnstaticsound:
 			CL_ParseStaticSound ();
 			break;
-
-		case svc_cdtrack:
+#ifdef ASS_MIDI
+		case svc_cdtrack:		// todo: cvar this check
+			cl.cdtrack = MSG_ReadByte ();
+			cl.looptrack = MSG_ReadByte ();
+			//if (whatamiplaying != cl.cdtrack)
+			if ( (cls.demoplayback || cls.demorecording) && (cls.forcetrack != -1) )
+				MIDIHIJACK ((byte)cls.forcetrack, true);
+			else
+				MIDIHIJACK ((byte)cl.cdtrack, true);
+			break;
+#else
+			case svc_cdtrack:
 			cl.cdtrack = MSG_ReadByte ();
 			cl.looptrack = MSG_ReadByte ();
 			if ( (cls.demoplayback || cls.demorecording) && (cls.forcetrack != -1) )
@@ -1104,6 +1531,8 @@ void CL_ParseServerMessage (void)
 			else
 				CDAudio_Play ((byte)cl.cdtrack, true);
 			break;
+#endif
+
 
 		case svc_intermission:
 			cl.intermission = 1;
@@ -1125,6 +1554,11 @@ void CL_ParseServerMessage (void)
 			SCR_CenterPrint (MSG_ReadString ());
 			break;
 
+		case svc_sound3:
+			CL_ParseStartSoundPacket2();
+			break;
+
+
 		case svc_sellscreen:
 			Cmd_ExecuteString ("help", src_command);
 			break;
@@ -1142,4 +1576,249 @@ void CL_ParseServerMessage (void)
 // 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  end
 		}
 	}
+	
 }
+
+
+
+/*
+=============
+A crapload of FTEQW lies below
+for one purpose - getting lights to
+reflect
+=============
+*/
+typedef char	pbool;
+
+typedef struct mentity_s {
+	vec3_t origin;
+	float light;
+	float angle;
+	float cone;
+	int style;
+	vec3_t colour;
+	char classname[64];
+	char target[64];
+	char targetname[64];
+	
+	struct mentity_s *targetent;
+	struct entity_s lighty;	// leilei - lightstyles hack
+} mentity_t;
+
+static mentity_t entities[8192];
+static int num_entities;
+
+
+
+static void ParseEpair (mentity_t *mapent, char *key, char *value)
+{
+	double vec[3];
+
+	if (!strcmp(key, "classname"))
+		strcpy(mapent->classname, value);
+
+	else if (!strcmp(key, "target"))
+		strcpy(mapent->target, value);
+
+	else if (!strcmp(key, "targetname"))
+		strcpy(mapent->targetname, value);
+
+	else if (!strcmp(key, "light") || !strcmp(key, "_light") || !strcmp(key, "light_lev"))
+		mapent->light = atoi(value);
+
+	else if (!strcmp(key, "style") || !strcmp(key, "_style"))
+		mapent->style = atoi(value);
+
+	else if (!strcmp(key, "angle") || !strcmp(key, "_angle"))
+		mapent->angle = atof(value);
+
+	else if (!strcmp(key, "cone") || !strcmp(key, "_cone"))
+		mapent->cone = atof(value);
+
+	else if (!strcmp(key, "origin"))
+	{
+		sscanf (value, "%lf %lf %lf", &vec[0], &vec[1], &vec[2]);
+		mapent->origin[0]=vec[0];
+		mapent->origin[1]=vec[1];
+		mapent->origin[2]=vec[2];
+	}
+
+	else if (!strcmp(key, "colour") || !strcmp(key, "color") || !strcmp(key, "_colour") || !strcmp(key, "_color"))
+	{
+		sscanf (value, "%lf %lf %lf", &vec[0], &vec[1], &vec[2]);
+		mapent->colour[0]=vec[0];
+		mapent->colour[1]=vec[1];
+		mapent->colour[2]=vec[2];
+	}
+}
+extern vec3_t lightcolor; 
+extern cvar_t *temp2;
+// A botched up FTEQW version just to load realtime point lights for r_shading 3
+void LoadPointLighting (char *entstring)
+{	
+	mentity_t *mapent;
+	char key[1024];
+	int i;
+	int switchedstyle=32;
+	int	num_entities = 0;
+	int	num_lights = 0;
+
+	while(1)
+	{
+		entstring = COM_Parse(entstring);
+		if (!entstring || !*com_token)
+			break;
+		if (strcmp(com_token, "{"))
+		{	//someone messed up. Stop parsing.
+			Con_Printf("token wasn't an open brace\n");
+			break;
+		}
+
+		mapent = &entities[num_entities];
+		memset(mapent, 0, sizeof(*mapent));
+		mapent->colour[0] = 1;
+		mapent->colour[1] = 1;
+		mapent->colour[2] = 1;
+
+
+			while(1)
+		{
+			entstring = COM_Parse(entstring);
+			if (!strcmp(com_token, "}"))
+				break;
+			strcpy(key, com_token);
+			entstring = COM_Parse(entstring);
+			ParseEpair(mapent, key, com_token);
+		}
+
+			if (!mapent->light && !strncmp (mapent->classname, "light", 5))
+			mapent->light = 300;
+
+		if (*mapent->targetname && !mapent->style && !strcmp(mapent->classname, "light"))
+		{
+			for (i = 0; i <= num_entities; i++)
+			{
+				if (entities[i].style >= 32 && !strcmp(entities[i].targetname, mapent->targetname))
+				{
+					mapent->style = entities[i].style;
+					
+					break;
+				}
+			}
+
+			if (i == num_entities)
+				mapent->style = switchedstyle++;
+		}
+
+				if (mapent->light > 1){
+
+		// leilei - try to sample color from the spot if we're in colored lighting mode
+		// for getting lights from lit colored maps that assume colors, like mhcolour
+			if (coloredlights){
+				R_LightPoint(mapent->origin);
+				mapent->colour[0] = lightcolor[0] / 252;
+				mapent->colour[1] = lightcolor[1] / 252;
+				mapent->colour[2] = lightcolor[2] / 252;
+			//	VectorScale(lightcolor, 0.003921568627451, mapent->colour);
+				//	VectorScale(lightcolor, 0.014, mapent->colour);
+				//	mapent->colour[0] = 0;
+				//	mapent->colour[1] = 0;
+				//	mapent->colour[2] = 5;
+				//Con_Printf("%f %f %f to %f %f %f\n", lightcolor[0], lightcolor[1], lightcolor[2], mapent->colour[0], mapent->colour[1], mapent->colour[2]);
+			}	
+
+		//	Con_Printf("yep %f %f %f %f\n", mapent->origin[0], mapent->origin[1], mapent->origin[2], mapent->light);
+			
+			R_LightsHere(mapent->origin, (int)mapent->light, mapent->colour, num_entities, mapent);
+			
+			// leilei - flare up torches, flames and other carp
+			
+			{
+					vec3_t offsetup;
+					VectorCopy(mapent->origin, offsetup);
+			if (!strncmp(mapent->classname, "light_torch", 11))
+					{
+						offsetup[2] += 6;
+						R_FlareTest(offsetup,12,32,16,6,0, NULL);
+					}
+			if (!strncmp(mapent->classname, "light_flame_large_yellow", 24))
+					{
+						offsetup[2] += 3;
+						R_FlareTest(offsetup,12,72,36,6,0, NULL);
+						offsetup[2] += 3;
+						R_FlareTest(offsetup,12,72,36,6,0, NULL);
+						offsetup[2] += 3;
+						R_FlareTest(offsetup,12,32,16,6,0, NULL);
+						offsetup[2] += 3;
+						R_FlareTest(offsetup,12,32,16,6,0, NULL);
+						offsetup[2] += 3;
+						R_FlareTest(offsetup,12,32,16,6,0, NULL);
+						offsetup[2] += 3;
+						R_FlareTest(offsetup,12,32,16,6,0, NULL);
+					}
+			if (!strncmp(mapent->classname, "light_flame_small_yellow", 24))
+					{
+						offsetup[2] += 1;
+						R_FlareTest(offsetup,12,155,112,22,0, NULL);
+					}
+			if (!strncmp(mapent->classname, "light_flame_small_white", 23))
+					{
+						offsetup[2] += 1;
+						R_FlareTest(offsetup,12,166,133,100,0, NULL);
+					}
+			if (!strncmp(mapent->classname, "light_globe", 11))
+					{
+			
+						R_FlareTest(offsetup,12,166,133,46,0, NULL);
+					}
+			}
+
+			num_lights++;
+			}
+	
+		num_entities++;
+
+
+	}
+
+	for (mapent = entities; mapent < &entities[num_entities]; mapent++)
+	{
+		if (*mapent->target)
+		{
+			for (i = 0; i < num_entities; i++)
+			{
+				if (mapent == &entities[i])
+					continue;
+
+				if (!strcmp(mapent->target, entities[i].targetname))
+				{
+					mapent->targetent = &entities[i];
+					break;
+				}
+			}
+		}
+	
+	}
+	
+	{
+		int reqdlights;
+
+		if (gamemode == GAME_FIGHT)
+				reqdlights = 1;	// leilei - light ents are minimal in our fighty game
+		else
+				reqdlights = 58;	// we need this many light entities to determine if we can utilize them
+									// for normal shading to avoid false positives (black lighting etc)
+
+	if (num_lights > reqdlights){
+			lightingavailable = 1;
+			lightingcantbeavailable = 0;
+	}
+	else
+	{
+		lightingavailable = 0;
+		lightingcantbeavailable = 1;
+		
+	}
+	}
+};
+

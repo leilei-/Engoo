@@ -49,7 +49,7 @@ int _crt0_startup_flags = _CRT0_FLAG_UNIX_SBRK;
 int			end_of_memory;
 qboolean	lockmem, lockunlockmem, unlockmem;
 static int	win95;
-
+int inthedos;
 #define STDOUT	1
 
 #define	KEYBUF_SIZE	256
@@ -186,8 +186,13 @@ void Sys_InitFloatTime (void);
 void Sys_PushFPCW_SetHigh (void);
 void Sys_PopFPCW (void);
 
+//#define LEAVE_FOR_CACHE (512*1024)		//FIXME: tune
+//#define LOCKED_FOR_MALLOC (128*1024)	//FIXME: tune
+
 #define LEAVE_FOR_CACHE (512*1024)		//FIXME: tune
-#define LOCKED_FOR_MALLOC (128*1024)	//FIXME: tune
+#define LOCKED_FOR_MALLOC (256*2048)	//FIXME: tune
+
+
 
 
 void Sys_DetectWin95 (void)
@@ -203,10 +208,25 @@ void Sys_DetectWin95 (void)
 		lockmem = true;
 		lockunlockmem = false;
 		unlockmem = true;
+		printf ("Win9X is absent\n");
+	}
+	else	if(r.x.ax || r.h.bh > 5)	/* A stupid Windows NT based OS attempt*/
+	{
+		win95 = 1;
+		lockunlockmem = COM_CheckParm ("-winlockunlock");
+
+		if (lockunlockmem)
+			lockmem = true;
+		else
+			lockmem = COM_CheckParm ("-winlock");
+
+		unlockmem = lockmem && !lockunlockmem;
+		printf ("Windows NT, 2000, XP, Vista, 7 detected \n\nTHE GAME WILL NOT RUN IN XP!\n\nPlease use or compile the Win32 port, or use a DOS emulator\nsuch as DOSbox if you **really** want to play the DOS version.\n");
 	}
 	else
 	{
 		win95 = 1;
+		printf ("Win9X is present!\n");
 		lockunlockmem = COM_CheckParm ("-winlockunlock");
 
 		if (lockunlockmem)
@@ -916,7 +936,7 @@ Sys_NoFPUExceptionHandler
 */
 void Sys_NoFPUExceptionHandler(int whatever)
 {
-	printf ("\nError: Quake requires a floating-point processor\n");
+	printf ("\nBuy a 487 :)\n");
 	exit (0);
 }
 
@@ -934,15 +954,177 @@ void Sys_DefaultExceptionHandler(int whatever)
 /*
 ================
 main
+
+  SUPER NOSTALGIA ENHANCED ON STAROIEDS by leilei 
 ================
 */
+
+
+#ifndef id386
+void SetYourBlues (void)
+{
+	return; // stub in for the asm.
+}
+void SetYourBrowns (void)
+{
+	return; // stub in for the asm.
+}
+#endif
+
 int main (int c, char **v)
 {
 	double			time, oldtime, newtime;
 	extern void (*dos_error_func)(char *, ...);
 	static	char	cwd[1024];
+	byte	screen[80*25*2];
 
-	printf ("Quake v%4.2f\n", VERSION);
+		COM_InitArgv (c, v);
+	inthedos = 1; // leilei - stupid hack to let the engine know we're in dos
+	quakeparms.argc = com_argc;
+	quakeparms.argv = com_argv;
+	// moved parm checking up here to get the bottom working...
+	// title image
+//	char			ver[6];
+//	int			i;
+//	loadedfile_t	*fileinfo;	
+//	host_parms = *parms;
+//	Host_Init(&quakeparms);
+#ifdef BENCH
+	    clrscr();
+	textattr((BLUE<<4)+YELLOW);
+	  clreol();
+			printf ("                           Lite Engoo Bencher v%4.2f                            \n",VERSION);
+textattr((BLUE<<4)+DARKGRAY);
+#else
+
+
+			    clrscr();
+	SetYourBlues(); 
+			//	COM_Init (parms->basedir);
+	if (COM_CheckParm ("-hipnotic"))
+	{
+			textattr((BLUE<<4)+YELLOW);
+			clreol();
+			printf ("                 Quake Mission Pack 1:  Scourge of Armagon v%4.2f               \n",VERSION);
+			clreol();
+			printf ("                (C)1996 id software (C) 1997 Ritual Entertainment               \n",VERSION);
+
+	}
+		else 	if (COM_CheckParm ("-rogue")){
+			textattr((RED<<4)+WHITE);
+	    	clreol();
+			printf ("              Quake Mission Pack 2:  Dissolution of Eternity v%4.2f             \n",VERSION);
+			clreol();
+			printf ("                (C)1996 id software (C) 1997 Rogue Entertainment                \n",VERSION);
+		}
+		else 	if (COM_CheckParm ("qsr")){
+			SetYourBlues(); 			
+			textattr((BLUE<<4)+YELLOW);
+	    	clreol();
+			printf ("                                 HELLSMASH                                      \n",VERSION);
+			//clreol();
+		}
+
+		// The notable commercial Quake TCs get their own startup bar ;) 
+			else 	if (COM_CheckParm ("malice")){
+			textattr((DARKGRAY<<4)+LIGHTRED);
+	    		clreol();
+			printf ("                                  Malice v%4.2f                                 \n",VERSION);
+			textattr((DARKGRAY<<4)+WHITE);
+			clreol();
+			printf ("                         Copyright C) 1997 Ratloop, Inc.                        \n",VERSION);
+		}
+			else 	if (COM_CheckParm ("shrak")){
+			textattr((CYAN<<4)+WHITE);
+	    		clreol();
+			printf ("                                   Shrak v%4.2f                                 \n",VERSION);
+		    	clreol();
+			printf ("                        Copyright C) 1997 Quantum Axcess                        \n",VERSION);
+		}
+			else 	if (COM_CheckParm ("xmen")){
+			textattr((MAGENTA<<4)+YELLOW);
+	    		clreol();
+			printf ("                       X-MEN: Ravages of Apocalypse v%4.2f                      \n",VERSION);
+		    	clreol();
+			printf ("               Copyright C) 1997 Zero Gravity / MARVEL Interactive              \n",VERSION);
+		}
+		else 	if (COM_CheckParm ("laser")){
+			textattr((MAGENTA<<4)+YELLOW);
+	    		clreol();
+			printf ("                                    LASER ARENA                                 \n",VERSION);
+		    	clreol();
+			printf ("               Copyright (C) 2000 Trainwreck Studios / 2015 Inc.                \n",VERSION);
+		}
+		else 	if (COM_CheckParm ("basetf")){
+			textattr((RED<<4)+YELLOW);
+	    	clreol();
+			printf (" TRANSFUSION RELEASE %4.2f ["__DATE__"] --                   \n",VERSION);
+		}
+		else	if (COM_CheckParm ("grass")){
+			textattr((BLACK<<4)+YELLOW);
+	    		clreol();
+			printf ("                                Watching Grass Grow                             \n",VERSION);
+		}
+		
+		else{
+
+			//	textattr((1<<4)+2); // was yellow
+			textattr((BLUE<<4)+YELLOW);
+	  clreol();
+	//		printf ("                                 Quake v%4.2f                                   \n",VERSION);
+	//clreol();
+	//		printf ("                         Copyright(C)1996 id software                           \n",VERSION);
+			printf (" ENGOO %4.2f ["__DATE__"] --                           \n",VERSION);
+	}
+
+#endif
+  // printf ("Build: __DATE__"\n");
+    //textattr((BLACK<<4)+WHITE);
+	  // clreol();
+	//printf ("Quake v%4.2f\n", VERSION);
+/*
+
+// ANSI start screen never could work so I left it out. Bummer
+	
+//	byte	*d;	// 2001-09-12 Returning information about loaded file by Maddes
+
+
+		fileinfo = COM_LoadHunkFile ("start.bin");
+	//	fileinfo = COM_LoadHunkFile ("end1.bin");
+
+	if (fileinfo)
+		memcpy (screen, fileinfo->data, sizeof(screen));
+
+// write the version number directly to the end screen
+	sprintf (ver, " v%4.2f", VERSION);
+	for (i=0 ; i<6 ; i++)
+		screen[0*80*2 + 72*2 + i*2] = ver[i];
+
+	if (fileinfo)
+	{
+		memcpy ((void *)real2ptr(0xb8000), screen,80*25*2);
+
+	// set text pos
+		regs.x.ax = 0x0200;
+		regs.h.bh = 0;
+		regs.h.dl = 0;
+		regs.h.dh = 22;
+		dos_int86 (0x10);
+	}
+	else
+	{
+			
+
+	}
+//	printf ("WELCOME TO YOUR DOOM!\n");
+*/
+
+// Do the GPLv2 notice
+	printf ("================================================================================");
+	printf ("This engine comes with ABSOLUTELY NO WARRANTY;this is Free Software, and you are");
+   	printf (" welcome to redistribute it under certain conditions; see 'COPYING' for details.");
+	printf ("================================================================================");
+
 
 // make sure there's an FPU
 	signal(SIGNOFP, Sys_NoFPUExceptionHandler);
@@ -955,16 +1137,19 @@ int main (int c, char **v)
 	if (fptest_temp >= 0.0)
 		fptest_temp += 0.1;
 
-	COM_InitArgv (c, v);
 
-	quakeparms.argc = com_argc;
-	quakeparms.argv = com_argv;
 
 	dos_error_func = Sys_Error;
 
 	Sys_DetectWin95 ();
 	Sys_PageInProgram ();
 	Sys_GetMemory ();
+
+	if (COM_CheckParm ("-nolookups"))
+	printf ("!!!!!Generation of lookup tables will be skipped!!!!!\nStuff will not blend and colored lighting will be disabled.\n");
+
+
+// Prototype stuff
 
 	atexit (Sys_AtExit);	// in case we crash
 

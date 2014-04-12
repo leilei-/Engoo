@@ -217,11 +217,17 @@ void R_AddEfrags (entity_t *ent)
 
 	entmodel = ent->model;
 
-	for (i=0 ; i<3 ; i++)
-	{
-		r_emins[i] = ent->origin[i] + entmodel->mins[i];
-		r_emaxs[i] = ent->origin[i] + entmodel->maxs[i];
-	}
+
+	// leilei - unrolled
+
+		r_emins[0] = ent->origin[0] + entmodel->mins[0];
+		r_emaxs[0] = ent->origin[0] + entmodel->maxs[0];
+
+		r_emins[1] = ent->origin[1] + entmodel->mins[1];
+		r_emaxs[1] = ent->origin[1] + entmodel->maxs[1];
+
+		r_emins[2] = ent->origin[2] + entmodel->mins[2];
+		r_emaxs[2] = ent->origin[2] + entmodel->maxs[2];
 
 	R_SplitEntityOnNode (cl.worldmodel->nodes);
 

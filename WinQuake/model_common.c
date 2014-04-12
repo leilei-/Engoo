@@ -34,10 +34,13 @@ byte	mod_novis[MAX_MAP_LEAFS/8];
 cvar_t	*gl_subdivide_size;
 #endif
 
+float fog_density, old_density, fade_time, fade_done, fog_red, fog_green, fog_blue, old_red, old_green, old_blue; // FOG
+
 cvar_t	*external_lit;	// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes
 cvar_t	*external_ent;	// 2001-09-12 .ENT support by Maddes
 cvar_t	*external_vis;	// 2001-12-28 .VIS support by Maddes
-
+int	lightingavailable; // leilei - point lighting, determines if our data is made available
+int	lightingcantbeavailable; // determines if we can't make this available (stripped lights/not enough lights)
 // 2001-09-18 New cvar system by Maddes (Init)  start
 /*
 ===============
@@ -98,6 +101,8 @@ void Mod_Init (void)
 // 2001-09-18 New cvar system by Maddes (Init)  end
 
 	memset (mod_novis, 0xff, sizeof(mod_novis));
+
+// THE_precache_model("prog3/fx.spr");
 }
 
 /*
@@ -134,7 +139,7 @@ mleaf_t *Mod_PointInLeaf (vec3_t p, model_t *model)
 	mplane_t	*plane;
 
 	if (!model || !model->nodes)
-		Sys_Error ("Mod_PointInLeaf: bad model");
+	Sys_Error ("Mod_PointInLeaf: bad model");
 
 	node = model->nodes;
 	while (1)
@@ -293,7 +298,7 @@ void Mod_LoadEntities (lump_t *l, loadedfile_t *brush_fileinfo)	// 2001-09-12 .E
 
 			if (!s_check)	// .ENT searchpath not found = before map directory
 			{
-				Con_Printf("%s loaded from %s\n", entfilename, fileinfo->path->pack ? fileinfo->path->pack->filename : fileinfo->path->filename);
+				Con_DPrintf("%s loaded from %s\n", entfilename, fileinfo->path->pack ? fileinfo->path->pack->filename : fileinfo->path->filename);
 				loadmodel->entities = fileinfo->data;
 				return;
 			}
@@ -313,6 +318,8 @@ void Mod_LoadEntities (lump_t *l, loadedfile_t *brush_fileinfo)	// 2001-09-12 .E
 	loadmodel->entities = Hunk_AllocName ( l->filelen, "INT_ENT");
 // 2001-09-12 .ENT support by Maddes  end
 	memcpy (loadmodel->entities, mod_base + l->fileofs, l->filelen);
+		CL_ParseEntityLump(loadmodel->entities);	// Tomaz - Parse Data
+				
 }
 
 
@@ -366,11 +373,19 @@ void Mod_LoadSubmodels (lump_t *l)
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
-		for (j=0 ; j<3 ; j++)
+		// leilei - unrolled
 		{	// spread the mins / maxs by a pixel
-			out->mins[j] = LittleFloat (in->mins[j]) - 1;
-			out->maxs[j] = LittleFloat (in->maxs[j]) + 1;
-			out->origin[j] = LittleFloat (in->origin[j]);
+			out->mins[0] = LittleFloat (in->mins[0]) - 1;
+			out->maxs[0] = LittleFloat (in->maxs[0]) + 1;
+			out->origin[0] = LittleFloat (in->origin[0]);
+
+			out->mins[1] = LittleFloat (in->mins[1]) - 1;
+			out->maxs[1] = LittleFloat (in->maxs[1]) + 1;
+			out->origin[1] = LittleFloat (in->origin[1]);	
+
+			out->mins[2] = LittleFloat (in->mins[2]) - 1;
+			out->maxs[2] = LittleFloat (in->maxs[2]) + 1;
+			out->origin[2] = LittleFloat (in->origin[2]);
 		}
 		for (j=0 ; j<MAX_MAP_HULLS ; j++)
 			out->headnode[j] = LittleLong (in->headnode[j]);
@@ -509,10 +524,16 @@ void Mod_LoadNodes (lump_t *l)
 
 	for ( i=0 ; i<count ; i++, in++, out++)
 	{
-		for (j=0 ; j<3 ; j++)
+//		for (j=0 ; j<3 ; j++) // l
 		{
-			out->minmaxs[j] = LittleShort (in->mins[j]);
-			out->minmaxs[3+j] = LittleShort (in->maxs[j]);
+			out->minmaxs[0] = LittleShort (in->mins[0]);
+			out->minmaxs[3+0] = LittleShort (in->maxs[0]);
+
+			out->minmaxs[1] = LittleShort (in->mins[1]);
+			out->minmaxs[3+1] = LittleShort (in->maxs[1]);
+
+			out->minmaxs[2] = LittleShort (in->mins[2]);
+			out->minmaxs[3+2] = LittleShort (in->maxs[2]);
 		}
 
 		p = LittleLong(in->planenum);
@@ -609,6 +630,10 @@ void Mod_ProcessLeafs (dleaf_t *in, int filelen)
 			for (j=0 ; j<out->nummarksurfaces ; j++)
 				out->firstmarksurface[j]->flags |= SURF_UNDERWATER;
 		}
+#else
+		// software underwater warp
+		// TODO: Caustics
+
 #endif
 	}
 }
@@ -939,7 +964,7 @@ int Mod_FindExternalVIS (loadedfile_t *brush_fileinfo)
 
 		if (fhandle >= 0)
 		{
-			Con_Printf("%s for %s loaded from %s\n", visfilename, mapname, s_vis->pack ? s_vis->pack->filename : s_vis->filename);
+			Con_DPrintf("%s for %s loaded from %s\n", visfilename, mapname, s_vis->pack ? s_vis->pack->filename : s_vis->filename);
 		}
 	}
 
@@ -952,6 +977,241 @@ int Mod_FindExternalVIS (loadedfile_t *brush_fileinfo)
 Mod_LoadBrushModel
 =================
 */
+extern cvar_t	*r_coloredlights;
+extern cvar_t	*r_lowworld;
+extern cvar_t	*r_overbrightBits;
+extern cvar_t	*r_fullbrights;
+extern cvar_t	*r_dither;
+extern int ditheredrend;
+extern int nolookups;
+extern int	fogcolr, fogcolg, fogcolb, fogthick, fogrange;	// leilei - fog
+
+/*
+=============
+Fog_ParseWorldspawn
+
+called at map load
+
+  from FITZQUAKE! 
+=============
+*/
+void Fog_ParseWorldspawn (void)
+{
+	char key[128], value[4096];
+	char *data;
+
+	//initially no fog
+	fog_density = 0.0;
+	old_density = 0.0;
+	fade_time = 0.0;
+	fade_done = 0.0;
+
+		// default fog settings
+	fogthick = 0;
+	fogcolr = 0.3 * 255;	
+	fogcolg = 0.3 * 255;
+	fogcolb = 0.3 * 255;
+	// leilei - fog test (Force pink fog)
+/*	fogrange = 2;
+	fogcolr = 128;	
+	fogcolg = 28;
+	fogcolb = 128;
+	fogthick = 150;
+	foguse = 1;
+	return;*/
+	data = COM_Parse(cl.worldmodel->entities);
+	if (!data)
+		return; // error
+	if (com_token[0] != '{')
+		return; // error
+	while (1)
+	{
+		data = COM_Parse(data);
+		if (!data)
+			return; // error
+		if (com_token[0] == '}')
+			break; // end of worldspawn
+		if (com_token[0] == '_')
+			strcpy(key, com_token + 1);
+		else
+			strcpy(key, com_token);
+		while (key[strlen(key)-1] == ' ') // remove trailing spaces
+			key[strlen(key)-1] = 0;
+		data = COM_Parse(data);
+		if (!data)
+			return; // error
+		strcpy(value, com_token);
+
+		if (!strcmp("fog", key))
+		{
+			sscanf(value, "%f %f %f %f", &fog_density, &fog_red, &fog_green, &fog_blue);
+		}
+	}
+	if (!fog_red){
+	//	Con_Printf("Incomplete fog key! Fog DISABLED!!! (%f %f %f %f)\n", fog_density, fog_red, fog_green, fog_blue);
+						fog_red = 0;
+						fog_green = 0;
+						fog_blue = 0;		// assume the mapper screwed up totally and gave us only density :(
+						fogenabled = 0; 
+						
+						return;
+	}
+	fogcolr = fog_red	* 256;
+	fogcolg = fog_green * 256;
+	fogcolb = fog_blue	* 256;
+	fogrange = 2;
+	fogthick = fog_density * 1600;	// slightly sad attempt to match DirectQ
+	if (fogthick)
+		fogenabled = 1;
+	else 
+		fogenabled = 0;
+}
+
+
+void FogStuffs (void){
+	if (fogthick){
+		fogenabled = 1;
+	}
+else {
+		fogenabled = 0;
+		return;
+}
+//	Sys_Error("YEA");
+
+	if (foguse)
+			FogTableRefresh();
+
+}
+
+
+/*
+=============
+Fog_FogCommand_f
+
+handle the 'fog' console command
+=============
+*/
+
+
+/*
+=============
+Fog_Update
+
+update internal variables
+=============
+*/
+void Fog_Update (float density, float red, float green, float blue, float time)
+{
+	//save previous settings for fade
+	if (time > 0)
+	{
+		//check for a fade in progress
+		if (fade_done > cl.time)
+		{
+			float f, d;
+
+			f = (fade_done - cl.time) / fade_time;
+			old_density = f * old_density + (1.0 - f) * fog_density;
+			old_red = f * old_red + (1.0 - f) * fog_red;
+			old_green = f * old_green + (1.0 - f) * fog_green;
+			old_blue = f * old_blue + (1.0 - f) * fog_blue;
+		}
+		else
+		{
+			old_density = fog_density;
+			old_red = fog_red;
+			old_green = fog_green;
+			old_blue = fog_blue;
+		}
+	}
+
+	fog_density = density;
+	fog_red = red;
+	fog_green = green;
+	fog_blue = blue;
+	fade_time = time;
+	fade_done = cl.time + time;
+
+	fogcolr = fog_red	* 255;
+	fogcolg = fog_green * 255;
+	fogcolb = fog_blue	* 255;
+	fogrange = 2;
+	fogthick = fog_density * 1600;	// slightly sad attempt to match DirectQ
+	if (fogthick)
+		fogenabled = 1;
+	else 
+		fogenabled = 0;
+
+	if (fogcolr > 254)	fogcolr = 254;
+	if (fogcolg > 254)	fogcolg = 254;
+	if (fogcolb > 254)	fogcolb = 254;
+	if (fogcolr < 0) fogcolr = 0;
+	if (fogcolg < 0) fogcolg = 0;
+	if (fogcolb < 0) fogcolb = 0;
+	// check if we got new colors...
+//	if (fog_red != old_red || fog_blue != old_blue || fog_green != old_green)
+	FogTableRefresh();
+}
+
+
+void Fog_FogCommand_f (void)
+{
+	switch (Cmd_Argc())
+	{
+	default:
+	case 1:
+		Con_Printf("usage:\n");
+		Con_Printf("   fog <density>\n");
+		Con_Printf("   fog <red> <green> <blue>\n");
+		Con_Printf("   fog <density> <red> <green> <blue>\n");
+		Con_Printf("current values:\n");
+		Con_Printf("   \"density\" is \"%f\"\n", fog_density);
+		Con_Printf("   \"red\" is \"%f\"\n", fog_red);
+		Con_Printf("   \"green\" is \"%f\"\n", fog_green);
+		Con_Printf("   \"blue\" is \"%f\"\n", fog_blue);
+		break;
+	case 2:
+		Fog_Update(max(0.0, atof(Cmd_Argv(1))),
+				   fog_red,
+				   fog_green,
+				   fog_blue,
+				   0.0);
+		break;
+	case 3: //TEST
+		Fog_Update(max(0.0, atof(Cmd_Argv(1))),
+				   fog_red,
+				   fog_green,
+				   fog_blue,
+				   atof(Cmd_Argv(2)));
+		break;
+	case 4:
+		Fog_Update(fog_density,
+				   CLAMP(0.0, atof(Cmd_Argv(1)), 1.0),
+				   CLAMP(0.0, atof(Cmd_Argv(2)), 1.0),
+				   CLAMP(0.0, atof(Cmd_Argv(3)), 1.0),
+				   0.0);
+		break;
+	case 5:
+		Fog_Update(max(0.0, atof(Cmd_Argv(1))),
+				   CLAMP(0.0, atof(Cmd_Argv(2)), 1.0),
+				   CLAMP(0.0, atof(Cmd_Argv(3)), 1.0),
+				   CLAMP(0.0, atof(Cmd_Argv(4)), 1.0),
+				   0.0);
+		break;
+	case 6: //TEST
+		Fog_Update(max(0.0, atof(Cmd_Argv(1))),
+				   CLAMP(0.0, atof(Cmd_Argv(2)), 1.0),
+				   CLAMP(0.0, atof(Cmd_Argv(3)), 1.0),
+				   CLAMP(0.0, atof(Cmd_Argv(4)), 1.0),
+				   atof(Cmd_Argv(5)));
+		break;
+	}
+}
+
+extern cvar_t *r_truecolor;
+int	truecolor;
+extern int	hqlite;
+extern int	coloredmethod;
 void Mod_LoadBrushModel (model_t *mod, void *buffer, loadedfile_t *brush_fileinfo)	// 2001-09-12 .ENT support by Maddes
 {
 	int			i, j;
@@ -959,21 +1219,64 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer, loadedfile_t *brush_fileinf
 	dmodel_t 	*bm;
 	int			fhandle;	// 2001-12-28 .VIS support by Maddes
 
+	if (r_coloredlights->value == 2){
+			coloredlights = 1;	// normal light quality
+			if (hqlite)
+			coloredmethod = 0;	// don't do lookup stuff
+			else
+			coloredmethod = 1;	// do lookup stuff because we don't have a high quality table. :(
+			}
+	else if (r_coloredlights->value == 1){
+			coloredlights = 1;	// normal light quality
+			coloredmethod = 1;	// do lookup stuff
+			}
+	else if (r_coloredlights->value == 3){
+			coloredlights = 2;	// dithered light quality
+			coloredmethod = 0;	// don't do lookup stuff
+			}
+	else
+			{
+			coloredlights = 0;	// mono lights
+			coloredmethod = 0;	// don't do lookup stuff
+			}
+	
+	truecolor = (int)r_truecolor->value; // sanity check
+	lowworld = (int)r_lowworld->value; // sanity check
+	ditheredrend = (int)r_dither->value; // sanity checking also
+
+
+
+	
+//	FogTableRefresh();
+	if (nolookups){
+		coloredlights = 0; // DON'T ALLOW THESE THINGS!!!
+		ditheredrend = 0;
+	}
+//	if(overbrights != r_overbrightBits->value || (fullbrights != (int)r_fullbrights->value)){
+//		overbrights = r_overbrightBits->value;
+//		fullbrights = r_fullbrights->value;
+//		GrabColorMap();
+//	}
+
 	loadmodel->type = mod_brush;
 
 	header = (dheader_t *)buffer;
 
 	i = LittleLong (header->version);
-	if (i != BSPVERSION)
+	if ((i != BSPVERSION) && (i != BSPVERSIONHL) && (i != BSPVERSION91))
 // 2001-12-16 No crash on wrong BSP version by MrG  start
 //		Sys_Error ("Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, i, BSPVERSION);
 	{
-		Con_Printf("Mod_LoadBrushModel: %s has wrong version number (%i should be %i)", mod->name, i, BSPVERSION);
+		Con_Printf("Mod_LoadBrushModel: %s has wrong version number (%i should be 28, 29 or 30)", mod->name, i, BSPVERSION);
 		mod->numvertexes=-1;	// HACK - incorrect BSP version is no longer fatal
 		return;
 	}
 // 2001-12-16 No crash on wrong BSP version by MrG  end
+	if (i == BSPVERSIONHL)
+		loadmodel->fromgame = fg_halflife;
 
+	if (i == BSPVERSION91)
+		loadmodel->fromgame = fg_quakeold;
 // swap all the lumps
 	mod_base = (byte *)header;
 
@@ -984,6 +1287,9 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer, loadedfile_t *brush_fileinf
 	Mod_LoadVertexes (&header->lumps[LUMP_VERTEXES]);
 	Mod_LoadEdges (&header->lumps[LUMP_EDGES]);
 	Mod_LoadSurfedges (&header->lumps[LUMP_SURFEDGES]);
+	if (truecolor)
+	Mod_LoadTextures32 (&header->lumps[LUMP_TEXTURES]);
+	else
 	Mod_LoadTextures (&header->lumps[LUMP_TEXTURES]);
 	Mod_LoadLighting (&header->lumps[LUMP_LIGHTING]);
 	Mod_LoadPlanes (&header->lumps[LUMP_PLANES]);
@@ -1025,7 +1331,9 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer, loadedfile_t *brush_fileinf
 	Mod_LoadClipnodes (&header->lumps[LUMP_CLIPNODES]);
 	Mod_LoadEntities (&header->lumps[LUMP_ENTITIES], brush_fileinfo);	// 2001-09-12 .ENT support by Maddes
 	Mod_LoadSubmodels (&header->lumps[LUMP_MODELS]);
+	
 
+	 
 	Mod_MakeHull0 ();
 
 	mod->numframes = 2;		// regular and alternate animation
@@ -1067,4 +1375,6 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer, loadedfile_t *brush_fileinf
 			mod = loadmodel;
 		}
 	}
+//	if (sv.worldmodel && !lightingavailable)
+//	LoadPointLighting(sv.worldmodel->entities);
 }

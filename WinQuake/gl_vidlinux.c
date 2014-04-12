@@ -636,6 +636,8 @@ void VID_Init(unsigned char *palette)
 
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
+		vid.maxlowwidth = LOW_WIDTH;
+	vid.maxlowheight = LOW_HEIGHT;
 	vid.colormap = host_colormap;
 	vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
 

@@ -78,7 +78,10 @@ Lv_loop_mip0:
 	leal	(%ebx,%ecx,4),%ebx
 
 //			lightptr += lightwidth;
+	
 	movl	%ebx,C(r_lightptr)
+
+	
 
 //			lightleftstep = (lightptr[0] - lightleft) >> blockdivshift;
 //			lightrightstep = (lightptr[1] - lightright) >> blockdivshift;
@@ -758,7 +761,6 @@ LPatchTable8:
 	.long	LBPatch29-4
 	.long	LBPatch30-4
 	.long	LBPatch31-4
-
 	.text
 
 	.align 4

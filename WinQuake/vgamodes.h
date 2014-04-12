@@ -38,6 +38,14 @@ typedef struct {
 	int		*pregset;
 } vextra_t;
 
+// EGA MODES
+
+
+typedef struct {
+	int		vidbuffer;
+	int		*pregset;
+} eextra_t;
+
 int	vrsnull[] = {
 	VRS_END,
 };
@@ -476,6 +484,93 @@ int vrs360x480x256planar[] = {
 	VRS_END,
 };
 
+// EGA MODES
+
+
+int vrs320x200x16planar[] = {
+//
+// switch to linear, non-chain4 mode
+//
+	VRS_BYTE_OUT, SC_INDEX, SYNC_RESET,
+	VRS_BYTE_OUT, SC_DATA,  1,
+
+	VRS_BYTE_OUT, SC_INDEX, MEMORY_MODE,
+	VRS_BYTE_RMW, SC_DATA, ~0x08, 0x04,
+	VRS_BYTE_OUT, GC_INDEX, GRAPHICS_MODE,
+	VRS_BYTE_RMW, GC_DATA, ~0x0D, 0x00,
+	VRS_BYTE_OUT, GC_INDEX, MISCELLANOUS,
+	VRS_BYTE_RMW, GC_DATA, ~0x02, 0x00,
+
+	VRS_BYTE_OUT, SC_INDEX, SYNC_RESET,
+	VRS_BYTE_OUT, SC_DATA,  3,
+
+//
+// change the CRTC from doubleword to byte mode
+//
+	VRS_BYTE_OUT, CRTC_INDEX, UNDERLINE,
+	VRS_BYTE_RMW, CRTC_DATA, ~0x40, 0x00,
+	VRS_BYTE_OUT, CRTC_INDEX, MODE_CONTROL,
+	VRS_BYTE_RMW, CRTC_DATA, ~0x00, 0x40,
+
+	VRS_END,
+};
+
+
+int vrs640x200x16planar[] = {
+//
+// switch to linear, non-chain4 mode
+//
+	VRS_BYTE_OUT, SC_INDEX, SYNC_RESET,
+	VRS_BYTE_OUT, SC_DATA,  1,
+
+	VRS_BYTE_OUT, SC_INDEX, MEMORY_MODE,
+	VRS_BYTE_RMW, SC_DATA, ~0x08, 0x04,
+	VRS_BYTE_OUT, GC_INDEX, GRAPHICS_MODE,
+	VRS_BYTE_RMW, GC_DATA, ~0x0E, 0x00,
+	VRS_BYTE_OUT, GC_INDEX, MISCELLANOUS,
+	VRS_BYTE_RMW, GC_DATA, ~0x02, 0x00,
+
+	VRS_BYTE_OUT, SC_INDEX, SYNC_RESET,
+	VRS_BYTE_OUT, SC_DATA,  3,
+
+//
+// change the CRTC from doubleword to byte mode
+//
+	VRS_BYTE_OUT, CRTC_INDEX, UNDERLINE,
+	VRS_BYTE_RMW, CRTC_DATA, ~0x40, 0x00,
+	VRS_BYTE_OUT, CRTC_INDEX, MODE_CONTROL,
+	VRS_BYTE_RMW, CRTC_DATA, ~0x00, 0x40,
+
+	VRS_END,
+};
+
+int vrs640x350x16planar[] = {
+//
+// switch to linear, non-chain4 mode
+//
+	VRS_BYTE_OUT, SC_INDEX, SYNC_RESET,
+	VRS_BYTE_OUT, SC_DATA,  1,
+
+	VRS_BYTE_OUT, SC_INDEX, MEMORY_MODE,
+	VRS_BYTE_RMW, SC_DATA, ~0x08, 0x04,
+	VRS_BYTE_OUT, GC_INDEX, GRAPHICS_MODE,
+	VRS_BYTE_RMW, GC_DATA, ~0x10, 0x00,
+	VRS_BYTE_OUT, GC_INDEX, MISCELLANOUS,
+	VRS_BYTE_RMW, GC_DATA, ~0x02, 0x00,
+
+	VRS_BYTE_OUT, SC_INDEX, SYNC_RESET,
+	VRS_BYTE_OUT, SC_DATA,  3,
+
+//
+// change the CRTC from doubleword to byte mode
+//
+	VRS_BYTE_OUT, CRTC_INDEX, UNDERLINE,
+	VRS_BYTE_RMW, CRTC_DATA, ~0x40, 0x00,
+	VRS_BYTE_OUT, CRTC_INDEX, MODE_CONTROL,
+	VRS_BYTE_RMW, CRTC_DATA, ~0x00, 0x40,
+
+	VRS_END,
+};
 //
 // extra VGA-specific data for vgavidmodes
 //
@@ -512,7 +607,15 @@ vextra_t	extra320x480x256planar = {
 vextra_t	extra360x480x256planar = {
 	1, vrs360x480x256planar
 };
-
+eextra_t	extra320x200x16planar = {
+	1, vrs320x200x16planar
+};
+eextra_t	extra640x200x16planar = {
+	1, vrs640x200x16planar
+};
+eextra_t	extra640x350x16planar = {
+	1, vrs640x350x16planar
+};
 //
 // base mode descriptors, in ascending order of number of pixels
 //
@@ -594,6 +697,35 @@ vmode_t	vgavidmodes[] = {
 	384, 1, 1, &extra360x480x256planar, VGA_InitMode,
 	VGA_SwapBuffers,
 	VGA_SetPalette, VGA_BeginDirectRect, VGA_EndDirectRect
+},
+};
+
+
+//
+// base mode descriptors, in ascending order of number of pixels
+//
+
+vmode_t	egavidmodes[] = {
+{
+	NULL,
+	"320x200E", "    ***** crappy EGA modes *****    ",
+	320, 200, (200.0/320.0)*(320.0/200.0), 320, 0, 1, &extra320x200x16planar,
+	VGA_InitMode, VGA_SwapBuffers, VGA_SetPalette,
+	VGA_BeginDirectRect, VGA_EndDirectRect
+},
+{
+	NULL,
+	"640x200", NULL,
+	640, 200, (200.0/640.0)*(640.0/200.0), 640, 0, 1, &extra640x200x16planar,
+	VGA_InitMode, VGA_SwapBuffers, VGA_SetPalette,
+	VGA_BeginDirectRect, VGA_EndDirectRect
+},
+{
+	NULL,
+	"640x350", NULL,
+	640, 350, (350.0/640.0)*(640.0/350.0), 640, 0, 1, &extra640x350x16planar,
+	VGA_InitMode, VGA_SwapBuffers, VGA_SetPalette,
+	VGA_BeginDirectRect, VGA_EndDirectRect
 },
 };
 

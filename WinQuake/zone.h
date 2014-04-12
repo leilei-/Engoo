@@ -85,6 +85,13 @@ Zone block
 
 #define ZONE_MIN_SIZE	128*1024	// 128K	// 2001-09-20 Increased default zone by Maddes
 
+// ZONE MEMORY
+// PU - purge tags.
+
+enum {PU_FREE, PU_STATIC, PU_SOUND, PU_MUSIC, PU_LEVEL, PU_LEVSPEC, PU_CACHE,
+      /* Must always be last -- killough */ PU_MAX};
+
+
 // 2001-09-20 Enhanced zone handling by Maddes  start
 typedef struct memblock_s
 {
@@ -126,6 +133,9 @@ void *Z_TagMalloc (memzone_t *zone, int size, int tag);
 void Z_Print (memzone_t *zone);
 void Z_CheckHeap (memzone_t *zone);
 // 2001-09-20 Enhanced zone handling by Maddes  end
+
+void Zed_Free (void *ptr);
+void *Zed_Malloc (int size);			// returns 0 filled memory
 
 void *Hunk_Alloc (int size);		// returns 0 filled memory
 void *Hunk_AllocName (int size, char *name);

@@ -73,3 +73,13 @@ void	*W_GetLumpName (char *name);
 void	*W_GetLumpNum (int num);
 
 void SwapPic (qpic_t *pic);
+
+
+extern int image_width, image_height;
+void	W_LoadTextureWadFile (char *filename, int complain);
+byte	*W_GetTexture (char *name);
+byte	*W_ConvertWAD3Texture(miptex_t *tex);
+byte	*RemapTex(miptex_t *tex);
+byte	*RemapTexEGA(miptex_t *tex);
+
+int		hasextra; // off by default unless you have extra.wad

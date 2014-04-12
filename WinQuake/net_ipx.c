@@ -234,7 +234,9 @@ int IPX_Init(void)
 	int n;
 	struct qsockaddr addr;
 	char *colon;
-
+#ifdef WINDOWS31
+	return -1;
+#endif
 	if (COM_CheckParm ("-noipx"))
 		return -1;
 

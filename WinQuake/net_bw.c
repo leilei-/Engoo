@@ -313,7 +313,9 @@ int BW_Init(void)
 {
 	struct qsockaddr addr;
 	char *colon;
-
+#ifdef WINDOWS31
+	return -1;
+#endif
 	if (COM_CheckParm ("-noudp"))
 		return -1;
 

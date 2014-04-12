@@ -12,8 +12,7 @@ typedef struct
 	string_t	mapname;
 	string_t	startspot;
 	float	deathmatch;
-	float	coop;
-	float	teamplay;
+	float	coop;	float	teamplay;
 	float	serverflags;
 	float	total_secrets;
 	float	total_monsters;

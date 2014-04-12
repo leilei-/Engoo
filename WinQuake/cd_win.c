@@ -100,12 +100,26 @@ static int CDAudio_GetAudioDiskInfo(void)
 	return 0;
 }
 
-
+#ifdef DUMB
+void DUMBHIJACK(int i, qboolean loop);
+#endif
 void CDAudio_Play(byte track, qboolean looping)
 {
 	DWORD				dwReturn;
 	MCI_PLAY_PARMS		mciPlayParms;
 	MCI_STATUS_PARMS	mciStatusParms;
+
+#ifdef ASS_MIDI
+	MIDIHIJACK(track, 1);
+			return;
+#endif
+#ifdef DUMB
+	DUMBHIJACK(track, 1);
+		return;
+#endif
+
+
+
 
 	if (!enabled)
 		return;
@@ -173,6 +187,7 @@ void CDAudio_Play(byte track, qboolean looping)
 
 	if (cdvolume == 0.0)
 		CDAudio_Pause ();
+	
 }
 
 
@@ -191,6 +206,7 @@ void CDAudio_Stop(void)
 
 	wasPlaying = false;
 	playing = false;
+	
 }
 
 
@@ -425,11 +441,11 @@ int CDAudio_Init(void)
 	MCI_OPEN_PARMS	mciOpenParms;
 	MCI_SET_PARMS	mciSetParms;
 	int				n;
-
+#ifndef ASS_MIDI
 	if (cls.state == ca_dedicated)
 		return -1;
 
-	if (COM_CheckParm("-nocdaudio"))
+	if (!COM_CheckParm("-cdaudio"))	// leilei - let's do the reverse, cd audio crashes, and is unsupported now... i can't even test it =(
 		return -1;
 
 	mciOpenParms.lpstrDeviceType = "cdaudio";
@@ -448,22 +464,22 @@ int CDAudio_Init(void)
 		mciSendCommand(wDeviceID, MCI_CLOSE, 0, (DWORD)NULL);
 		return -1;
 	}
-
+#endif
 	for (n = 0; n < 100; n++)
 		remap[n] = n;
 	initialized = true;
 	enabled = true;
-
+#ifndef ASS_MIDI
 	if (CDAudio_GetAudioDiskInfo())
 	{
 		Con_Printf("CDAudio_Init: No CD in player.\n");
 		cdValid = false;
 	}
-
+#endif
 	Cmd_AddCommand ("cd", CD_f);
-
+#ifndef ASS_MIDI
 	Con_Printf("CD Audio Initialized\n");
-
+#endif
 	return 0;
 }
 
@@ -472,7 +488,10 @@ void CDAudio_Shutdown(void)
 {
 	if (!initialized)
 		return;
+
 	CDAudio_Stop();
+#ifndef ASS_MIDI
 	if (mciSendCommand(wDeviceID, MCI_CLOSE, MCI_WAIT, (DWORD)NULL))
 		Con_DPrintf("CDAudio_Shutdown: MCI_CLOSE failed\n");
+#endif
 }

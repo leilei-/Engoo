@@ -23,9 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 extern cvar_t	*pausable;
 
 extern cvar_t	*contact;		// 2000-01-31 Contact cvar by Maddes
-
+extern cvar_t	*autosaver;	
+extern cvar_t	*loadscreen;	
 int	current_skill;
-
+void Host_LoadAutosave_f (void);
 void Mod_Print (void);
 
 // 2000-01-09 QCExec by FrikaC/Maddes  start
@@ -380,6 +381,7 @@ void Host_Map_f (void)
 	Host_ShutdownServer(false);
 
 	key_dest = key_game;			// remove console or menu
+	if (loadscreen->value)
 	SCR_BeginLoadingPlaque ();
 
 	cls.mapstring[0] = 0;
@@ -463,6 +465,8 @@ void Host_Changelevel_f (void)
 		Con_Printf ("Only the server may changelevel\n");
 		return;
 	}
+	safesaved = 0;	// leilei - deprecate our autosave
+	autosaved_monsthalfkilled	= 0;
 	SV_SaveSpawnparms ();
 	strcpy (level, Cmd_Argv(1));
 	SV_SpawnServer (level);
@@ -479,9 +483,6 @@ Restarts the current server for a dead player
 void Host_Restart_f (void)
 {
 	char	mapname[MAX_QPATH];
-#ifdef QUAKE2
-	char	startspot[MAX_QPATH];
-#endif
 
 	if (cls.demoplayback || !sv.active)
 		return;
@@ -490,12 +491,17 @@ void Host_Restart_f (void)
 		return;
 	strcpy (mapname, sv.name);	// must copy out, because it gets cleared
 								// in sv_spawnserver
-#ifdef QUAKE2
-	strcpy(startspot, sv.startspot);
-	SV_SpawnServer (mapname, startspot);
-#else
+
+	if (safesaved)	{		// if I saved in this level...
+	if (autosaver->value){
+			Host_LoadAutosave_f ();
+			return;
+	}
+	}
+
+
 	SV_SpawnServer (mapname);
-#endif
+
 }
 
 /*
@@ -508,6 +514,7 @@ This is sent just before a server changes levels
 */
 void Host_Reconnect_f (void)
 {
+	if (loadscreen->value)
 	SCR_BeginLoadingPlaque ();
 	cls.signon = 0;		// need new connection messages
 }
@@ -575,6 +582,7 @@ void Host_SavegameComment (char *text)
 Host_Savegame_f
 ===============
 */
+
 void Host_Savegame_f (void)
 {
 	char	name[256];
@@ -634,7 +642,7 @@ void Host_Savegame_f (void)
 		Con_Printf ("ERROR: couldn't open.\n");
 		return;
 	}
-
+	imsaving = 1;
 	fprintf (f, "%i\n", SAVEGAME_VERSION);
 	Host_SavegameComment (comment);
 	fprintf (f, "%s\n", comment);
@@ -663,9 +671,116 @@ void Host_Savegame_f (void)
 	}
 	fclose (f);
 	Con_Printf ("done.\n");
+//	lastsavename = name;
+
+	if (autosaver->value){
+
+	sprintf (lastsavename, "%s/%s", com_gamedir, Cmd_Argv(1));
+	COM_DefaultExtension (lastsavename, ".sav");
+	//Con_Printf ("Autosave is %s\n", lastsavename);
+	safesaved = 1;
+	}
+	imsaving = 0;
 }
 
 
+// leilei - autosaver doesn't take arguments, we just save to autosave.sav
+void Host_Autosavegame_f (void)
+{
+	char	name[256];
+	char	autosavename[256] = "asave";
+	FILE	*f;
+	int		i;
+	char	comment[SAVEGAME_COMMENT_LENGTH+1];
+
+	if (cmd_source != src_command)
+		return;
+
+	if (!sv.active)
+	{
+	//	Con_Printf ("Not playing a local game.\n");
+		return;
+	}
+
+	if (cl.intermission)
+	{
+	//	Con_Printf ("Can't save in intermission.\n");
+		return;
+	}
+
+	if (svs.maxclients != 1)
+	{
+	//	Con_Printf ("Can't save multiplayer games.\n");
+		return;
+	}
+//
+//	if (Cmd_Argc() != 2)
+//	{
+//		Con_Printf ("save <savename> : save a game\n");
+//		return;
+//	}
+
+//	if (strstr(Cmd_Argv(1), ".."))
+//	{
+//		Con_Printf ("Relative pathnames are not allowed.\n");
+//		return;
+//	}
+
+	for (i=0 ; i<svs.maxclients ; i++)
+	{
+		if (svs.clients[i].active && (svs.clients[i].edict->v.health <= 0) )
+		{
+			Con_Printf ("Somehow, I tried to autosave when dead. WHAT?\n");
+			return;
+		}
+	}
+
+	sprintf (name, "%s/%s", com_gamedir, autosavename);
+	COM_DefaultExtension (name, ".sav");
+
+//	Con_Printf ("Saving game to %s...\n", name);
+		Con_Printf ("Saving. \nPlease do not turn off your system\n");
+	imsaving = 1;
+	f = fopen (name, "w");
+	if (!f)
+	{
+		Con_Printf ("ERROR: couldn't open.\n");
+		return;
+	}
+	
+	fprintf (f, "%i\n", SAVEGAME_VERSION);
+	Host_SavegameComment (comment);
+	fprintf (f, "%s\n", comment);
+	for (i=0 ; i<NUM_SPAWN_PARMS ; i++)
+		fprintf (f, "%f\n", svs.clients->spawn_parms[i]);
+	fprintf (f, "%d\n", current_skill);
+	fprintf (f, "%s\n", sv.name);
+	fprintf (f, "%f\n",sv.time);
+
+// write the light styles
+
+	for (i=0 ; i<MAX_LIGHTSTYLES ; i++)
+	{
+		if (sv.lightstyles[i])
+			fprintf (f, "%s\n", sv.lightstyles[i]);
+		else
+			fprintf (f,"m\n");
+	}
+
+
+	ED_WriteGlobals (f);
+	for (i=0 ; i<sv.num_edicts ; i++)
+	{
+		ED_Write (f, EDICT_NUM(i));
+		fflush (f);
+	}
+	fclose (f);
+//	Con_Printf ("Saving. \nPlease do not turn off your system\n");
+	sprintf (lastsavename, name);
+
+	safesaved = 1;
+	imsaving = 0;
+}
 /*
 ===============
 Host_Loadgame_f
@@ -700,10 +815,163 @@ void Host_Loadgame_f (void)
 
 // we can't call SCR_BeginLoadingPlaque, because too much stack space has
 // been used.  The menu calls it before stuffing loadgame command
-//	SCR_BeginLoadingPlaque ();
+	if (loadscreen->value > 1)
+	SCR_BeginLoadingPlaque ();
 
 	Con_Printf ("Loading game from %s...\n", name);
+	imsaving = 1;
+
 	f = fopen (name, "r");
+	if (!f)
+	{
+		Con_Printf ("ERROR: couldn't open.\n");
+		return;
+	}
+
+	fscanf (f, "%i\n", &version);
+	if (version != SAVEGAME_VERSION)
+	{
+		fclose (f);
+		Con_Printf ("Savegame is version %i, not %i\n", version, SAVEGAME_VERSION);
+		return;
+	}
+	fscanf (f, "%s\n", str);
+	for (i=0 ; i<NUM_SPAWN_PARMS ; i++)
+		fscanf (f, "%f\n", &spawn_parms[i]);
+// this silliness is so we can load 1.06 save files, which have float skill values
+	fscanf (f, "%f\n", &tfloat);
+	current_skill = (int)(tfloat + 0.1);
+	Cvar_SetValue (skill, (float)current_skill);
+
+//#ifdef QUAKE2		// 2000-07-16 Loadgame initialization fix by Norberto Alfredo Bensa
+	Cvar_Set (deathmatch, "0");
+	Cvar_Set (coop, "0");
+	Cvar_Set (teamplay, "0");
+//#endif		// 2000-07-16 Loadgame initialization fix by Norberto Alfredo Bensa
+
+	fscanf (f, "%s\n",mapname);
+	fscanf (f, "%f\n",&time);
+
+	CL_Disconnect_f ();
+
+#ifdef QUAKE2
+	SV_SpawnServer (mapname, NULL);
+#else
+	SV_SpawnServer (mapname);
+#endif
+	if (!sv.active)
+	{
+		Con_Printf ("Couldn't load map\n");
+		return;
+	}
+	sv.paused = true;		// pause until all clients connect
+	sv.loadgame = true;
+
+// load the light styles
+
+	for (i=0 ; i<MAX_LIGHTSTYLES ; i++)
+	{
+		fscanf (f, "%s\n", str);
+		sv.lightstyles[i] = Hunk_Alloc (strlen(str)+1);
+		strcpy (sv.lightstyles[i], str);
+	}
+
+// load the edicts out of the savegame file
+	entnum = -1;		// -1 is the globals
+	while (!feof(f))
+	{
+		for (i=0 ; i<sizeof(str)-1 ; i++)
+		{
+			r = fgetc (f);
+			if (r == EOF || !r)
+				break;
+			str[i] = r;
+			if (r == '}')
+			{
+				i++;
+				break;
+			}
+		}
+		if (i == sizeof(str)-1)
+			Sys_Error ("Loadgame buffer overflow");
+		str[i] = 0;
+		start = str;
+		start = COM_Parse(str);
+		if (!com_token[0])
+			break;		// end of file
+		if (strcmp(com_token,"{"))
+			Sys_Error ("First token isn't a brace");
+
+		if (entnum == -1)
+		{	// parse the global vars
+			ED_ParseGlobals (start);
+		}
+		else
+		{	// parse an edict
+
+			ent = EDICT_NUM(entnum);
+			memset (&ent->v, 0, progs->entityfields * 4);
+			ent->free = false;
+			ED_ParseEdict (start, ent);
+
+		// link it into the bsp tree
+			if (!ent->free)
+				SV_LinkEdict (ent, false);
+		}
+
+		entnum++;
+	}
+
+	sv.num_edicts = entnum;
+	sv.time = time;
+
+	fclose (f);
+
+	for (i=0 ; i<NUM_SPAWN_PARMS ; i++)
+		svs.clients->spawn_parms[i] = spawn_parms[i];
+
+	if (cls.state != ca_dedicated)
+	{
+		CL_EstablishConnection ("local");
+		Host_Reconnect_f ();
+	}
+}
+
+
+void Host_LoadAutosave_f (void)
+{
+	char	name[MAX_OSPATH];
+	FILE	*f;
+	char	mapname[MAX_QPATH];
+	float	time, tfloat;
+	char	str[32768], *start;
+	int		i, r;
+	edict_t	*ent;
+	int		entnum;
+	int		version;
+	float			spawn_parms[NUM_SPAWN_PARMS];
+
+//	if (cmd_source != src_command)
+//		return;
+
+//	if (Cmd_Argc() != 2)
+//	{
+//		Con_Printf ("load <savename> : load a game\n");
+//		return;
+//	}
+
+	cls.demonum = -1;		// stop demo loop in case this fails
+
+//	sprintf (name, "%s/%s", com_gamedir, Cmd_Argv(1));
+//	COM_DefaultExtension (name, ".sav");
+
+// we can't call SCR_BeginLoadingPlaque, because too much stack space has
+// been used.  The menu calls it before stuffing loadgame command
+	if (loadscreen->value > 1)
+	SCR_BeginLoadingPlaque ();
+
+	Con_Printf ("Loading game from %s...\n", lastsavename);
+	f = fopen (lastsavename, "r");
 	if (!f)
 	{
 		Con_Printf ("ERROR: couldn't open.\n");
@@ -1000,7 +1268,8 @@ void Host_Changelevel2_f (void)
 		strcpy (_startspot, Cmd_Argv(2));
 		startspot = _startspot;
 	}
-
+	safesaved = 0;	// leilei - deprecate our autosave
+	autosaved_monsthalfkilled	= 0;
 	SV_SaveSpawnparms ();
 
 	// save the current level's state
@@ -1090,7 +1359,7 @@ void Host_Version_f (void)
 
 	print ("Version: %1.2f (%s)\n", VERSION, QIP_VERSION);	// 2001-10-25 QIP version in the console background by Maddes
 	print ("Exe: "__TIME__" "__DATE__"\n");
-	print ("Engine homepage: %s\n", QIP_URL);	// 2001-10-25 QIP version in the console background by Maddes
+//	print ("Engine homepage: %s\n", QIP_URL);	// 2001-10-25 QIP version in the console background by Maddes
 
 	print ("Highest supported NVS version: %1.2f\n", MAX_NVS_VERSION);	// 2000-04-30 NVS COMMON by Maddes
 
@@ -1421,6 +1690,7 @@ void Host_Color_f(void)
 	}
 
 	host_client->colors = playercolor;
+
 	host_client->edict->v.team = bottom + 1;
 
 // send notification to all clients
@@ -1700,6 +1970,10 @@ void Host_Begin_f (void)
 	}
 
 	host_client->spawned = true;
+
+#ifdef GLOBOT
+	host_client->edict->bot.Active = true;
+#endif
 }
 
 //===========================================================================
@@ -2229,7 +2503,20 @@ void Host_Limit_Request_f (void)
 // 2001-09-20 Configurable limits by Maddes  end
 
 //=============================================================================
+void Fog_FogCommand_f (void);
 
+void UselessCommand_f (void){
+	int	are;
+
+	for(are=0; are<10000; are++)
+		Con_Printf("%%%i\n", are);
+
+}
+void MassiveLookupTablesInit (void);
+void InitSmooth(void);
+void GrabColorMapNoFB(void);
+void GrabColorMapAlternative(void);
+void GrabColorMapSaturation(void);
 /*
 ==================
 Host_InitCommands
@@ -2285,4 +2572,17 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("qcexec", Host_QC_Exec_f);	// 2000-01-09 QCExec by FrikaC/Maddes
 
 	Cmd_AddCommand ("limit_request", Host_Limit_Request_f);	// 2001-09-20 Configurable limits by Maddes
+
+	// leilei - fog
+	Cmd_AddCommand ("fog", Fog_FogCommand_f);
+
+	// leilei - force lookup regeneration
+	Cmd_AddCommand ("engoo_forcelookupregen", MassiveLookupTablesInit);
+	
+	Cmd_AddCommand ("engoo_ditherregen", InitSmooth);
+	Cmd_AddCommand ("engoo_nofbcolormap", GrabColorMapNoFB);
+	Cmd_AddCommand ("engoo_altcolormap", GrabColorMapAlternative);
+	Cmd_AddCommand ("engoo_satcolormap", GrabColorMapSaturation);
+
+//	Cmd_AddCommand ("somethinguseless", UselessCommand_f);
 }

@@ -111,3 +111,143 @@ C(Sys_SetFPCW):
 	movl	%eax,ceil_cw
 
 	ret
+
+
+.intel_syntax noprefix
+	
+.globl C(SetYourBlues)
+C(SetYourBlues):
+	push  ax
+	push  dx
+
+	mov   dx, 0x3C8
+	mov   ax, 1
+	out   dx, al
+	inc   dx
+
+	mov   ax, 1
+	out   dx, al
+
+	mov   ax, 5
+	out   dx, al
+
+	mov   ax, 16
+	out   dx, al
+
+	pop   dx
+	pop   ax
+	ret
+
+	
+.globl C(SetYourBrowns)
+C(SetYourBrowns):
+// Quake startup text mode scheme
+// background brown
+	push  ax
+	push  dx
+
+	mov   dx, 0x3C8
+	mov   ax, 1
+	out   dx, al
+	inc   dx
+
+	mov   ax, 14
+	out   dx, al
+
+	mov   ax, 9
+	out   dx, al
+
+	mov   ax, 4
+	out   dx, al
+
+	pop   dx
+	pop   ax
+
+
+// Console-style REALLY background brown, kind of cool
+	push  ax
+	push  dx
+
+	mov   dx, 0x3C8
+	mov   ax, 0
+	out   dx, al
+	inc   dx
+
+	mov   ax, 12
+	out   dx, al
+
+	mov   ax, 7
+	out   dx, al
+
+	mov   ax, 2
+	out   dx, al
+
+	pop   dx
+	pop   ax
+
+// status grays (are now brown)
+/*
+push  ax
+	push  dx
+
+	mov   dx, 0x3C8
+	mov   ax, 7
+	out   dx, al
+	inc   dx
+
+	mov   ax, 121
+	out   dx, al
+
+	mov   ax, 110
+	out   dx, al
+
+	mov   ax, 22
+	out   dx, al
+
+	pop   dx
+	pop   ax
+*/
+
+push  ax
+	push  dx
+
+	mov   dx, 0x3C8
+	mov   ax, 7
+	out   dx, al
+	inc   dx
+
+	mov   ax, 48
+	out   dx, al
+
+	mov   ax, 48
+	out   dx, al
+
+	mov   ax, 48
+	out   dx, al
+
+	pop   dx
+	pop   ax
+
+// Title bar 
+	push  ax
+	push  dx
+
+	mov   dx, 0x3C8
+	mov   ax, 2
+	out   dx, al
+	inc   dx
+
+	mov   ax, 56
+	out   dx, al
+
+	mov   ax, 48
+	out   dx, al
+
+	mov   ax, 15
+	out   dx, al
+
+	pop   dx
+	pop   ax
+
+
+	ret

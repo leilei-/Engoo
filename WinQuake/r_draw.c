@@ -52,6 +52,7 @@ qboolean		r_nearzionly;
 
 int		sintable[SIN_BUFFER_SIZE];
 int		intsintable[SIN_BUFFER_SIZE];
+int		atableofnothingtable[SIN_BUFFER_SIZE];	// COME ON LOWDETAIL!!!
 
 mvertex_t	r_leftenter, r_leftexit;
 mvertex_t	r_rightenter, r_rightexit;
@@ -383,6 +384,8 @@ void R_EmitCachedEdge (void)
 R_RenderFace
 ================
 */
+extern float oldwateralpha;
+extern cvar_t *r_wateralpha;
 void R_RenderFace (msurface_t *fa, int clipflags)
 {
 	int			i, lindex;
@@ -392,6 +395,25 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	vec3_t		p_normal;
 	medge_t		*pedges, tedge;
 	clipplane_t	*pclip;
+	// Manoel Kasimier - translucent water - begin
+	
+	if ((int)r_wateralpha->value < 1)
+	{
+		if (fa->flags & SURF_DRAWTRANSLUCENT)
+		{
+			if (!r_wateralpha->value)
+				return;
+			if (!r_drawwater)
+			{
+				r_foundwater = true;
+				return;
+			}
+		}
+		else if (r_drawwater)
+			return;
+	}
+	
+	// mk transwater
 
 // skip out if no more surfs
 	if ((surface_p) >= surf_max)
@@ -590,7 +612,7 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 	vec3_t		p_normal;
 	medge_t		tedge;
 	clipplane_t	*pclip;
-
+				
 // skip out if no more surfs
 	if (surface_p >= surf_max)
 	{
@@ -718,8 +740,20 @@ void R_RenderPoly (msurface_t *fa, int clipflags)
 // set up clip planes
 	pclip = NULL;
 
+
+	{
+	
+			
+		//	elr[0] = u;
+		//	elr[1] = u2;
+		//	elr[2] = span->v;;
+			
+//				R_FlareTest(elr, 1, 255, 0, 0, 0);
+		}
+
 	for (i=3, mask = 0x08 ; i>=0 ; i--, mask >>= 1)
 	{
+				
 		if (clipflags & mask)
 		{
 			view_clipplanes[i].next = pclip;

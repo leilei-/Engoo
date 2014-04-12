@@ -40,6 +40,8 @@ double	host_org_frametime;
 cvar_t	*host_timescale;
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
+float	thestandstill; // leilei - standstill hack
+
 quakeparms_t host_parms;
 
 qboolean	host_initialized;		// true if into command execution
@@ -59,8 +61,27 @@ client_t	*host_client;			// current client
 jmp_buf 	host_abortserver;
 
 byte		*host_basepal;
+byte		*host_otherpal;		// NEW palette only!
+byte		*host_origpal;		// QUAKE palette only!
+byte		*host_palremap;		// byte table to remap one pal to the other on the fly
 byte		*host_colormap;
+byte		*host_colormap_red;
+byte		*host_colormap_green;
+byte		*host_colormap_blue;
+byte		*host_colormap_buffer;
+byte		*host_colormap_nofb;
+byte		*host_fogmap;
+byte		*glcolormap;
 
+
+
+int			host_fullbrights;   // for preserving fullbrights in color operations
+
+
+
+#ifdef EGA
+byte		*host_egamap;
+#endif
 cvar_t	*host_framerate;	// set for slow motion
 cvar_t	*host_speeds;		// set for running times
 
@@ -79,10 +100,14 @@ cvar_t	*developer;
 cvar_t	*skill;					// 0 - 3
 cvar_t	*deathmatch;			// 0, 1, or 2
 cvar_t	*coop;					// 0 or 1
+cvar_t	*autosaver;				// leilei - autosaver
+cvar_t	*loadscreen;				// leilei - loadscreen
 
 cvar_t	*pausable;
 
 cvar_t	*temp1;
+cvar_t	*temp2;
+cvar_t	*temp3;
 
 cvar_t	*contact;		// 2000-01-31 Contact cvar by Maddes
 
@@ -90,6 +115,56 @@ cvar_t	*max_fps;		// 2001-12-16 MAX_FPS cvar by MrG
 
 int		fps_count;	// 2001-11-31 FPS display by QuakeForge/Muff  end
 
+
+#ifdef EGAHACK
+
+
+const byte ega_palette[256 * 3] =
+{
+    0,  0,  0, 
+	0,  0,170,
+	0,170,	0,
+	0,170,170,
+  170,	0,	0,
+  170,	0,170,
+  170, 85,	0,
+  170,170,170,
+   85, 85, 85,
+   85, 85,255, // highlights
+   85,255, 85,
+   85,255,255,
+  255, 85, 85,
+  255, 85,255,
+  255,255, 85,
+  255,255,255
+  		// Nah, you don't need the rest of the colors :)
+};
+
+
+
+const byte w_palette[256 * 3] =
+{
+    0,  0,  0, 
+  128,  0,	0,
+	0,128,	0,
+  128,128,	0,
+    0,	0,128,
+  128,	0,128,
+    0,128,128,
+  192,192,192,
+  128,128,128,
+    0,  0,255, // highlights
+    0,255,  0,
+  255,255,  0,
+    0,  0,255,
+  255,  0,255,
+    0,255,255,
+  255,255,255
+  		// Nah, you don't need the rest of the colors :)
+};
+
+
+#endif
 /*
 ================
 Host_EndGame
@@ -195,13 +270,6 @@ void	Host_FindMaxClients (void)
 	}
 	if (svs.maxclients < 1)
 		svs.maxclients = 8;
-// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  start
-/*
-	else if (svs.maxclients > MAX_SCOREBOARD)
-		svs.maxclients = MAX_SCOREBOARD;
-
-	svs.maxclientslimit = svs.maxclients;
-*/
 // 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  end
 	if (svs.maxclientslimit < 4)
 		svs.maxclientslimit = 4;
@@ -267,11 +335,10 @@ void Host_InitLocal_Cvars (void)
 	noexit = Cvar_Get ("noexit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
 	skill = Cvar_Get ("skill", "1", CVAR_ORIGINAL);
 
-#ifdef QUAKE2
-	developer = Cvar_Get ("developer", "1", CVAR_ORIGINAL);	// should be 0 for release!
-#else
+	autosaver = Cvar_Get ("autosaver", "0", CVAR_ARCHIVE);
+	loadscreen = Cvar_Get ("loadscreen", "1", CVAR_ARCHIVE);
+
 	developer = Cvar_Get ("developer", "0", CVAR_ORIGINAL);
-#endif
 
 	deathmatch = Cvar_Get ("deathmatch", "0", CVAR_ORIGINAL);
 	Cvar_SetCallback (deathmatch, Callback_Deathmatch);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
@@ -282,6 +349,8 @@ void Host_InitLocal_Cvars (void)
 	pausable = Cvar_Get ("pausable", "1", CVAR_ORIGINAL);
 
 	temp1 = Cvar_Get ("temp1", "0", CVAR_ORIGINAL);
+	temp2 = Cvar_Get ("temp2", "0", CVAR_ORIGINAL);
+	temp3 = Cvar_Get ("temp3", "0", CVAR_ORIGINAL);
 
 	contact = Cvar_Get ("contact", "", CVAR_ARCHIVE);	// 2000-01-31 Contact cvar by Maddes
 
@@ -302,46 +371,6 @@ void Host_InitLocal (void)
 {
 	Host_InitCommands ();
 
-// 2001-09-18 New cvar system by Maddes (Init)  start
-/*
-// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
-	host_timescale = Cvar_Get ("host_timescale", "1", CVAR_NONE);
-	Cvar_SetRangecheck (host_timescale, Cvar_RangecheckFloat, 0.0, 10.0);
-	Cvar_Set(host_timescale, host_timescale->string);	// do rangecheck
-// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
-
-	host_framerate = Cvar_Get ("host_framerate", "0", CVAR_ORIGINAL);
-	host_speeds = Cvar_Get ("host_speeds", "0", CVAR_ORIGINAL);
-
-	sys_ticrate = Cvar_Get ("sys_ticrate", "0.05", CVAR_ORIGINAL);
-	serverprofile = Cvar_Get ("serverprofile", "0", CVAR_ORIGINAL);
-
-	fraglimit = Cvar_Get ("fraglimit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
-	timelimit = Cvar_Get ("timelimit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
-	teamplay = Cvar_Get ("teamplay", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
-
- 	samelevel = Cvar_Get ("samelevel", "0", CVAR_ORIGINAL);
-	noexit = Cvar_Get ("noexit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
-	skill = Cvar_Get ("skill", "1", CVAR_ORIGINAL);
-
-#ifdef QUAKE2
-	developer = Cvar_Get ("developer", "1", CVAR_ORIGINAL);	// should be 0 for release!
-#else
-	developer = Cvar_Get ("developer", "0", CVAR_ORIGINAL);
-#endif
-
-	deathmatch = Cvar_Get ("deathmatch", "0", CVAR_ORIGINAL);
-	Cvar_SetCallback (deathmatch, Callback_Deathmatch);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
-
-	coop = Cvar_Get ("coop", "0", CVAR_ORIGINAL);
-	Cvar_SetCallback (coop, Callback_Coop);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
-
-	pausable = Cvar_Get ("pausable", "1", CVAR_ORIGINAL);
-
-	temp1 = Cvar_Get ("temp1", "0", CVAR_ORIGINAL);
-
-	contact = Cvar_Get ("contact", "", CVAR_ARCHIVE);	// 2000-01-31 Contact cvar by Maddes
-*/
 // 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Host_FindMaxClients ();
@@ -909,6 +938,9 @@ void _Host_Frame (float time)
 	if (host_speeds->value)
 		time2 = Sys_FloatTime ();
 
+
+
+
 // update audio
 	if (cls.signon == SIGNONS)
 	{
@@ -918,6 +950,9 @@ void _Host_Frame (float time)
 	else
 		S_Update (vec3_origin, vec3_origin, vec3_origin, vec3_origin);
 
+#ifdef	ASS_MIDI
+	MIDI_Update();	// leilei - update our midi
+#endif
 	CDAudio_Update();
 
 	if (host_speeds->value)
@@ -1036,6 +1071,8 @@ void Host_InitVCR (quakeparms_t *parms)
 
 }
 
+
+
 // 2001-09-18 New cvar system by Maddes (Init)  start
 void COM_Init_Cvars ();
 void Con_Init_Cvars ();
@@ -1047,6 +1084,7 @@ void VID_Init_Cvars();
 void V_Init_Cvars();
 //TW	void M_Init_Cvars ();
 void R_Init_Cvars ();
+void R_Presets ();
 //TW	void Sbar_Init_Cvars ();
 void CL_Init_Cvars ();
 void S_Init_Cvars ();
@@ -1058,6 +1096,218 @@ void Draw_Init_Cvars();
 //TW	void CDAudio_Init_Cvars();
 // 2001-09-18 New cvar system by Maddes (Init)  end
 
+
+
+void	VID_SetPalette2 (unsigned char *palette)
+{
+	byte	*pal;
+	unsigned r,g,b;
+	unsigned v;
+	int		r1,g1,b1;
+	int		j,k,l,m,ind;
+	unsigned short i;
+	unsigned	*table;
+	FILE *f;
+	char s[255];
+	float gamma = 0;
+	Con_Printf ("Making 8to24 lookup tables.");
+//
+// 8 8 8 encoding
+//
+	pal = palette;
+	table = d_8to24table;
+	for (i=0 ; i<256 ; i++)
+	{
+		Con_Printf (".");	// loop an indicator
+		r = pal[0];
+		g = pal[1];
+		b = pal[2];
+		if (r>255) r = 255;
+		if (g>255) g = 255;
+		if (b>255) b = 255;
+		pal += 3;
+		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
+		*table++ = v;
+		
+	}
+
+	
+	// The 15-bit table we use is actually made elsewhere (it's palmap)
+
+	d_8to24table[255] &= 0xffffff;	// 255 is transparent
+	d_8to24table[0] &= 0x000000;	// black is black
+
+
+//		if (!d_8to24table)
+//		Con_Printf ("FAILED!\n");
+//	else
+//		Con_Printf ("!\n");
+}
+#ifdef GLOBOT
+void Bot_Init (void);
+#endif
+void ColormapForceLoad (void)
+{
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
+			fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		if (!fileinfo)
+
+			Sys_Error ("Couldn't load gfx/colormap.lmp");
+		host_colormap = fileinfo->data;
+
+
+};
+
+
+
+int		translate_bsp;
+int		translate_mdl;
+int		translate_gfx;
+int		translate_spr;
+byte	colorthis;
+void Palette_Init (void)
+{
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
+	int		pre100;
+
+
+
+	overbrights = 1;
+	if (COM_CheckParm ("-beta")){
+		pre100 = 1;
+		}
+#ifdef EGAHACK
+
+		fileinfo = COM_LoadHunkFile ("gfx/palette.lmp");
+		if (!fileinfo)
+			Sys_Error ("Couldn't load gfx/palette.lmp");
+		host_basepal = fileinfo->data;
+		host_origpal = fileinfo->data;
+		host_otherpal = fileinfo->data;
+
+		host_basepal = (unsigned char *)ega_palette; // go EGA!
+
+#else
+	
+		fileinfo = COM_LoadHunkFile ("gfx/palette.lmp");
+		if (!fileinfo){
+			// quake pre-rel doesn't have a palette.lmp
+				// instead it's in the gfx.wad
+				// we can determine that we're running 0.8 this way
+		//	if (W_GetLumpName ("palette")){
+		//			host_basepal = W_GetLumpName ("palette");
+		//			pre100 = 1;
+		//	}
+			//	else
+				Sys_Error ("Couldn't load gfx/palette.lmp");
+		}
+	//	if (!W_GetLumpName ("palette")){
+				host_basepal = fileinfo->data;
+				host_origpal = fileinfo->data;
+	//	}
+		fileinfo = COM_LoadHunkFile ("gfx/tranfrom.lmp");
+		if (!fileinfo)
+				host_otherpal = host_basepal;	// nothing happened let's move on.
+		else
+		host_otherpal = fileinfo->data;
+
+
+		fileinfo = COM_LoadHunkFile ("gfx/tranto.lmp");
+		if (!fileinfo)
+				host_otherpal = host_basepal;	// nothing happened let's move on.
+		else
+		{
+			host_basepal = fileinfo->data;
+			fileinfo = COM_LoadHunkFile ("gfx/palette.lmp");
+			host_otherpal = fileinfo->data;
+		}
+				
+
+
+#endif
+		if(pre100 == 1){
+	/*	fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		if (!fileinfo)
+
+			Sys_Error ("Couldn't load gfx/colormap.lmp");
+			*/
+		host_colormap = malloc(16384);
+		
+	
+		host_fullbrights = 256-host_colormap[16384]; // leilei - variable our fullbright counts if available
+		}
+		else
+		{
+		fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		if (!fileinfo)
+
+			Sys_Error ("Couldnf't load gfx/colormap.lmp");
+		host_colormap = fileinfo->data;
+		fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		host_colormap_red = fileinfo->data;
+		fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		host_colormap_green = fileinfo->data;
+		fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		host_colormap_blue = fileinfo->data;
+
+
+		host_fullbrights = 256-host_colormap[16384]; // leilei - variable our fullbright counts if available
+		}
+
+		
+
+	if (COM_CheckParm ("-glsuck")){
+		overbrights = 0;
+		fullbrights = 0;
+		host_fullbrights = 255; 
+		GrabColorMap();
+	}
+
+	if (COM_CheckParm ("-nooverbright")){
+		overbrights = 0;
+		GrabColorMap();
+	}
+
+	if (pre100 == 1){
+		overbrights = 0;
+		fullbrights = 32;	// pre 1.00 didn't have the number of brights stored. :(
+		GrabColorMap();
+	}
+
+
+	if (COM_CheckParm ("-nofb")){
+		host_fullbrights = 0; 
+		fullbrights = 0;
+		GrabColorMap();
+	}
+		if (host_basepal != host_otherpal){
+		// Make a translation table for converting stuff that uses otherpal to our new pal
+		translate_bsp = 1;
+#ifdef EGAHACK
+		InitRemap(host_origpal);
+		//GrabColorMapEGA();
+		TranslateColorMapEGA();
+		
+#else
+		InitRemap(host_otherpal);
+		GrabColorMap();
+#endif
+		}
+	
+	// Fog
+
+		host_fogmap = malloc(16384);//fileinfo->data;
+
+
+		GrabColorMapNoFB();
+
+		
+
+		MakeMy15to8(host_basepal);
+
+
+}
+void MassiveLookupTablesInit (void);
 /*
 ====================
 Host_Init
@@ -1087,7 +1337,7 @@ void Host_Init (quakeparms_t *parms)
 	Cvar_Init ();		// 2001-09-18 New cvar system by Maddes
 	Cbuf_Init ();
 	Cmd_Init ();
-
+	
 // 2001-09-18 New cvar system by Maddes (Init)  start
 	COM_Init_Cvars ();				// initialize all filesystem related variables
 	Con_Init_Cvars ();				// initialize all console related cvars
@@ -1110,24 +1360,37 @@ void Host_Init (quakeparms_t *parms)
 	NVS_Init_Server_Cvars ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
 	NVS_Init_Client_Cvars ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
 // 2001-09-18 New cvar system by Maddes (Init)  end
+	
+
 
 	V_Init ();
 	Chase_Init ();
 	Host_InitVCR (parms);
 	COM_Init (parms->basedir);
+
+
 	Host_InitLocal ();
+//	W_LoadWadFileExtra ("extra.wad");
 	W_LoadWadFile ("gfx.wad");
+
 	Key_Init ();
 	Con_Init ();
 	M_Init ();
 	PR_Init ();
 	Mod_Init ();
+#ifndef BENCH
 	NET_Init ();
+#endif
 	SV_Init ();
+#ifdef GLOBOT
+		Bot_Init ();
+#endif
 	NVS_Init ();	// 2000-04-30 NVS COMMON by Maddes
 	NVS_Init_Server ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
 	NVS_Init_Client ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
-
+//#ifndef	_WIN32
+//	S_Init (); // moved sound init way back here. so we can see it in text
+//#endif
 	Con_Printf ("Exe: "__TIME__" "__DATE__"\n");
 	Con_Printf ("%4.1f megabyte heap\n",parms->memsize/ (1024*1024.0));
 
@@ -1135,28 +1398,19 @@ void Host_Init (quakeparms_t *parms)
 
 	if (cls.state != ca_dedicated)
 	{
-// 2001-09-12 Returning information about loaded file by Maddes  start
-/*
-		host_basepal = (byte *)COM_LoadHunkFile ("gfx/palette.lmp");
-		if (!host_basepal)
-*/
-		fileinfo = COM_LoadHunkFile ("gfx/palette.lmp");
-		if (!fileinfo)
-// 2001-09-12 Returning information about loaded file by Maddes  end
-			Sys_Error ("Couldn't load gfx/palette.lmp");
-		host_basepal = fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
 
-// 2001-09-12 Returning information about loaded file by Maddes  start
-/*
-		host_colormap = (byte *)COM_LoadHunkFile ("gfx/colormap.lmp");
-		if (!host_colormap)
-*/
-		fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
-		if (!fileinfo)
-// 2001-09-12 Returning information about loaded file by Maddes  end
-			Sys_Error ("Couldn't load gfx/colormap.lmp");
-		host_colormap = fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
+		Palette_Init();
+#ifndef BENCH
+	// don't do lookup stuff in benchmark
+		MassiveLookupTablesInit();
 
+
+		if (host_basepal != host_origpal){
+		//	InitColorColormaps();
+		//	GrabColorMap();
+		//	InitRemap(host_origpal);
+		}
+#endif
 // 2000-07-28 DOSQuake input init before video init fix by Norberto Alfredo Bensa  start
 //#ifndef _WIN32 // on non win32, mouse comes before video for security reasons
 #if !defined(_WIN32) && !defined(DOSQUAKE)	// on non dos/win32, mouse comes before video for security reasons
@@ -1167,6 +1421,7 @@ void Host_Init (quakeparms_t *parms)
 
 		Draw_Init_Cvars();	// 2001-09-18 New cvar system by Maddes (Init)
 		Draw_Init ();
+//		RemapMenuMap();
 		SCR_Init ();
 		R_Init ();
 #ifndef	_WIN32
@@ -1177,13 +1432,16 @@ void Host_Init (quakeparms_t *parms)
 
 #ifdef	GLQUAKE
 	// FIXME: doesn't use the new one-window approach yet
-		S_Init ();
+	//	S_Init ();
 #endif
 
 #endif	// _WIN32
 //TW		CDAudio_Init_Cvars();	// 2001-09-18 New cvar system by Maddes (Init)
+#ifndef BENCH
 		CDAudio_Init ();
+
 		Sbar_Init ();
+#endif
 		CL_Init ();
 // 2000-07-28 DOSQuake input init before video init fix by Norberto Alfredo Bensa  start
 //#ifdef _WIN32 // on non win32, mouse comes before video for security reasons
@@ -1197,15 +1455,21 @@ void Host_Init (quakeparms_t *parms)
 											// this creates all missing variables
 											// some of them will be updated by config.cfg executed in quake.rc
 											// this way you can use a non-set-compatible engine without loosing your new cvars
-
+#ifdef BENCH
+	Cbuf_InsertText ("exec bench.rc\n");
+#else
 	Cbuf_InsertText ("exec quake.rc\n");
+#endif
 
 	Hunk_AllocName (0, "-HOST_HUNKLEVEL-");
 	host_hunklevel = Hunk_LowMark ();
-
+	R_Presets();
 	host_initialized = true;
 
+	
+
 	Sys_Printf ("========Quake Initialized=========\n");
+
 }
 
 
@@ -1230,9 +1494,9 @@ void Host_Shutdown(void)
 
 // keep Con_Printf from trying to update the screen
 	scr_disabled_for_loading = true;
-
+#ifndef BENCH
 	Host_WriteConfiguration ();
-
+#endif
 	CDAudio_Shutdown ();
 	NET_Shutdown ();
 	S_Shutdown();

@@ -17,7 +17,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-
+#ifdef DUMB
+//typedef struct DUMBFILE DUMBERFILE;
+struct DUMBFILE_SYSTEM *duhfile;
+struct DUH			*duhsong;
+//struct DUH			*duhgame;	// experimental ingame sounding
+#endif
 int CDAudio_Init(void);
 void CDAudio_Play(byte track, qboolean looping);
 void CDAudio_Stop(void);

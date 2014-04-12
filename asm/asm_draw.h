@@ -140,7 +140,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define rd_viewangles				124
 #define rd_ambientlight				136
 #define rd_size						140
-
+.extern C(r_framelerp)
+.extern C(r_oldapverts)
 // mtriangle_t structure
 // !!! if this is changed, it must be changed in model.h too !!!
 #define mtri_facesfront		0

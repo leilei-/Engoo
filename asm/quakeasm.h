@@ -42,9 +42,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef __i386__		//precompiler directive of DJGPP
 #define id386	1
+#define id386poly 0
+#define id386rgb 0
+#define colhack 0
 #else
 #define id386	0
+#define id386rgb 0
+#define colhack 0
 #endif
+
 
 // !!! must be kept the same as in d_iface.h !!!
 #define TRANSPARENT_COLOR	255
@@ -273,6 +279,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern fp_64kx64k
 	.extern pz
 	.extern spr8entryvec_table
+	.extern C(host_colormap_buffer)	// leilei
+	.extern C(r_lightwidther)	// leilei
+	.extern C(host_fogmap)			// leilei
+	.extern C(palmap2)
+	.extern C(d_8to24table)
+	.extern C(r_lightptr_r)
+	.extern C(r_lightptr_g)
+	.extern C(r_lightptr_b)
+#ifdef colhack
+	.extern C(host_colormap_red)	// leilei
+	.extern C(host_colormap_green)	// leilei
+	.extern C(host_colormap_blue)	// leilei
+	
+	.extern C(surfrowbytesred)	// leilei
+	.extern C(surfrowbytesgreen)	// leilei
+	.extern C(surfrowbytesblue)	// leilei
+	.extern C(prowdestbasered)
+	.extern C(prowdestbasegreen)
+	.extern C(prowdestbaseblue)
+	.extern C(pbasesourcered)
+	.extern C(pbasesourcegreen)
+	.extern C(pbasesourceblue)
+#endif
+	
 #endif
 
 	.extern C(snd_scaletable)

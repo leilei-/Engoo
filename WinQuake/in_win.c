@@ -33,7 +33,7 @@ HRESULT (WINAPI *pDirectInputCreate)(HINSTANCE hinst, DWORD dwVersion,
 
 // mouse variables
 cvar_t	*m_filter;
-
+extern float	thestandstill; // leilei - standstill hack
 int			mouse_buttons;
 int			mouse_oldbuttonstate;
 POINT		current_pos;
@@ -48,9 +48,9 @@ qboolean		mouseinitialized;
 static qboolean	mouseparmsvalid, mouseactivatetoggle;
 static qboolean	mouseshowtoggle = 1;
 static qboolean	dinput_acquired;
-
+extern int deathcam_yesiamdead;	// leilei - deathcam
 static unsigned int		mstate_di;
-
+extern float amouse_x; amouse_y;
 // joystick defines and variables
 // where should defines be moved?
 #define JOY_ABSOLUTE_AXIS	0x00000000		// control like a joystick
@@ -176,7 +176,7 @@ void IN_UpdateClipCursor (void)
 
 	if (mouseinitialized && mouseactive && !dinput)
 	{
-		ClipCursor (&window_rect);
+		ClipCursor (&window_rect); // leilei - why the hell did i comment this line out...?
 	}
 }
 
@@ -212,12 +212,13 @@ void IN_HideMouse (void)
 	}
 }
 
-
 /*
 ===========
 IN_ActivateMouse
 ===========
 */
+
+
 void IN_ActivateMouse (void)
 {
 
@@ -242,9 +243,10 @@ void IN_ActivateMouse (void)
 		}
 		else
 		{
+#ifndef EFFINGMOUSE
 			if (mouseparmsvalid)
 				restore_spi = SystemParametersInfo (SPI_SETMOUSE, 0, newmouseparms, 0);
-
+#endif
 			SetCursorPos (window_center_x, window_center_y);
 			SetCapture (mainwindow);
 			ClipCursor (&window_rect);
@@ -292,9 +294,10 @@ void IN_DeactivateMouse (void)
 		}
 		else
 		{
+#ifndef	EFFINGMOUSE
 			if (restore_spi)
 				SystemParametersInfo (SPI_SETMOUSE, 0, originalmouseparms, 0);
-
+#endif
 			ClipCursor (NULL);
 			ReleaseCapture ();
 		}
@@ -445,6 +448,7 @@ void IN_StartupMouse (void)
 
 	if (!dinput)
 	{
+#ifndef EFFINGMOUSE
 		mouseparmsvalid = SystemParametersInfo (SPI_GETMOUSE, 0, originalmouseparms, 0);
 
 		if (mouseparmsvalid)
@@ -465,9 +469,10 @@ void IN_StartupMouse (void)
 				newmouseparms[2] = originalmouseparms[2];
 			}
 		}
+#endif
 	}
 
-	mouse_buttons = 3;
+	mouse_buttons = 7;
 
 // if a fullscreen video mode was set before the mouse was initialized,
 // set the mouse state appropriately
@@ -487,21 +492,31 @@ void IN_Init_Cvars (void)
 	m_filter = Cvar_Get ("m_filter", "0", CVAR_ORIGINAL);
 
 	// joystick variables
-	in_joystick = Cvar_Get ("joystick", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	in_joystick = Cvar_Get ("joystick", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
 	joy_name = Cvar_Get ("joyname", "joystick", CVAR_ORIGINAL);
-	joy_advanced = Cvar_Get ("joyadvanced", "0", CVAR_ORIGINAL);
-	joy_advaxisx = Cvar_Get ("joyadvaxisx", "0", CVAR_ORIGINAL);
-	joy_advaxisy = Cvar_Get ("joyadvaxisy", "0", CVAR_ORIGINAL);
+	// leilei - xb defaults, apologies if gamepad defaults offend anybody :)
+// 
+// xinput standard: preset
+//
+// joyadvaxisx 3		// left stick strafe
+// joyadvaxisy 1		// left stick move fwd/back
+// joyadvaxisz 0		// pressure buttons disabled
+// joyadvaxisr 2		// right stick look up/down
+// 
+
+	joy_advanced = Cvar_Get ("joyadvanced", "1", CVAR_ORIGINAL);
+	joy_advaxisx = Cvar_Get ("joyadvaxisx", "3", CVAR_ORIGINAL);
+	joy_advaxisy = Cvar_Get ("joyadvaxisy", "1", CVAR_ORIGINAL);
 	joy_advaxisz = Cvar_Get ("joyadvaxisz", "0", CVAR_ORIGINAL);
-	joy_advaxisr = Cvar_Get ("joyadvaxisr", "0", CVAR_ORIGINAL);
-	joy_advaxisu = Cvar_Get ("joyadvaxisu", "0", CVAR_ORIGINAL);
+	joy_advaxisr = Cvar_Get ("joyadvaxisr", "2", CVAR_ORIGINAL);
+	joy_advaxisu = Cvar_Get ("joyadvaxisu", "4", CVAR_ORIGINAL);
 	joy_advaxisv = Cvar_Get ("joyadvaxisv", "0", CVAR_ORIGINAL);
 	joy_forwardthreshold = Cvar_Get ("joyforwardthreshold", "0.15", CVAR_ORIGINAL);
 	joy_sidethreshold = Cvar_Get ("joysidethreshold", "0.15", CVAR_ORIGINAL);
 	joy_pitchthreshold = Cvar_Get ("joypitchthreshold", "0.15", CVAR_ORIGINAL);
 	joy_yawthreshold = Cvar_Get ("joyyawthreshold", "0.15", CVAR_ORIGINAL);
 	joy_forwardsensitivity = Cvar_Get ("joyforwardsensitivity", "-1", CVAR_ORIGINAL);
-	joy_sidesensitivity = Cvar_Get ("joysidesensitivity", "-1", CVAR_ORIGINAL);
+	joy_sidesensitivity = Cvar_Get ("joysidesensitivity", "1", CVAR_ORIGINAL); // leilei - was -1
 	joy_pitchsensitivity = Cvar_Get ("joypitchsensitivity", "1", CVAR_ORIGINAL);
 	joy_yawsensitivity = Cvar_Get ("joyyawsensitivity", "-1", CVAR_ORIGINAL);
 	joy_wwhack1 = Cvar_Get ("joywwhack1", "0", CVAR_ORIGINAL);
@@ -517,32 +532,7 @@ IN_Init
 void IN_Init (void)
 {
 // 2001-09-18 New cvar system by Maddes (Init)  start
-/*
-	// mouse variables
-	m_filter = Cvar_Get ("m_filter", "0", CVAR_ORIGINAL);
 
-	// joystick variables
-	in_joystick = Cvar_Get ("joystick", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	joy_name = Cvar_Get ("joyname", "joystick", CVAR_ORIGINAL);
-	joy_advanced = Cvar_Get ("joyadvanced", "0", CVAR_ORIGINAL);
-	joy_advaxisx = Cvar_Get ("joyadvaxisx", "0", CVAR_ORIGINAL);
-	joy_advaxisy = Cvar_Get ("joyadvaxisy", "0", CVAR_ORIGINAL);
-	joy_advaxisz = Cvar_Get ("joyadvaxisz", "0", CVAR_ORIGINAL);
-	joy_advaxisr = Cvar_Get ("joyadvaxisr", "0", CVAR_ORIGINAL);
-	joy_advaxisu = Cvar_Get ("joyadvaxisu", "0", CVAR_ORIGINAL);
-	joy_advaxisv = Cvar_Get ("joyadvaxisv", "0", CVAR_ORIGINAL);
-	joy_forwardthreshold = Cvar_Get ("joyforwardthreshold", "0.15", CVAR_ORIGINAL);
-	joy_sidethreshold = Cvar_Get ("joysidethreshold", "0.15", CVAR_ORIGINAL);
-	joy_pitchthreshold = Cvar_Get ("joypitchthreshold", "0.15", CVAR_ORIGINAL);
-	joy_yawthreshold = Cvar_Get ("joyyawthreshold", "0.15", CVAR_ORIGINAL);
-	joy_forwardsensitivity = Cvar_Get ("joyforwardsensitivity", "-1", CVAR_ORIGINAL);
-	joy_sidesensitivity = Cvar_Get ("joysidesensitivity", "-1", CVAR_ORIGINAL);
-	joy_pitchsensitivity = Cvar_Get ("joypitchsensitivity", "1", CVAR_ORIGINAL);
-	joy_yawsensitivity = Cvar_Get ("joyyawsensitivity", "-1", CVAR_ORIGINAL);
-	joy_wwhack1 = Cvar_Get ("joywwhack1", "0", CVAR_ORIGINAL);
-	joy_wwhack2 = Cvar_Get ("joywwhack2", "0", CVAR_ORIGINAL);
-*/
-// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("force_centerview", Force_CenterView_f);
 	Cmd_AddCommand ("joyadvancedupdate", Joy_AdvancedUpdate_f);
@@ -609,7 +599,7 @@ void IN_MouseEvent (int mstate)
 	}
 }
 
-
+extern vec3_t	deathcam_angles;
 /*
 ===========
 IN_MouseMove
@@ -624,8 +614,12 @@ void IN_MouseMove (usercmd_t *cmd)
 	DWORD				dwElements;
 	HRESULT				hr;
 
+	vec3_t		tangles;
+
 	if (!mouseactive)
 		return;
+
+
 
 	if (dinput)
 	{
@@ -734,22 +728,31 @@ void IN_MouseMove (usercmd_t *cmd)
 	mouse_x *= sensitivity->value;
 	mouse_y *= sensitivity->value;
 
+	if (deathcam_yesiamdead){
+		tangles[0] = deathcam_angles[0]; tangles[1] = deathcam_angles[1]; tangles[2] = deathcam_angles[2];
+	}
+	else{
+		tangles[0] = cl.viewangles[0]; tangles[1] = cl.viewangles[1]; tangles[2] = cl.viewangles[2];
+	}
+
 // add mouse X/Y movement to cmd
 	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+		tangles[YAW] -= m_yaw->value * mouse_x;
 
 	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
 
 	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
-		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
-		if (cl.viewangles[PITCH] > 80)
-			cl.viewangles[PITCH] = 80;
-		if (cl.viewangles[PITCH] < -70)
-			cl.viewangles[PITCH] = -70;
+		tangles[PITCH] += m_pitch->value * mouse_y;
+			if (!deathcam_yesiamdead){
+		if (tangles[PITCH] > 80)
+			tangles[PITCH] = 80;
+		if (tangles[PITCH] < -70)
+			tangles[PITCH] = -70;
+			}
 	}
 	else
 	{
@@ -759,11 +762,22 @@ void IN_MouseMove (usercmd_t *cmd)
 			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 
+
+	if (deathcam_yesiamdead){
+		deathcam_angles[0] = tangles[0]; deathcam_angles[1] = tangles[1]; deathcam_angles[2] = tangles[2];
+	}
+	else{
+		cl.viewangles[0] = tangles[0]; cl.viewangles[1] = tangles[1];  cl.viewangles[2] = tangles[2]; 
+	}
+
 // if the mouse has moved, force it to the center, so there's room to move
 	if (mx || my)
 	{
 		SetCursorPos (window_center_x, window_center_y);
 	}
+	// leilei - thestandstill hack
+	amouse_x = mouse_x;
+	amouse_y = mouse_y;
 }
 
 
@@ -839,11 +853,13 @@ void IN_StartupJoystick (void)
 
  	// assume no joystick
 	joy_avail = false;
-
+#ifdef WINDOWS31
+	return;
+#endif
 	// abort startup if user requests no joystick
 	if ( COM_CheckParm ("-nojoy") )
 		return;
-
+#ifndef WINDOWS31
 	// verify joystick driver is present
 	if ((numdevs = joyGetNumDevs ()) == 0)
 	{
@@ -851,17 +867,19 @@ void IN_StartupJoystick (void)
 		return;
 	}
 
+	
 	// cycle through the joystick ids for the first valid one
+	
 	for (joy_id=0 ; joy_id<numdevs ; joy_id++)
 	{
 		memset (&ji, 0, sizeof(ji));
 		ji.dwSize = sizeof(ji);
 		ji.dwFlags = JOY_RETURNCENTERED;
 
-		if ((mmr = joyGetPosEx (joy_id, &ji)) == JOYERR_NOERROR)
+	if ((mmr = joyGetPosEx (joy_id, &ji)) == JOYERR_NOERROR)
 			break;
 	}
-
+	
 	// abort startup if we didn't find a valid joystick
 	if (mmr != JOYERR_NOERROR)
 	{
@@ -892,7 +910,9 @@ void IN_StartupJoystick (void)
 	joy_advancedinit = false;
 
 	Con_Printf ("\njoystick detected\n\n");
+#endif
 }
+
 
 
 /*
@@ -1073,7 +1093,7 @@ IN_ReadJoystick
 */
 qboolean IN_ReadJoystick (void)
 {
-
+#ifndef WINDOWS31
 	memset (&ji, 0, sizeof(ji));
 	ji.dwSize = sizeof(ji);
 	ji.dwFlags = joy_flags;
@@ -1098,6 +1118,7 @@ qboolean IN_ReadJoystick (void)
 		// joy_avail = false;
 		return false;
 	}
+#endif
 }
 
 
@@ -1111,6 +1132,7 @@ void IN_JoyMove (usercmd_t *cmd)
 	float	speed, aspeed;
 	float	fAxisValue, fTemp;
 	int		i;
+	vec3_t tangles;	// leilei - deathcam
 
 	// complete initialization if first time in
 	// this is needed as cvars are not available at initialization time
@@ -1168,6 +1190,13 @@ void IN_JoyMove (usercmd_t *cmd)
 		// convert range from -32768..32767 to -1..1
 		fAxisValue /= 32768.0;
 
+	if (deathcam_yesiamdead){
+		tangles[0] = deathcam_angles[0]; tangles[1] = deathcam_angles[1]; tangles[2] = deathcam_angles[2];
+	}
+	else{
+		tangles[0] = cl.viewangles[0]; tangles[1] = cl.viewangles[1]; tangles[2] = cl.viewangles[2];
+	}
+
 		switch (dwAxisMap[i])
 		{
 		case AxisForward:
@@ -1180,11 +1209,11 @@ void IN_JoyMove (usercmd_t *cmd)
 					// only absolute control support here (joy_advanced is false)
 					if (m_pitch->value < 0.0)
 					{
-						cl.viewangles[PITCH] -= (fAxisValue * joy_pitchsensitivity->value) * aspeed * cl_pitchspeed->value;
+						tangles[PITCH] -= (fAxisValue * joy_pitchsensitivity->value) * aspeed * cl_pitchspeed->value;
 					}
 					else
 					{
-						cl.viewangles[PITCH] += (fAxisValue * joy_pitchsensitivity->value) * aspeed * cl_pitchspeed->value;
+						tangles[PITCH] += (fAxisValue * joy_pitchsensitivity->value) * aspeed * cl_pitchspeed->value;
 					}
 					V_StopPitchDrift();
 				}
@@ -1231,11 +1260,11 @@ void IN_JoyMove (usercmd_t *cmd)
 				{
 					if(dwControlMap[i] == JOY_ABSOLUTE_AXIS)
 					{
-						cl.viewangles[YAW] += (fAxisValue * joy_yawsensitivity->value) * aspeed * cl_yawspeed->value;
+						tangles[YAW] += (fAxisValue * joy_yawsensitivity->value) * aspeed * cl_yawspeed->value;
 					}
 					else
 					{
-						cl.viewangles[YAW] += (fAxisValue * joy_yawsensitivity->value) * speed * 180.0;
+						tangles[YAW] += (fAxisValue * joy_yawsensitivity->value) * speed * 180.0;
 					}
 
 				}
@@ -1250,11 +1279,11 @@ void IN_JoyMove (usercmd_t *cmd)
 					// pitch movement detected and pitch movement desired by user
 					if(dwControlMap[i] == JOY_ABSOLUTE_AXIS)
 					{
-						cl.viewangles[PITCH] += (fAxisValue * joy_pitchsensitivity->value) * aspeed * cl_pitchspeed->value;
+						tangles[PITCH] += (fAxisValue * joy_pitchsensitivity->value) * aspeed * cl_pitchspeed->value;
 					}
 					else
 					{
-						cl.viewangles[PITCH] += (fAxisValue * joy_pitchsensitivity->value) * speed * 180.0;
+						tangles[PITCH] += (fAxisValue * joy_pitchsensitivity->value) * speed * 180.0;
 					}
 					V_StopPitchDrift();
 				}
@@ -1273,11 +1302,22 @@ void IN_JoyMove (usercmd_t *cmd)
 		default:
 			break;
 		}
+			if (deathcam_yesiamdead){
+		deathcam_angles[0] = tangles[0]; deathcam_angles[1] = tangles[1]; deathcam_angles[2] = tangles[2];
+	}
+	else{
+		cl.viewangles[0] = tangles[0]; cl.viewangles[1] = tangles[1];  cl.viewangles[2] = tangles[2]; 
+	}
 	}
 
 	// bounds check pitch
-	if (cl.viewangles[PITCH] > 80.0)
-		cl.viewangles[PITCH] = 80.0;
-	if (cl.viewangles[PITCH] < -70.0)
-		cl.viewangles[PITCH] = -70.0;
+	if (!deathcam_yesiamdead){
+	if (tangles[PITCH] > 80.0)
+		tangles[PITCH] = 80.0;
+	if (tangles[PITCH] < -70.0)
+		tangles[PITCH] = -70.0;
+	}
+
+
+
 }

@@ -504,7 +504,8 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
-
+	vid.maxlowwidth = LOW_WIDTH;
+	vid.maxlowheight = LOW_HEIGHT;
 	// alloc zbuffer and surface cache
 	if (d_pzbuffer) {
 		D_FlushCaches();

@@ -256,6 +256,87 @@ loadedfile_t *COM_LoadCacheFile (char *path, struct cache_user_s *cu);
 
 extern struct cvar_s	*registered;
 
-extern qboolean	standard_quake, rogue, hipnotic;
+extern qboolean	standard_quake, rogue, hipnotic, q101, q091, q040;
 
 searchpath_t *COM_GetDirSearchPath(searchpath_t *startsearch);	// 2001-09-12 Finding the last searchpath of a directory  end
+
+
+
+
+//#endif
+
+struct rgb_t
+{
+	int		r;
+	int		g;
+	int		b;
+};
+//
+extern byte	palmap[32][32][32];		
+extern byte	palmap2[64][64][64];	
+
+struct rgba_t
+{
+	int		r;
+	int		g;
+	int		b;
+	int		a;
+};
+
+struct ligh_t
+{
+	int		r;
+	int		g;
+	int		b;
+};
+
+
+
+typedef unsigned char 		qbyte;
+typedef unsigned short	 	word;
+
+
+int		coloredlights;		// sanity check
+float		overbrights;		// ditto
+int		fullbrights;		// ditto
+int		palchanged;			// yes
+int		lowworld;		// sanity check
+int		foguse;		// sanity check
+int		foguse2;		// sanity check for hqfog
+int		fogenabled;
+int cursplit;			// leilei - splitscreen
+int		screenfake;		// stupid hack to force 320x200, 320x400, 360x400, 360x480, 640x400 in windows
+
+char	lastsavename[256];
+int		safesaved;
+
+//int		autosaved_key1;					// save when silver key
+//int		autosaved_key2;					// save when gold key
+int		autosaved_monsthalfkilled;		// save when at least half of the level's monsters are dead
+int		imsaving;						// stupid fade :)
+
+int	fogcolr, fogcolg, fogcolb, fogthick, fogrange;	// leilei - fog
+
+int		splitpass;		// leilei - splitscreen pass for second player.
+extern int		splitmeup;
+
+typedef enum {
+	pt_static, pt_grav, pt_slowgrav, pt_fire, pt_explode, pt_explode2, pt_blob, pt_blob2, pt_fastgrav, pt_smoke, pt_decel, pt_blood, pt_add, pt_staticfade, pt_addfade,pt_staticfadeadd, pt_slowgravaddfade, pt_bloodsplatten, pt_bloodsplat, pt_blooddrip, pt_bloodrun, pt_bloodfloor, pt_trail, pt_spark, pt_snow, pt_fire6, pt_decal, pt_flare, pt_flare_will_die, pt_sparkvel, pt_drip
+} ptype_t;
+
+
+extern struct entity_s;
+/*
+
+typedef struct
+{
+	vec3_t	origin;
+	float	radius;
+	vec3_t	color;			
+	struct model_t	*model;
+	struct entity_t *owner;
+} flare_t;
+
+  */
+
+void TheForceLoadLighting (void); // gotta try to call this somewhere that works.

@@ -65,6 +65,7 @@ static double	blocktime;
 
 BOOL PASCAL FAR BlockingHook(void)
 {
+#ifndef WINDOWS31
     MSG		msg;
     BOOL	ret;
 
@@ -85,6 +86,7 @@ BOOL PASCAL FAR BlockingHook(void)
 
     /* TRUE if we got a message */
     return ret;
+#endif
 }
 
 
@@ -113,7 +115,7 @@ void WINS_GetLocalAddress()
 	sprintf(my_tcpip_address, "%d.%d.%d.%d", (addr >> 24) & 0xff, (addr >> 16) & 0xff, (addr >> 8) & 0xff, addr & 0xff);
 }
 
-
+extern qboolean Win31;
 int WINS_Init (void)
 {
 	int		i;
@@ -122,10 +124,13 @@ int WINS_Init (void)
 	int		r;
 	WORD	wVersionRequested;
 	HINSTANCE hInst;
-
+#ifdef WINDOWS31
+	return -1;
+#endif
 // initialize the Winsock function vectors (we do this instead of statically linking
 // so we can run on Win 3.1, where there isn't necessarily Winsock)
-    hInst = LoadLibrary("wsock32.dll");
+	if(!Win31){
+	hInst = LoadLibrary("wsock32.dll");
 
 	if (hInst == NULL)
 	{
@@ -133,7 +138,7 @@ int WINS_Init (void)
 		winsock_lib_initialized = false;
 		return -1;
 	}
-
+	}
 	winsock_lib_initialized = true;
 
     pWSAStartup = (void *)GetProcAddress(hInst, "WSAStartup");
@@ -402,7 +407,7 @@ int WINS_Read (int socket, byte *buf, int len, struct qsockaddr *addr)
 	ret = precvfrom (socket, buf, len, 0, (struct sockaddr *)addr, &addrlen);
 	if (ret == -1)
 	{
-		int errno = pWSAGetLastError();
+//		int errno = pWSAGetLastError();
 
 		if (errno == WSAEWOULDBLOCK || errno == WSAECONNREFUSED)
 			return 0;

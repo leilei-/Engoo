@@ -47,6 +47,7 @@ keydest_t	key_dest;
 int		key_count;			// incremented every key event
 
 char	*keybindings[256];
+char	*keybindings2[256];	// leilei - splitscreen hack
 qboolean	consolekeys[256];	// if true, can't be rebound while in console
 qboolean	menubound[256];	// if true, can't be rebound while in menu
 int		keyshift[256];		// key to map to if shift held down in console
@@ -278,14 +279,6 @@ void Key_Console (int key)
 	}
 
 // 2000-01-05 Console typing enhancement by Radix  start
-/*
-	if (key == K_BACKSPACE || key == K_LEFTARROW)
-	{
-		if (key_linepos > 1)
-			key_linepos--;
-		return;
-	}
-*/
 
 	if (key == K_LEFTARROW)
 	{
@@ -393,33 +386,18 @@ void Key_Console (int key)
 	if (key == K_PGUP || key==K_MWHEELUP)
 	{
 		con_backscroll += 2;
-// 2000-01-05 Console scrolling fix by Maddes  start
-/*
-		if (con_backscroll > con_totallines - (vid.height>>3) - 1)
-			con_backscroll = con_totallines - (vid.height>>3) - 1;
-*/
-// 2000-01-05 Console scrolling fix by Maddes  end
 		return;
 	}
 
 	if (key == K_PGDN || key==K_MWHEELDOWN)
 	{
 		con_backscroll -= 2;
-// 2000-01-05 Console scrolling fix by Maddes  start
-/*
-		if (con_backscroll < 0)
-			con_backscroll = 0;
-*/
-// 2000-01-05 Console scrolling fix by Maddes  end
 		return;
 	}
 
 	if (key == K_HOME)
 	{
-// 2000-01-05 Console scrolling fix by Maddes  start
-//		con_backscroll = con_totallines - (vid.height>>3) - 1;
 		con_backscroll = con_current - 1;
-// 2000-01-05 Console scrolling fix by Maddes  end
 		return;
 	}
 
@@ -706,6 +684,120 @@ void Key_Bind_f (void)
 	Key_SetBinding (b, cmd);
 }
 
+
+
+/*
+===================
+Key_SetBinding2
+===================
+*/
+void Key_SetBinding2 (int keynum, char *binding)
+{
+	char	*new;
+	int		l;
+
+	if (keynum == -1)
+		return;
+
+// free old bindings
+	if (keybindings[keynum])
+	{
+		Z_Free (mainzone, keybindings[keynum]);	// 2001-09-20 Enhanced zone handling by Maddes
+		keybindings[keynum] = NULL;
+	}
+
+// allocate memory for new binding
+	l = strlen (binding);
+	new = Z_Malloc (mainzone, l+1);	// 2001-09-20 Enhanced zone handling by Maddes
+	strcpy (new, binding);
+	new[l] = 0;
+	keybindings[keynum] = new;
+}
+
+/*
+===================
+Key_Unbind2_f
+===================
+*/
+void Key_Unbind2_f (void)
+{
+	int		b;
+
+	if (Cmd_Argc() != 2)
+	{
+		Con_Printf ("unbind <key> : remove commands from a key\n");
+		return;
+	}
+
+	b = Key_StringToKeynum (Cmd_Argv(1));
+	if (b==-1)
+	{
+		Con_Printf ("\"%s\" isn't a valid key\n", Cmd_Argv(1));
+		return;
+	}
+
+	Key_SetBinding (b, "");
+}
+
+void Key_Unbindall2_f (void)
+{
+	int		i;
+
+	for (i=0 ; i<256 ; i++)
+		if (keybindings[i])
+			Key_SetBinding (i, "");
+}
+
+
+
+/*
+===================
+Key_Bind2_f
+leilei - splitscreen hack
+Binds a key for the second client in a splitscreen environment
+(for separate keyboards or joypads)
+===================
+*/
+void Key_Bind2_f (void)
+{
+	int			i, c, b;
+	char		cmd[1024];
+
+	c = Cmd_Argc();
+	// the messages are wittier, just because we're not done.
+	if (c != 2 && c != 3)
+	{
+		Con_Printf ("bind2 <key> [command] : attach a command to a key for the second player. which is highly experimental, should not be taken seriously, and other warnings here.\n");
+		return;
+	}
+	b = Key_StringToKeynum (Cmd_Argv(1));
+	if (b==-1)
+	{
+		Con_Printf ("\"%s\" isn't a valid key for the second player. Too bad. Try again. :(\n", Cmd_Argv(1));
+		return;
+	}
+
+	if (c == 2)
+	{
+		if (keybindings[b])
+			Con_Printf ("\"%s\" = \"%s\"\n", Cmd_Argv(1), keybindings[b] );
+		else
+			Con_Printf ("\"%s\" is not bound, so bind it!!!\n", Cmd_Argv(1) );
+		return;
+	}
+
+// copy the rest of the command line
+	cmd[0] = 0;		// start out with a null string
+	for (i=2 ; i< c ; i++)
+	{
+		if (i > 2)
+			strcat (cmd, " ");
+		strcat (cmd, Cmd_Argv(i));
+	}
+
+	Key_SetBinding2 (b, cmd);
+}
+
 /*
 ============
 Key_WriteBindings
@@ -732,7 +824,7 @@ Key_Init
 void Key_Init (void)
 {
 	int		i;
-
+	
 	for (i=0 ; i<32 ; i++)
 	{
 		key_lines[i][0] = ']';
@@ -795,6 +887,7 @@ void Key_Init (void)
 	keyshift['\\'] = '|';
 
 	menubound[K_ESCAPE] = true;
+	menubound[K_AUX8] = true;	// leilei - start button.
 	for (i=0 ; i<12 ; i++)
 		menubound[K_F1+i] = true;
 
@@ -805,6 +898,9 @@ void Key_Init (void)
 	Cmd_AddCommand ("unbind",Key_Unbind_f);
 	Cmd_AddCommand ("unbindall",Key_Unbindall_f);
 
+	// leilei - splitscreen hack
+	Cmd_AddCommand ("bind2",Key_Bind2_f);
+	Cmd_AddCommand ("unbind2",Key_Unbind2_f);
 
 }
 
@@ -976,4 +1072,5 @@ void Key_ClearStates (void)
 		key_repeats[i] = 0;
 	}
 }
+
 

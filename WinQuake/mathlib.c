@@ -304,6 +304,27 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 	sr = sin(angle);
 	cr = cos(angle);
 
+#ifdef VMTOC
+	if (forward)
+	{
+		forward[0] = cp*cy;
+		forward[1] = cp*sy;
+		forward[2] = -sp;
+	}
+	if (right)
+	{
+		right[0] = (-1*sr*sp*cy+-1*cr*-sy);
+		right[1] = (-1*sr*sp*sy+-1*cr*cy);
+		right[2] = -1*sr*cp;
+	}
+	if (up)
+	{
+		up[0] = (cr*sp*cy+-sr*-sy);
+		up[1] = (cr*sp*sy+-sr*cy);
+		up[2] = cr*cp;
+	}
+
+#else
 	forward[0] = cp*cy;
 	forward[1] = cp*sy;
 	forward[2] = -sp;
@@ -313,7 +334,11 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 	up[0] = (cr*sp*cy+-sr*-sy);
 	up[1] = (cr*sp*sy+-sr*cy);
 	up[2] = cr*cp;
+#endif
 }
+
+
+
 
 int VectorCompare (vec3_t v1, vec3_t v2)
 {
@@ -487,6 +512,83 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 }
 
 
+// LordHavoc: calculates pitch/yaw/roll angles from forward and up vectors
+void AnglesFromVectors (vec3_t angles, const vec3_t forward, const vec3_t up, qboolean flippitch)
+{
+	if (forward[0] == 0 && forward[1] == 0)
+	{
+		if(forward[2] > 0)
+		{
+			angles[PITCH] = (float)(-M_PI * 0.5);
+			angles[YAW] = up ? atan2(-up[1], -up[0]) : 0;
+		}
+		else
+		{
+			angles[PITCH] = (float)(M_PI * 0.5);
+			angles[YAW] = up ? atan2(up[1], up[0]) : 0;
+		}
+		angles[ROLL] = 0;
+	}
+	else
+	{
+		angles[YAW] = atan2(forward[1], forward[0]);
+		angles[PITCH] = -atan2(forward[2], sqrt(forward[0]*forward[0] + forward[1]*forward[1]));
+		if (up)
+		{
+			vec_t cp = cos(angles[PITCH]), sp = sin(angles[PITCH]);
+			vec_t cy = cos(angles[YAW]), sy = sin(angles[YAW]);
+			vec3_t tleft, tup;
+			tleft[0] = -sy;
+			tleft[1] = cy;
+			tleft[2] = 0;
+			tup[0] = sp*cy;
+			tup[1] = sp*sy;
+			tup[2] = cp;
+			angles[ROLL] = -atan2(DotProduct(up, tleft), DotProduct(up, tup));
+		}
+		else
+			angles[ROLL] = 0;
+	}
+
+	// now convert radians to degrees, and make all values positive
+	VectorScale(angles, (float)(180.0 / M_PI), angles);
+	if (flippitch)
+		angles[PITCH] *= -1;
+	if (angles[PITCH] < 0) angles[PITCH] += 360;
+	if (angles[YAW] < 0) angles[YAW] += 360;
+	if (angles[ROLL] < 0) angles[ROLL] += 360;
+
+#if 0
+{
+	// debugging code
+	vec3_t tforward, tleft, tup, nforward, nup;
+	VectorCopy(forward, nforward);
+	VectorNormalize(nforward);
+	if (up)
+	{
+		VectorCopy(up, nup);
+		VectorNormalize(nup);
+		AngleVectors(angles, tforward, tleft, tup);
+		if (VectorDistance(tforward, nforward) > 0.01 || VectorDistance(tup, nup) > 0.01)
+		{
+			Con_Printf("vectoangles('%f %f %f', '%f %f %f') = %f %f %f\n", nforward[0], nforward[1], nforward[2], nup[0], nup[1], nup[2], angles[0], angles[1], angles[2]);
+			Con_Printf("^3But that is '%f %f %f', '%f %f %f'\n", tforward[0], tforward[1], tforward[2], tup[0], tup[1], tup[2]);
+		}
+	}
+	else
+	{
+		AngleVectors(angles, tforward, tleft, tup);
+		if (VectorDistance(tforward, nforward) > 0.01)
+		{
+			Con_Printf("vectoangles('%f %f %f') = %f %f %f\n", nforward[0], nforward[1], nforward[2], angles[0], angles[1], angles[2]);
+			Con_Printf("^3But that is '%f %f %f'\n", tforward[0], tforward[1], tforward[2]);
+		}
+	}
+}
+#endif
+}
+
+
 /*
 ===================
 FloorDivMod
@@ -583,3 +685,36 @@ fixed16_t Invert24To16(fixed16_t val)
 }
 
 #endif
+
+
+
+// ToChriS!
+
+
+void LerpVectors (vec3_t v1, vec_t frac, vec3_t v2, vec3_t v)
+{
+	v[0] = v1[0] + frac * (v2[0] - v1[0]);
+	v[1] = v1[1] + frac * (v2[1] - v1[1]);
+	v[2] = v1[2] + frac * (v2[2] - v1[2]);
+}
+
+void LerpAngles (vec3_t v1, vec_t frac, vec3_t v2, vec3_t v)
+{
+	vec3_t	d;
+	int i;
+
+	for (i = 0; i < 3; i++)
+	{
+		d[i] = v2[i] - v1[i];
+
+		if (d[i] > 180)
+			d[i] -= 360;
+		else if (d[i] < -180)
+			d[i] += 360;
+	}
+
+	v[0] = v1[0] + frac * d[0];
+	v[1] = v1[1] + frac * d[1];
+	v[2] = v1[2] + frac * d[2];
+}
+

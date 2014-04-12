@@ -39,7 +39,9 @@ void R_CheckVariables (void)
 	}
 }
 
-
+extern float scalefactor;
+extern float scalefactorv;
+float	scalefactoid;
 /*
 ============
 Show
@@ -222,12 +224,19 @@ void R_PrintDSpeeds (void)
 	db_time = (db_time2 - db_time1) * 1000;
 	se_time = (se_time2 - se_time1) * 1000;
 	de_time = (de_time2 - de_time1) * 1000;
+#ifndef VMTOC
 	dv_time = (dv_time2 - dv_time1) * 1000;
 	ms = (r_time2 - r_time1) * 1000;
 
 	Con_Printf ("%3i %4.1fp %3iw %4.1fb %3is %4.1fe %4.1fv\n",
 				(int)ms, dp_time, (int)rw_time, db_time, (int)se_time, de_time,
 				dv_time);
+#else
+	ms = (r_time2 - r_time1) * 1000;
+
+	Con_Printf ("%3i %4.1fp %3iw %4.1fb %3is %4.1fe %4.1fv\n", (int)ms, dp_time, (int)rw_time, db_time, (int)se_time, de_time);
+
+#endif
 }
 
 
@@ -247,7 +256,6 @@ void WarpPalette (void)
 	int		i,j;
 	byte	newpalette[768];
 	int		basecolor[3];
-
 	basecolor[0] = 130;
 	basecolor[1] = 80;
 	basecolor[2] = 50;
@@ -332,25 +340,50 @@ R_SetUpFrustumIndexes
 */
 void R_SetUpFrustumIndexes (void)
 {
-	int		i, j, *pindex;
+	int		i, *pindex;
 
 	pindex = r_frustum_indexes;
 
 	for (i=0 ; i<4 ; i++)
 	{
-		for (j=0 ; j<3 ; j++)
+			// leilei - unrolled
 		{
-			if (view_clipplanes[i].normal[j] < 0)
+			if (view_clipplanes[i].normal[0] < 0)
 			{
-				pindex[j] = j;
-				pindex[j+3] = j+3;
+				pindex[0] = 0;
+				pindex[0+3] = 3;
 			}
 			else
 			{
-				pindex[j] = j+3;
-				pindex[j+3] = j;
+				pindex[0] = 3;
+				pindex[0+3] = 0;
 			}
 		}
+		{
+			if (view_clipplanes[i].normal[1] < 0)
+			{
+				pindex[1] = 1;
+				pindex[1+3] = 4;
+			}
+			else
+			{
+				pindex[1] = 4;
+				pindex[1+3] = 1;
+			}
+		}
+		{
+			if (view_clipplanes[i].normal[2] < 0)
+			{
+				pindex[2] = 2;
+				pindex[2+3] = 5;
+			}
+			else
+			{
+				pindex[2] = 5;
+				pindex[2+3] = 2;
+			}
+		}
+
 
 	// FIXME: do just once at start
 		pfrustum_indexes[i] = pindex;
@@ -358,18 +391,370 @@ void R_SetUpFrustumIndexes (void)
 	}
 }
 
-
+extern cvar_t	*s_underwater;
 /*
 ===============
 R_SetupFrame
 ===============
 */
+
 void R_SetupFrame (void)
 {
 	int				edgecount;
 	vrect_t			vrect;
 	float			w, h;
+	int			dtail = 2;	// leilei - screen detail
+#ifdef SPLIT
+	cursplit = 0;
+#endif
+// don't allow cheats in multiplayer
+	if (cl.maxclients > 1)
+	{
+		Cvar_Set (r_draworder, "0");
+		Cvar_Set (r_fullbright, "0");
+		Cvar_Set (r_ambient, "0");
+		Cvar_Set (r_drawflat, "0");
+	}
 
+	if (r_numsurfs->value)
+	{
+		if ((surface_p - surfaces) > r_maxsurfsseen)
+			r_maxsurfsseen = surface_p - surfaces;
+
+		Con_Printf ("Used %d of %d surfs; %d max\n", surface_p - surfaces,
+				surf_max - surfaces, r_maxsurfsseen);
+	}
+
+	if (r_numedges->value)
+	{
+		edgecount = edge_p - r_edges;
+
+		if (edgecount > r_maxedgesseen)
+			r_maxedgesseen = edgecount;
+
+		Con_Printf ("Used %d of %d edges; %d max\n", edgecount,
+				r_numallocatededges, r_maxedgesseen);
+	}
+
+	r_refdef.ambientlight = r_ambient->value;
+
+	if (r_refdef.ambientlight < 0)
+		r_refdef.ambientlight = 0;
+
+	if (!sv.active)
+		r_draworder->value = 0;	// don't let cheaters look behind walls
+
+	R_CheckVariables ();
+
+	R_AnimateLight ();
+
+	r_framecount++;
+
+	numbtofpolys = 0;
+	
+// debugging
+#if 0
+	r_refdef.vieworg[0] = 80;
+	r_refdef.vieworg[1] = 64;
+	r_refdef.vieworg[2] = 40;
+	r_refdef.viewangles[0] = 0;
+	r_refdef.viewangles[1] = 46.763641357;
+	r_refdef.viewangles[2] = 0;
+#endif
+
+// build the transformation matrix for the given view angles
+	VectorCopy (r_refdef.vieworg, modelorg);
+	VectorCopy (r_refdef.vieworg, r_origin);
+
+	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
+
+// current viewleaf
+	r_oldviewleaf = r_viewleaf;
+	r_viewleaf = Mod_PointInLeaf (r_origin, cl.worldmodel);
+	scalefactoid = vid.height / vid.vconheight;		// leilei
+	r_dowarpold = r_dowarp;
+	r_dowarp = r_waterwarp->value && (r_viewleaf->contents <= CONTENTS_WATER);
+	inwat = s_underwater->value && (r_viewleaf->contents <= CONTENTS_WATER);
+
+	//r_docrapold = 0;
+//	r_docrap = 1;
+//	
+
+
+	if ((r_dowarp != r_dowarpold) || r_viewchanged || r_virtualmode->value  || lcd_x->value || v_detail->value)
+	{
+		if (r_docrap == 1)
+		{
+			if ((vid.width <= vid.maxlowwidth) &&
+				(vid.height <= vid.maxlowheight))
+			{
+					
+				
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = vid.width;
+				vrect.height = vid.height;
+				if (reflectpass){
+				R_SetVrect (&vrect, &r_refdef.vrect, 0);
+				R_ViewChanged (&vrect, 0, vid.aspect);
+				}
+				else
+				{
+				R_SetVrect (&vrect, &r_refdef.vrect, (sb_what_lines / scalefactoid));
+				R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect);
+				}
+				
+			}
+			else
+			{
+				w = vid.width;
+				h = vid.height;
+
+				if (w > vid.maxlowwidth)
+				{
+					h *= (float)vid.maxlowwidth / w;
+					w = vid.maxlowwidth;
+				}
+
+				if (h > vid.maxlowheight)
+				{
+					h = vid.maxlowheight;
+					w *= (float)vid.maxlowheight / h;
+				}
+
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = (int)w;
+				vrect.height = (int)h;
+				
+				if (reflectpass)
+				{
+				R_SetVrect (&vrect, &r_refdef.vrect, (h/(float)vid.height));
+				R_ViewChanged (&vrect, 0, vid.aspect * (h / w) * ((float)vid.width / (float)vid.height));
+				}else{
+				R_SetVrect (&vrect, &r_refdef.vrect, (int)((float)sb_lines * (h/(float)vid.height)));
+				R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect * (h / w) * ((float)vid.width / (float)vid.height));
+				}
+			//	R_ViewChanged (&vrect,
+			//			   (int)((float)(sb_what_lines / scalefactoid) * (h/(float)vid.height)),
+			//				   vid.aspect * (h / w) *
+			//					 ((float)vid.width / (float)vid.height));
+			}
+		}
+		else if (r_docrap > 1)
+		{
+			if ((vid.width <= vid.maxwarpwidth) &&
+				(vid.height <= vid.maxwarpheight))
+			{
+					
+				
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = vid.width;
+				vrect.height = vid.height;
+				if (reflectpass){
+				R_SetVrect (&vrect, &r_refdef.vrect, ((float)vid.height));
+				R_ViewChanged (&vrect, 0, vid.aspect);
+				}else{
+				R_SetVrect (&vrect, &r_refdef.vrect, (int)((float)sb_lines * ((float)vid.height)));
+				R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect);
+				}
+			}
+			else
+			{
+				w = vid.width;
+				h = vid.height;
+
+				if (w > vid.maxwarpwidth)
+				{
+					h *= (float)vid.maxwarpwidth / w;
+					w = vid.maxwarpwidth;
+				}
+
+				if (h > vid.maxwarpheight)
+				{
+					h = vid.maxwarpheight;
+					w *= (float)vid.maxwarpheight / h;
+				}
+
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = (int)w;
+				vrect.height = (int)h;
+				if (reflectpass){
+						R_SetVrect (&vrect, &r_refdef.vrect, (h/(float)vid.height));
+				R_ViewChanged (&vrect,
+							   (h/(float)vid.height),
+							   vid.aspect * (h / w) *
+								 ((float)vid.width / (float)vid.height));
+				}else{
+				R_SetVrect (&vrect, &r_refdef.vrect, (int)((float)sb_lines * (h/(float)vid.height)));
+				R_ViewChanged (&vrect,
+							   (int)((float)(sb_what_lines / scalefactoid) * (h/(float)vid.height)),
+							   vid.aspect * (h / w) *
+								 ((float)vid.width / (float)vid.height));
+				}
+			}
+		}
+#ifdef WATERLOW
+		else if (reflectpass)
+		{
+			if ((vid.width <= vid.maxwarpwidth) &&
+				(vid.height <= vid.maxwarpheight))
+			{
+					
+				
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = vid.width;
+				vrect.height = vid.height;
+				R_SetVrect (&vrect, &r_refdef.vrect, (int)((float)sb_lines * ((float)vid.height)));
+				R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect);
+				
+			}
+			else
+			{
+				w = vid.width;
+				h = vid.height;
+
+				if (w > vid.maxwarpwidth)
+				{
+					h *= (float)vid.maxwarpwidth / w;
+					w = vid.maxwarpwidth;
+				}
+
+				if (h > vid.maxwarpheight)
+				{
+					h = vid.maxwarpheight;
+					w *= (float)vid.maxwarpheight / h;
+				}
+
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = (int)w;
+				vrect.height = (int)h;
+				R_SetVrect (&vrect, &r_refdef.vrect, (int)((float)sb_lines * (h/(float)vid.height)));
+				R_ViewChanged (&vrect,
+							   (int)((float)(sb_what_lines / scalefactoid) * (h/(float)vid.height)),
+							   vid.aspect * (h / w) *
+								 ((float)vid.width / (float)vid.height));
+			}
+		}
+#endif
+		
+		else 
+		if (r_dowarp)
+		{
+			if ((vid.width <= vid.maxwarpwidth) &&
+				(vid.height <= vid.maxwarpheight))
+			{
+					
+				
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = vid.width / dtail;
+				vrect.height = vid.height;
+			if (reflectpass)
+				R_ViewChanged (&vrect, 0, vid.aspect);
+				else
+				R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect);
+				
+			}
+			else
+			{
+				w = vid.width / dtail;
+				h = vid.height;
+
+				if (w > vid.maxwarpwidth)
+				{
+					h *= (float)vid.maxwarpwidth / w;
+					w = vid.maxwarpwidth;
+				}
+
+				if (h > vid.maxwarpheight)
+				{
+					h = vid.maxwarpheight;
+					w *= (float)vid.maxwarpheight / h;
+				}
+
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = (int)w  / dtail;
+				vrect.height = (int)h;
+				
+				if (reflectpass)
+					R_ViewChanged (&vrect,
+							   (h/(float)vid.height),
+							   vid.aspect * (h / w) *
+								 ((float)vid.width / (float)vid.height));
+				else
+				R_ViewChanged (&vrect,
+							   (int)((float)(sb_what_lines / scalefactoid) * (h/(float)vid.height)),
+							   vid.aspect * (h / w) *
+								 ((float)vid.width / (float)vid.height));
+			}
+		}
+		else
+		{
+			
+			vrect.x = 0;
+			vrect.y = 0;
+			vrect.width = vid.width;
+			vrect.height = vid.height;
+
+			if (reflectpass)
+			R_ViewChanged (&vrect, 0, vid.aspect);
+				else
+			R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect);
+			
+			
+		}
+
+		r_viewchanged = false;
+	}
+
+// start off with just the four screen edge clip planes
+	R_TransformFrustum ();
+
+// save base values
+	VectorCopy (vpn, base_vpn);
+	VectorCopy (vright, base_vright);
+	VectorCopy (vup, base_vup);
+	VectorCopy (modelorg, base_modelorg);
+
+#ifndef PROTO
+	R_SetSkyFrame (); // Only do the sky moving on Quack
+#endif
+
+	R_SetUpFrustumIndexes ();
+
+	r_cache_thrash = false;
+
+// clear frame counts
+	c_faceclip = 0;
+	d_spanpixcount = 0;
+	r_polycount = 0;
+	r_drawnpolycount = 0;
+	r_wholepolycount = 0;
+	r_amodels_drawn = 0;
+	r_outofsurfaces = 0;
+	r_outofedges = 0;
+//	WarpPalette();
+#ifdef EXPREND
+	D_SetupFrameExperimental ();
+#else
+	
+	D_SetupFrame ();
+#endif
+}
+
+#ifdef SPLIT
+void R_SetupFrameSplit (void)
+{
+	int				edgecount;
+	vrect_t			vrect;
+	float			w, h;
+	cursplit = 0;
 // don't allow cheats in multiplayer
 	if (cl.maxclients > 1)
 	{
@@ -416,14 +801,14 @@ void R_SetupFrame (void)
 	numbtofpolys = 0;
 
 // debugging
-#if 0
+
 	r_refdef.vieworg[0] = 80;
 	r_refdef.vieworg[1] = 64;
 	r_refdef.vieworg[2] = 40;
 	r_refdef.viewangles[0] = 0;
 	r_refdef.viewangles[1] = 46.763641357;
 	r_refdef.viewangles[2] = 0;
-#endif
+
 
 // build the transformation matrix for the given view angles
 	VectorCopy (r_refdef.vieworg, modelorg);
@@ -434,60 +819,32 @@ void R_SetupFrame (void)
 // current viewleaf
 	r_oldviewleaf = r_viewleaf;
 	r_viewleaf = Mod_PointInLeaf (r_origin, cl.worldmodel);
-
+	scalefactoid = vid.height / vid.vconheight;		// leilei
 	r_dowarpold = r_dowarp;
 	r_dowarp = r_waterwarp->value && (r_viewleaf->contents <= CONTENTS_WATER);
+	inwat = s_underwater->value && (r_viewleaf->contents <= CONTENTS_WATER);
 
-	if ((r_dowarp != r_dowarpold) || r_viewchanged || lcd_x->value)
+// disable screen buffer effects in splitscreen
+	r_docrapold = 0;
+	r_docrap = 0;
+	r_dowarp = 0;
+	r_dowarpold = 0;
+	
+
+
+	if ((r_dowarp != r_dowarpold) || r_viewchanged || r_virtualmode->value  || lcd_x->value || v_detail->value)
 	{
-		if (r_dowarp)
 		{
-			if ((vid.width <= vid.maxwarpwidth) &&
-				(vid.height <= vid.maxwarpheight))
-			{
-				vrect.x = 0;
-				vrect.y = 0;
-				vrect.width = vid.width;
-				vrect.height = vid.height;
-
-				R_ViewChanged (&vrect, sb_lines, vid.aspect);
-			}
-			else
-			{
-				w = vid.width;
-				h = vid.height;
-
-				if (w > vid.maxwarpwidth)
-				{
-					h *= (float)vid.maxwarpwidth / w;
-					w = vid.maxwarpwidth;
-				}
-
-				if (h > vid.maxwarpheight)
-				{
-					h = vid.maxwarpheight;
-					w *= (float)vid.maxwarpheight / h;
-				}
-
-				vrect.x = 0;
-				vrect.y = 0;
-				vrect.width = (int)w;
-				vrect.height = (int)h;
-
-				R_ViewChanged (&vrect,
-							   (int)((float)sb_lines * (h/(float)vid.height)),
-							   vid.aspect * (h / w) *
-								 ((float)vid.width / (float)vid.height));
-			}
-		}
-		else
-		{
+			
 			vrect.x = 0;
 			vrect.y = 0;
 			vrect.width = vid.width;
 			vrect.height = vid.height;
 
-			R_ViewChanged (&vrect, sb_lines, vid.aspect);
+			
+			R_ViewChanged (&vrect, (sb_what_lines / scalefactoid), vid.aspect);
+			
+			
 		}
 
 		r_viewchanged = false;
@@ -502,7 +859,9 @@ void R_SetupFrame (void)
 	VectorCopy (vup, base_vup);
 	VectorCopy (modelorg, base_modelorg);
 
-	R_SetSkyFrame ();
+#ifndef PROTO
+	R_SetSkyFrame (); // Only do the sky moving on Quack
+#endif
 
 	R_SetUpFrustumIndexes ();
 
@@ -517,7 +876,11 @@ void R_SetupFrame (void)
 	r_amodels_drawn = 0;
 	r_outofsurfaces = 0;
 	r_outofedges = 0;
+//	WarpPalette();
 
 	D_SetupFrame ();
 }
 
+
+
+#endif

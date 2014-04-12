@@ -35,7 +35,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 typedef struct {
 	int			ambientlight;
 	int			shadelight;
+
+	// new structs
+	//int			rgblight[3];
+	int			rlight;
+	int			glight;
+	int			blight;
+	int			ramb;
+	int			gamb;
+	int			bamb;
 	float		*plightvec;
+	float		*rlightvec;
+	float		*glightvec;
+	float		*blightvec;
 } alight_t;
 
 //===========================================================================
@@ -70,6 +82,7 @@ extern cvar_t	*r_maxsurfs;
 extern cvar_t	*r_numsurfs;
 extern cvar_t	*r_reportedgeout;
 extern cvar_t	*r_maxedges;
+extern cvar_t	*r_lerpmodels;
 extern cvar_t	*r_numedges;
 
 #define XCENTERING	(1.0 / 2.0)
@@ -147,18 +160,122 @@ void R_DrawSurfaceBlock8_mip1 (void);
 void R_DrawSurfaceBlock8_mip2 (void);
 void R_DrawSurfaceBlock8_mip3 (void);
 
+
+
 #endif
+#ifdef EXPREND
+
+void R_DrawSurfaceBlock8D_mip0 (void);
+void R_DrawSurfaceBlock8D_mip1 (void);
+void R_DrawSurfaceBlock8D_mip2 (void);
+void R_DrawSurfaceBlock8D_mip3 (void);
+
+
+void R_DrawSurfaceBlock8S_mip0 (void);
+void R_DrawSurfaceBlock8S_mip1 (void);
+void R_DrawSurfaceBlock8S_mip2 (void);
+void R_DrawSurfaceBlock8S_mip3 (void);
+
+#endif
+
+
+// 18-bit version
+void R_DrawSurfaceBlock8RGBX_mip0 (void);
+void R_DrawSurfaceBlock8RGBX_mip1 (void);
+void R_DrawSurfaceBlock8RGBX_mip2 (void);
+void R_DrawSurfaceBlock8RGBX_mip3 (void);
+void R_DrawSurfaceBlock8RGBXt_mip0 (void);
+void R_DrawSurfaceBlock8RGBXt_mip1 (void);
+void R_DrawSurfaceBlock8RGBXt_mip2 (void);
+void R_DrawSurfaceBlock8RGBXt_mip3 (void);
+void R_DrawSurfaceBlock8RGBX (byte mip, byte mif);
+
+
+void R_DrawSurfaceBlock8RGBXD_mip0 (void);
+void R_DrawSurfaceBlock8RGBXD_mip1 (void);
+void R_DrawSurfaceBlock8RGBXD_mip2 (void);
+void R_DrawSurfaceBlock8RGBXD_mip3 (void);
+void R_DrawSurfaceBlock8RGBXD (int mip, int mif);
+
+void R_DrawSurfaceBlock824RGBXD_mip0 (void);
+void R_DrawSurfaceBlock824RGBXD_mip1 (void);
+void R_DrawSurfaceBlock824RGBXD_mip2 (void);
+void R_DrawSurfaceBlock824RGBXD_mip3 (void);
+void R_DrawSurfaceBlock824RGBXD (int mip, int mif);
+
+void R_DrawSurfaceBlock888RGB_mip0 (void);
+void R_DrawSurfaceBlock888RGB_mip1 (void);
+void R_DrawSurfaceBlock888RGB_mip2 (void);
+void R_DrawSurfaceBlock888RGB_mip3 (void);
+void R_DrawSurfaceBlock888RGB (int mip, int mif);
+
+
+
+void R_DrawSurfaceBlock824RGBX_mip0 (void);
+void R_DrawSurfaceBlock824RGBX_mip1 (void);
+void R_DrawSurfaceBlock824RGBX_mip2 (void);
+void R_DrawSurfaceBlock824RGBX_mip3 (void);
+void R_DrawSurfaceBlock824RGBX (int mip, int mif);
+
+
+#if id386rgb
+// 18-bit version, x86 assembly
+void R_DrawSurfaceBlock8RGBASM_mip0 (void);
+void R_DrawSurfaceBlock8RGBASM_mip1 (void);
+void R_DrawSurfaceBlock8RGBASM_mip2 (void);
+void R_DrawSurfaceBlock8RGBASM_mip3 (void);
+
+
+#endif
+
+void R_DrawSurfaceBlock8RED_mip0 (void);
+void R_DrawSurfaceBlock8RED_mip1 (void);
+void R_DrawSurfaceBlock8RED_mip2 (void);
+void R_DrawSurfaceBlock8RED_mip3 (void);
+
+void R_DrawSurfaceBlock8GREEN_mip0 (void);
+void R_DrawSurfaceBlock8GREEN_mip1 (void);
+void R_DrawSurfaceBlock8GREEN_mip2 (void);
+void R_DrawSurfaceBlock8GREEN_mip3 (void);
+
+void R_DrawSurfaceBlock8BLUE_mip0 (void);
+void R_DrawSurfaceBlock8BLUE_mip1 (void);
+void R_DrawSurfaceBlock8BLUE_mip2 (void);
+void R_DrawSurfaceBlock8BLUE_mip3 (void);
+
+// 15-bit no lightstep version
+void R_DrawSurfaceBlock8_mip0fast (void);
+void R_DrawSurfaceBlock8_mip1fast (void);
+void R_DrawSurfaceBlock8_mip2fast (void);
+void R_DrawSurfaceBlock8_mip3fast (void);
+
+
+// 24-bit version
+void R_DrawSurfaceBlock24RGB_mip0 (void);
+void R_DrawSurfaceBlock24RGB_mip1 (void);
+void R_DrawSurfaceBlock24RGB_mip2 (void);
+void R_DrawSurfaceBlock24RGB_mip3 (void);
+
 
 void R_GenSkyTile (void *pdest);
 void R_GenSkyTile16 (void *pdest);
 void R_Surf8Patch (void);
+void R_Surf8FastPatch (void);
+#ifdef id386rgb
+void R_Surf8PatchRGB (void);
+#endif
 void R_Surf16Patch (void);
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags);
 void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel);
 
 void R_AddPolygonEdges (emitpoint_t *pverts, int numverts, int miplevel);
 surf_t *R_GetSurf (void);
+#ifdef VMTOC
+void R_AliasDrawModel (alight_t *plighting, qboolean viewmodel);
+extern qboolean r_fov_greater_than_90;
+#else
 void R_AliasDrawModel (alight_t *plighting);
+#endif
 void R_BeginEdgeFrame (void);
 void R_ScanEdges (void);
 void D_DrawSurfaces (void);
@@ -168,11 +285,40 @@ void R_RemoveEdges (edge_t *pedge);
 
 extern void R_Surf8Start (void);
 extern void R_Surf8End (void);
+#if id386rgb
+extern void R_Surf8RGBASMStart (void);
+extern void R_Surf8RGBASMEnd (void);
+#endif
 extern void R_Surf16Start (void);
 extern void R_Surf16End (void);
+extern void R_Surf8FastStart (void);
+extern void R_Surf8FastEnd (void);
+extern void R_Surf8REDStart (void);
+extern void R_Surf8REDEnd (void);
+extern void R_Surf8GREENStart (void);
+extern void R_Surf8GREENEnd (void);
+extern void R_Surf8BLUEStart (void);
+extern void R_Surf8BLUEEnd (void);
+
 extern void R_EdgeCodeStart (void);
 extern void R_EdgeCodeEnd (void);
-
+extern cvar_t  *r_lowdetail;		// deprecated
+extern cvar_t  *r_virtualmode;
+extern cvar_t  *r_shading;
+extern cvar_t  *r_lowworld;
+extern cvar_t  *r_menucolor;
+extern cvar_t  *r_tingecolor;
+extern cvar_t  *r_tinge;
+extern cvar_t  *r_lowmodels;
+extern cvar_t  *r_coloredlights;
+extern cvar_t  *r_truecolor;
+extern cvar_t  *r_overbrightBits;
+extern cvar_t  *r_fullbrights;
+extern cvar_t  *r_overbrightmdl;
+extern cvar_t  *r_coloreddyns;
+extern cvar_t  *r_shift1;
+extern cvar_t  *r_shift2;
+extern cvar_t  *r_alphashift;
 extern void R_RotateBmodel (void);
 
 extern int	c_faceclip;
@@ -180,7 +326,7 @@ extern int	r_polycount;
 extern int	r_wholepolycount;
 
 extern	model_t		*cl_worldmodel;
-
+extern	float	viewmatrix[3][4];
 extern int		*pfrustum_indexes[4];
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
@@ -191,6 +337,8 @@ extern int			vstartscan;
 
 extern fixed16_t	sadjust, tadjust;
 extern fixed16_t	bbextents, bbextentt;
+
+extern cvar_t  *s_pitchin;
 
 #define MAXBVERTINDEXES	1000	// new clipped vertices when clipping bmodels
 								//  to the world BSP
@@ -221,7 +369,12 @@ void	R_ZDrawSubmodelPolys (model_t *clmodel);
 // Alias models
 //=========================================================
 
+
+#ifdef QSB
+#define MAXALIASVERTS		5000	// not like any qsb demander will reasonably exceed this
+#else
 #define MAXALIASVERTS		2000	// TODO: tune this
+#endif
 #define ALIAS_Z_CLIP_PLANE	5
 
 extern int				numverts;
@@ -250,6 +403,11 @@ qboolean R_AliasCheckBBox (void);
 void R_DrawParticles (void);
 void R_InitParticles (void);
 void R_ClearParticles (void);
+void R_DrawFlares (void);
+void R_InitFlares (void);
+void R_ClearFlares (void);
+
+
 void R_ReadPointFile_f (void);
 void R_SurfacePatch (void);
 
@@ -283,12 +441,19 @@ void R_AliasClipTriangle (mtriangle_t *ptri);
 
 extern float	r_time1;
 extern float	dp_time1, dp_time2, db_time1, db_time2, rw_time1, rw_time2;
-extern float	se_time1, se_time2, de_time1, de_time2, dv_time1, dv_time2;
+extern float	se_time1, se_time2, de_time1, de_time2
+#ifndef VMTOC
+, dv_time1, dv_time2
+#endif
+;
 extern int		r_frustum_indexes[4*6];
 extern int		r_maxsurfsseen, r_maxedgesseen, r_cnumsurfs;
 extern qboolean	r_surfsonstack;
 extern cshift_t	cshift_water;
 extern qboolean	r_dowarpold, r_viewchanged;
+extern qboolean	inwat;	// leilei - for underwater sounds
+extern qboolean	r_docrapold;
+extern qboolean r_doshrooms;
 
 extern mleaf_t	*r_viewleaf, *r_oldviewleaf;
 
@@ -296,6 +461,7 @@ extern vec3_t	r_emins, r_emaxs;
 extern mnode_t	*r_pefragtopnode;
 extern int		r_clipflags;
 extern int		r_dlightframecount;
+extern int		r_shadowframecount;
 extern qboolean	r_fov_greater_than_90;
 
 void R_StoreEfrags (efrag_t **ppefrag);
@@ -307,10 +473,19 @@ void R_PrintDSpeeds (void);
 void R_AnimateLight (void);
 int R_LightPoint (vec3_t p);
 void R_SetupFrame (void);
+#ifdef SPLIT
+void R_SetupFrameSplit (void);
+#endif
 void R_cshift_f (void);
 void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1);
 void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip);
 void R_SplitEntityOnNode2 (mnode_t *node);
-void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
+void R_MarkLights (dlight_t *light,  int bit, mnode_t *node);
 
 #endif
+
+#ifdef INTERPOL7
+void	R_FinalizeAliasVerts ();
+#endif
+
+extern unsigned int	dynlightenabled;

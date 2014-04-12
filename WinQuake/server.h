@@ -145,6 +145,7 @@ typedef struct client_s
 } client_t;
 
 
+
 //=============================================================================
 
 // edict->movetype values
@@ -159,10 +160,9 @@ typedef struct client_s
 #define	MOVETYPE_NOCLIP			8
 #define	MOVETYPE_FLYMISSILE		9		// extra size to monsters
 #define	MOVETYPE_BOUNCE			10
-#ifdef QUAKE2
 #define MOVETYPE_BOUNCEMISSILE	11		// bounce w/o gravity
 #define MOVETYPE_FOLLOW			12		// track movement of aiment
-#endif
+
 
 // edict->solid values
 #define	SOLID_NOT				0		// no interaction with other objects
@@ -175,6 +175,9 @@ typedef struct client_s
 #define	DEAD_NO					0
 #define	DEAD_DYING				1
 #define	DEAD_DEAD				2
+#ifdef GLOBOT
+#define	DEAD_RESPAWNABLE		3
+#endif
 
 #define	DAMAGE_NO				0
 #define	DAMAGE_YES				1
@@ -206,6 +209,17 @@ typedef struct client_s
 #define	EF_MUZZLEFLASH 			2
 #define	EF_BRIGHTLIGHT 			4
 #define	EF_DIMLIGHT 			8
+#define EF_NODRAW				16
+#define	EF_ADDITIVE 			32
+#define EF_BLUE					64
+#define EF_RED					128
+#define EF_NOGUNBOB				256
+#define EF_FULLBRIGHT			512
+#define	EF_FLAME 				1024	// spews a flames up aroudn with light
+#define	EF_STARDUST 			2048	// spews a ton of particles down
+#define EF_NODEPTHTEST			8192
+#define	EF_MUZZLEHACK 			16384	// leilei - for view ent only!
+
 #ifdef QUAKE2
 #define EF_DARKLIGHT			16
 #define EF_DARKFIELD			32
@@ -267,6 +281,8 @@ void SV_Init (void);
 void SV_StartParticle (vec3_t org, vec3_t dir, int color, int count);
 void SV_StartSound (edict_t *entity, int channel, char *sample, int volume,
     float attenuation);
+void SV_StartSound3 (edict_t *entity, int channel, char *sample, int volume,
+    float attenuation, float pitch);
 
 void SV_DropClient (qboolean crash);
 

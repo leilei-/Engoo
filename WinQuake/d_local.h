@@ -46,6 +46,8 @@ typedef struct surfcache_s
 	float				mipscale;
 	struct texture_s	*texture;	// checked for animating textures
 	byte				data[4];	// width*height elements
+	int					bytesperpix;
+	
 } surfcache_t;
 
 // !!! if this is changed, it must be changed in asm_draw.h too !!!
@@ -71,10 +73,28 @@ fixed16_t	bbextents, bbextentt;
 
 
 void D_DrawSpans8 (espan_t *pspans);
+void D_DrawSpans8_C_Fogger (espan_t *pspans);
+void D_FogSpans (espan_t *pspans);
+void D_DrawSpans8_C_Filter (espan_t *pspans);
+void D_DrawSpans8_C_Bilinear (espan_t *pspans);
 void D_DrawSpans16 (espan_t *pspans);
+void D_DrawSpans16_C (espan_t *pspans);
+void D_DrawSpans16_C_Dither (espan_t *pspans);
+void D_DrawSpans16_C_Filter (espan_t *pspans);
+void D_DrawSpans16_C_Filter_64 (espan_t *pspans);
+void D_DrawSpans16_C_Dither_Filter (espan_t *pspans);
+void D_DrawSpans16_C_Fogtest (espan_t *pspans);
 void D_DrawZSpans (espan_t *pspans);
+void D_DrawZFogSpans (espan_t *pspans);
 void Turbulent8 (espan_t *pspan);
-void D_SpriteDrawSpans (sspan_t *pspan);
+void D_SpriteDrawSpans_C (sspan_t *pspan);
+void D_SpriteDrawSpans_Blend_C (sspan_t *pspan, int blendmode);
+void D_SpriteDrawSpans_Blend_C_Filter (sspan_t *pspan, int blendmode);
+
+
+// ASM HACK
+
+void D_DrawSpans16_Fog (espan_t *pspans);
 
 void D_DrawSkyScans8 (espan_t *pspan);
 void D_DrawSkyScans16 (espan_t *pspan);
@@ -85,7 +105,7 @@ surfcache_t	*D_CacheSurface (msurface_t *surface, int miplevel);
 
 extern int D_MipLevelForScale (float scale);
 
-#if id386
+#if id386broken
 extern void D_PolysetAff8Start (void);
 extern void D_PolysetAff8End (void);
 #endif
@@ -109,3 +129,10 @@ extern float	d_scalemip[3];
 
 extern void (*d_drawspans) (espan_t *pspan);
 
+
+void R_FogPatch (void);
+
+#ifdef WATERREFLECTIONS
+extern pixel_t	*d_reflectbuffer;
+#endif
+extern pixel_t	*d_shadowbuffer;

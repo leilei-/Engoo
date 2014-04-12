@@ -88,7 +88,13 @@ ddef_t	*pr_field_idealpitch;
 ddef_t	*pr_field_pitch_speed;
 ddef_t	*pr_field_items2;
 ddef_t	*pr_field_gravity;
+ddef_t	*pr_field_alpha;
 // 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
+ddef_t	*pr_field_renderamt;
+ddef_t	*pr_field_scale;
+ddef_t	*pr_field_glowcolor;
+ddef_t	*pr_field_glowsize;
+// leilei
 
 // 2001-10-20 Extension System by LordHavoc/Maddes  start
 void PR_Extension_List_f (void)
@@ -193,6 +199,7 @@ FIXME: walk all entities and NULL out references to this entity
 */
 void ED_Free (edict_t *ed)
 {
+
 	SV_UnlinkEdict (ed);		// unlink from world bsp
 
 	ed->free = true;
@@ -206,7 +213,6 @@ void ED_Free (edict_t *ed)
 	VectorCopy (vec3_origin, ed->v.angles);
 	ed->v.nextthink = -1;
 	ed->v.solid = 0;
-
 	ed->freetime = sv.time;
 }
 
@@ -878,7 +884,7 @@ char *ED_ParseEdict (char *data, edict_t *ent)
 	qboolean	init;
 	char		keyname[256];
 	int			n;
-
+	vec3_t		col;
 	init = false;
 
 // clear it
@@ -895,6 +901,8 @@ char *ED_ParseEdict (char *data, edict_t *ent)
 		if (!data)
 			Sys_Error ("ED_ParseEntity: EOF without closing brace");
 
+
+		
 // anglehack is to allow QuakeEd to write single scalar angles
 // and allow them to be turned into vectors. (FIXME...)
 if (!strcmp(com_token, "angle"))
@@ -908,9 +916,9 @@ else
 // FIXME: change light to _light to get rid of this hack
 if (!strcmp(com_token, "light"))
 	strcpy (com_token, "light_lev");	// hack for single light def
-
+		
 		strcpy (keyname, com_token);
-
+		
 		// another hack to fix heynames with trailing spaces
 		n = strlen(keyname);
 		while (n && keyname[n-1] == ' ')
@@ -928,7 +936,9 @@ if (!strcmp(com_token, "light"))
 			Sys_Error ("ED_ParseEntity: closing brace without data");
 
 		init = true;
+	
 
+		
 // keynames with a leading underscore are used for utility comments,
 // and are immediately discarded by quake
 		if (keyname[0] == '_')
@@ -937,9 +947,14 @@ if (!strcmp(com_token, "light"))
 		key = ED_FindField (keyname);
 		if (!key)
 		{
-			Con_Printf ("'%s' is not a field\n", keyname);
+			//johnfitz -- HACK -- suppress error becuase fog/sky/alpha fields might not be mentioned in defs.qc
+			if (strncmp(keyname, "sky", 3) && strcmp(keyname, "fog") && strcmp(keyname, "alpha"))
+				Con_DPrintf ("\"%s\" is not a field\n", keyname); //johnfitz -- was Con_Printf
+			//Con_Printf ("'%s' is not a field\n", keyname);
+			
 			continue;
 		}
+		
 
 if (anglehack)
 {
@@ -950,10 +965,17 @@ sprintf (com_token, "0 %s 0", temp);
 
 		if (!ED_ParseEpair ((void *)&ent->v, key, com_token))
 			Host_Error ("ED_ParseEdict: parse error");
+
+	//	if (!strncmp(keyname, "light_lev", 5)){
+//				Con_Printf ("\"%s\" your face is a field\n", keyname); //johnfitz -- was Con_Printf
+
+//				R_FlareTest(ent->v.origin, 21, 11, 11, 11, 0, NULL);
+	//	}
 	}
 
 	if (!init)
 		ent->free = true;
+
 
 	return data;
 }
@@ -961,6 +983,25 @@ sprintf (com_token, "0 %s 0", temp);
 
 /*
 ================
+
+  // leilei - allocate a wlight.
+		//if (data)
+		{
+			
+			dlight_t *dl;
+			//Con_Printf("light at %f %f %f", ent->v.origin[0],ent->v.origin[1],ent->v.origin[2]);
+			dl = CL_AllocDlight (66);
+			dl->color[0] = 4.0f;
+			dl->color[1] = 2.0f;
+			dl->color[2] = 0.5f;	// TODO: get avg color from model
+		
+					
+		VectorCopy (ent->v.origin, dl->origin);
+		dl->radius = 750;
+		dl->die = cl.time + 60.5;
+		dl->decay = 300;
+		
+
 ED_LoadFromFile
 
 The entities are directly placed in the array, rather than allocated with
@@ -974,6 +1015,10 @@ Used for both fresh maps and savegame loads.  A fresh map would also need
 to call ED_CallSpawnFunctions () to let the objects initialize themselves.
 ================
 */
+#ifdef GLOBOT
+void BotInit (void);
+#endif
+
 void ED_LoadFromFile (char *data)
 {
 	edict_t		*ent;
@@ -1019,6 +1064,8 @@ void ED_LoadFromFile (char *data)
 			continue;
 		}
 
+
+
 //
 // immediately call spawn function
 //
@@ -1035,13 +1082,19 @@ void ED_LoadFromFile (char *data)
 
 		if (!func)
 		{
+			if (developer->value > 55){
 			Con_Printf ("No spawn function for:\n");
-			ED_Print (ent);
+			ED_Print (ent);		// leilei - suppress these messages...
+			}
 			ED_Free (ent);
 			continue;
 		}
 
 		pr_global_struct->self = EDICT_TO_PROG(ent);
+#ifdef GLOBOT
+		if (!strcmp(pr_strings + ent->v.classname, "worldspawn"))
+		BotInit ();
+#endif
 		PR_ExecuteProgram (func - pr_functions);
 	}
 
@@ -1101,6 +1154,16 @@ void PR_LoadProgs (void)
 		keep_compatibility = true;
 		Con_DPrintf ("Old progs.dat found, compatibility turned on.\n");
 	}
+	else if (progs->crc == PROGHEADER080_CRC)
+	{
+		keep_compatibility = 2;
+		Con_DPrintf ("Beta progs.dat found, beta compatibility turned on.\n");
+	}
+	else if (progs->crc == PROGHEADERLA_CRC)
+	{
+		keep_compatibility = 1;
+		Con_DPrintf ("Loser Arena progs.dat found, beta compatibility turned on.\n");
+	}
 	else if (progs->crc == PROGHEADER_CRC)
 //		|| (progs->crc == PROGHEADER107_CRC)
 	{
@@ -1109,14 +1172,17 @@ void PR_LoadProgs (void)
 	}
 	else
 // 1999-10-28 Compatibilty check by Maddes  end
-		Sys_Error ("progs.dat system vars have been modified, progdefs.h is out of date");
+		Sys_Error ("progs.dat CRC is %i and no sir i don't like it.\n\nprogs.dat system vars have been modified, progdefs.h is out of date", progs->crc);
+		//Sys_Error ("progs.dat system vars have been modified, progdefs.h is out of date");
 
 	pr_functions = (dfunction_t *)((byte *)progs + progs->ofs_functions);
 	pr_strings = (char *)progs + progs->ofs_strings;
 	pr_globaldefs = (ddef_t *)((byte *)progs + progs->ofs_globaldefs);
 	pr_fielddefs = (ddef_t *)((byte *)progs + progs->ofs_fielddefs);
 	pr_statements = (dstatement_t *)((byte *)progs + progs->ofs_statements);
-
+//if (qbeta)
+//	pr_global_struct = pr_global_struct = (globalvarsbeta_t *)((byte *)progs + progs->ofs_globals);
+//else
 	pr_global_struct = (globalvars_t *)((byte *)progs + progs->ofs_globals);
 	pr_globals = (float *)pr_global_struct;
 
@@ -1307,7 +1373,13 @@ void PR_LoadProgs (void)
 	pr_field_pitch_speed = ED_FindField("pitch_speed");
 	pr_field_items2 = ED_FindField("items2");
 	pr_field_gravity = ED_FindField("gravity");
+	pr_field_alpha = ED_FindField("alpha");
+	pr_field_scale = ED_FindField("scale");
+	pr_field_glowcolor = ED_FindField("glow_color");
+	pr_field_glowsize = ED_FindField("glow_size");
 // 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
+// leilei
+
 
 // 2000-01-02 EndFrame function by Maddes/FrikaC  start
 	pr_func_endframe = 0;

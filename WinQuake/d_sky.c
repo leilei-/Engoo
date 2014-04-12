@@ -26,12 +26,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define SKY_SPAN_SHIFT	5
 #define SKY_SPAN_MAX	(1 << SKY_SPAN_SHIFT)
 
-
+extern qboolean	r_dowarp;
 /*
 =================
 D_Sky_uv_To_st
 =================
 */
+extern int reflectpass;
 void D_Sky_uv_To_st (int u, int v, fixed16_t *s, fixed16_t *t)
 {
 	float	wu, wv, temp;
@@ -42,8 +43,39 @@ void D_Sky_uv_To_st (int u, int v, fixed16_t *s, fixed16_t *t)
 	else
 		temp = (float)r_refdef.vrect.height;
 
+	// leilei - sky fix for low detail 
+	if(r_docrap == 1)
+	{
+	wu = 8192.0 * (float)(u-((int)vid.maxlowwidth>>1)) / temp;
+	wv = 8192.0 * (float)(((int)vid.maxlowheight>>1)-v) / temp;
+
+	}
+	else if(r_docrap > 1)
+	{
+	wu = 8192.0 * (float)(u-((int)vid.maxwarpwidth>>1)) / temp;
+	wv = 8192.0 * (float)(((int)vid.maxwarpheight>>1)-v) / temp;
+
+	}
+#ifdef WATERLOW
+	else if(reflectpass == 1)
+	{
+	wu = 8192.0 * (float)(u-((int)vid.maxwarpwidth>>1)) / temp;
+	wv = 8192.0 * (float)(((int)vid.maxwarpheight>>1)-v) / temp;
+
+	}
+#endif
+	else if(r_dowarp)
+	{
+	wu = 8192.0 * (float)(u-((int)320>>1)) / temp;
+	wv = 8192.0 * (float)(((int)200>>1)-v) / temp;
+
+	}
+	else
+
+	{
 	wu = 8192.0 * (float)(u-((int)vid.width>>1)) / temp;
 	wv = 8192.0 * (float)(((int)vid.height>>1)-v) / temp;
+	}
 
 	end[0] = 4096*vpn[0] + wu*vright[0] + wv*vup[0];
 	end[1] = 4096*vpn[1] + wu*vright[1] + wv*vup[1];

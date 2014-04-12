@@ -32,6 +32,7 @@ cvar_t	*sv_entities_static;
 cvar_t	*sv_entities_temp;
 // 2001-09-20 Configurable entity limits by Maddes  end
 
+cvar_t	*sv_standstill;
 cvar_t	*sv_compatibility;	// 2001-12-24 Keeping full backwards compatibility by Maddes
 
 //============================================================================
@@ -63,9 +64,22 @@ void SV_Init (void)
 	sv_maxspeed = Cvar_Get ("sv_maxspeed", "320", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
 	sv_accelerate = Cvar_Get ("sv_accelerate", "10", CVAR_ORIGINAL);
 	sv_idealpitchscale = Cvar_Get ("sv_idealpitchscale", "0.8", CVAR_ORIGINAL);
-	sv_aim = Cvar_Get ("sv_aim", "0.93", CVAR_ORIGINAL);
+	sv_aim = Cvar_Get ("sv_aim", "0.93", CVAR_ARCHIVE | CVAR_ORIGINAL);	// leilei - archiving now since it is annoying to set manually
 	sv_nostep = Cvar_Get ("sv_nostep", "0", CVAR_ORIGINAL);
 // 2001-09-20 Configurable entity limits by Maddes  start
+#ifdef QSB
+	sv_entities = Cvar_Get ("sv_entities", "8192", CVAR_NONE);
+	Cvar_SetRangecheck (sv_entities, Cvar_RangecheckInt, MIN_EDICTS, MAX_EDICTS);
+	Cvar_Set(sv_entities, sv_entities->string);	// do rangecheck
+
+	sv_entities_static = Cvar_Get ("sv_entities_static", "1024", CVAR_NONE);
+	Cvar_SetRangecheck (sv_entities_static, Cvar_RangecheckInt, MIN_STATIC_ENTITIES, MAX_EDICTS);
+	Cvar_Set(sv_entities_static, sv_entities_static->string);	// do rangecheck
+
+	sv_entities_temp = Cvar_Get ("sv_entities_temp", "1024", CVAR_NONE);
+	Cvar_SetRangecheck (sv_entities_temp, Cvar_RangecheckInt, MIN_TEMP_ENTITIES, MAX_EDICTS);
+	Cvar_Set(sv_entities_temp, sv_entities_temp->string);	// do rangecheck
+#else
 	sv_entities = Cvar_Get ("sv_entities", "0", CVAR_NONE);
 	Cvar_SetRangecheck (sv_entities, Cvar_RangecheckInt, MIN_EDICTS, MAX_EDICTS);
 	Cvar_Set(sv_entities, sv_entities->string);	// do rangecheck
@@ -77,6 +91,7 @@ void SV_Init (void)
 	sv_entities_temp = Cvar_Get ("sv_entities_temp", "0", CVAR_NONE);
 	Cvar_SetRangecheck (sv_entities_temp, Cvar_RangecheckInt, MIN_TEMP_ENTITIES, MAX_EDICTS);
 	Cvar_Set(sv_entities_temp, sv_entities_temp->string);	// do rangecheck
+#endif
 // 2001-09-20 Configurable entity limits by Maddes  end
 
 // 2001-12-24 Keeping full backwards compatibility by Maddes  start
@@ -86,6 +101,8 @@ void SV_Init (void)
 	Cvar_Set(sv_compatibility, sv_compatibility->string);	// do rangecheck
 // 2001-12-24 Keeping full backwards compatibility by Maddes  end
 
+	
+	sv_standstill = Cvar_Get ("sv_standstill", "0",CVAR_ORIGINAL);
 	for (i=0 ; i<MAX_MODELS ; i++)
 		sprintf (localmodels[i], "*%i", i);
 }
@@ -168,7 +185,7 @@ void SV_StartSound (edict_t *entity, int channel, char *sample, int volume,
 	int	field_mask;
 	int	i;
 	int	ent;
-
+	sfx_t	*sfx;
 	if (volume < 0 || volume > 255)
 		Sys_Error ("SV_StartSound: volume = %i", volume);
 
@@ -189,8 +206,22 @@ void SV_StartSound (edict_t *entity, int channel, char *sample, int volume,
 
 	if ( sound_num == MAX_SOUNDS || !sv.sound_precache[sound_num] )
 	{
-		Con_Printf ("SV_StartSound: %s not precacheed\n", sample);
-		return;
+
+	//	Con_Printf ("SV_StartSound: %s not precacheed\n", sample);
+	
+		
+		// leilei - attempt to cache it
+
+		{
+					static int hash=345;
+					int 	i;
+					char name[256];
+
+					sfx = S_PrecacheSound(sample);
+
+
+		}
+	
 	}
 
 	ent = NUM_FOR_EDICT(entity);
@@ -216,6 +247,86 @@ void SV_StartSound (edict_t *entity, int channel, char *sample, int volume,
 		MSG_WriteCoord (&sv.datagram, entity->v.origin[i]+0.5*(entity->v.mins[i]+entity->v.maxs[i]));
 }
 
+
+
+
+
+
+
+
+/*
+==================
+SV_StartSound2
+
+The sequel, now with pitch alteration, and sound flags reserved for THE FUTURE!
+(to be implemented come 2012)
+
+==================
+*/
+void SV_StartSound2 (edict_t *entity, int channel, char *sample, int volume, float attenuation, float pitch)
+{
+	int	sound_num;
+	int	field_mask;
+	int	i;
+	int	ent;
+
+	if (volume < 0 || volume > 255)
+		Sys_Error ("SV_StartSound2: volume = %i", volume);
+
+	if (attenuation < 0 || attenuation > 4)
+		Sys_Error ("SV_StartSound2: attenuation = %f", attenuation);
+
+	if (channel < 0 || channel > 7)
+		Sys_Error ("SV_StartSound2: channel = %i", channel);
+	
+	if (pitch < 3 || pitch > 255){
+	Con_Printf ("SV_StartSound2: pitch = %f\n", pitch);
+	pitch = 100;		// something messed up here?!
+	}
+	
+	if (sv.datagram.cursize > MAX_DATAGRAM-16)
+		return;
+
+// find precache number for sound
+	for (sound_num=1 ; sound_num<MAX_SOUNDS
+	&& sv.sound_precache[sound_num] ; sound_num++)
+		if (!strcmp(sample, sv.sound_precache[sound_num]))
+			break;
+
+	if ( sound_num == MAX_SOUNDS || !sv.sound_precache[sound_num] )
+	{
+		Con_Printf ("SV_StartSound2: %s not precacheed\n", sample);
+		return;
+	}
+
+	ent = NUM_FOR_EDICT(entity);
+
+	channel = (ent<<3) | channel;
+
+	field_mask = 0;
+	if (volume != DEFAULT_SOUND_PACKET_VOLUME)
+		field_mask |= SND_VOLUME;
+	if (attenuation != DEFAULT_SOUND_PACKET_ATTENUATION)
+		field_mask |= SND_ATTENUATION;
+	if (pitch != 100)
+		field_mask |= SND_PITCH;
+// directed messages go only to the entity the are targeted on
+	MSG_WriteByte (&sv.datagram, svc_sound3);
+	MSG_WriteByte (&sv.datagram, field_mask);
+	if (field_mask & SND_VOLUME)
+		MSG_WriteByte (&sv.datagram, volume);
+	if (field_mask & SND_ATTENUATION)
+		MSG_WriteByte (&sv.datagram, attenuation*64);
+	MSG_WriteShort (&sv.datagram, channel);
+	MSG_WriteByte (&sv.datagram, sound_num);
+	if (field_mask & SND_PITCH)
+	MSG_WriteByte (&sv.datagram, (int)pitch);
+	for (i=0 ; i<3 ; i++)
+		MSG_WriteCoord (&sv.datagram, entity->v.origin[i]+0.5*(entity->v.mins[i]+entity->v.maxs[i]));
+		
+}
+
+
 /*
 ==============================================================================
 
@@ -236,7 +347,16 @@ void SV_SendServerinfo (client_t *client)
 {
 	char			**s;
 	char			message[2048];
+#ifdef DPPROTOCOLS
+	MSG_WriteByte (&client->message, svc_print);
+	sprintf (message, "%c\nENGOO VERSION %4.2f SERVER (%i CRC)", 2, VERSION, pr_crc);
+	MSG_WriteString (&client->message,message);
 
+	MSG_WriteByte (&client->message, svc_serverinfo);
+	MSG_WriteLong (&client->message, DPPROTOCOL_VERSION);
+	MSG_WriteByte (&client->message, svs.maxclients);
+
+#else
 	MSG_WriteByte (&client->message, svc_print);
 	sprintf (message, "%c\nVERSION %4.2f SERVER (%i CRC)\n", 2, VERSION, pr_crc);	// 2000-01-08 Missing linefeeds fix by Maddes
 	MSG_WriteString (&client->message,message);
@@ -245,6 +365,7 @@ void SV_SendServerinfo (client_t *client)
 	MSG_WriteLong (&client->message, PROTOCOL_VERSION);
 	MSG_WriteByte (&client->message, svs.maxclients);
 
+#endif
 	if (!coop->value && deathmatch->value)
 		MSG_WriteByte (&client->message, GAME_DEATHMATCH);
 	else
@@ -495,7 +616,20 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 	vec3_t	org;
 	float	miss;
 	edict_t	*ent;
+	// from tomazquake
+	int		clentnum;
+	float	alpha;
+	float	glowcolor;
+	float	glowsize;
+	float	scale;
+	eval_t  *val;
+	// from tomazquake
 
+	// from makaqu
+#ifdef VMTOC
+		
+	qboolean viewmodel = false;
+#endif
 // find the client's PVS
 	VectorAdd (clent->v.origin, clent->v.view_ofs, org);
 	pvs = SV_FatPVS (org);
@@ -504,25 +638,46 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 	ent = NEXT_EDICT(sv.edicts);
 	for (e=1 ; e<sv.num_edicts ; e++, ent = NEXT_EDICT(ent))
 	{
-#ifdef QUAKE2
-		// don't send if flagged for NODRAW and there are no lighting effects
+				// don't send if flagged for NODRAW and there are no lighting effects
 		if (ent->v.effects == EF_NODRAW)
 			continue;
-#endif
 
+#ifdef VMTOC
+if ((val = GetEdictFieldValue(ent, "viewmodelforclient")) && val->_int)
+		{
+			if (val->_int == EDICT_TO_PROG(clent))
+				viewmodel = true;
+			else
+				continue;
+		}
+		else
+			viewmodel = false;
+#endif
 // ignore if not touching a PV leaf
 		if (ent != clent)	// clent is always sent
 		{
 // ignore ents without visible models
 			if (!ent->v.modelindex || !pr_strings[ent->v.model])
 				continue;
-
+#ifdef VMTOC
+			
+			if (!viewmodel)
+			{
+				for (i=0 ; i < ent->num_leafs ; i++)
+					if (pvs[ent->leafnums[i] >> 3] & (1 << (ent->leafnums[i]&7) ))
+						break;
+				
+				if (i == ent->num_leafs)
+					continue;		// not visible
+			}
+#else
 			for (i=0 ; i < ent->num_leafs ; i++)
 				if (pvs[ent->leafnums[i] >> 3] & (1 << (ent->leafnums[i]&7) ))
 					break;
 
 			if (i == ent->num_leafs)
 				continue;		// not visible
+#endif
 		}
 
 		if (msg->maxsize - msg->cursize < 16)
@@ -567,20 +722,110 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 
 		if (ent->baseline.modelindex != ent->v.modelindex)
 			bits |= U_MODEL;
+#ifdef ALPHASCALE
+		// from tomazquake
+if(dpprotocol)
+		{
+			alpha		= 1;
+			glowcolor	= 0;
+			glowsize	= 0;
+			scale		= 1;
+		if (val = GETEDICTFIELDVALUE(ent, pr_field_alpha)  )
+				alpha = val->_float;
 
+		if (val = GETEDICTFIELDVALUE(ent, pr_field_glowcolor)  )
+				glowcolor = val->_float;
+
+		if (val = GETEDICTFIELDVALUE(ent, pr_field_glowsize)  )
+				glowsize = val->_float;
+					if ((val = GetEdictFieldValue(ent, "scale")))
+			{
+				scale = val->_float;
+				if (scale > 4)
+					scale = 4;
+				if (scale > 0)
+					bits |= U_SCALE;
+			}
+
+//			if ((val = GETEDICTFIELDVALUE(ent, eval_renderamt)) && val->_float != 0) // HalfLife support
+//				alpha = val->_float / 255;
+
+//			if (val = GETEDICTFIELDVALUE(ent, eval_scale))
+//				scale = val->_float;
+
+	//		if (scale > 4)
+	//			scale = 4;
+			
+		if (alpha < 1)
+				bits |= U_ALPHA;
+
+		if (glowsize)
+				bits |= U_GLOWSIZE;
+
+		if (glowcolor)
+				bits |= U_GLOWCOLOR;
+		
+//		if ((scale <= 4) && (scale > 0))
+//				bits |= U_SCALE;
+
+		}
+#endif
 		if (e >= 256)
 			bits |= U_LONGENTITY;
 
+		
+#ifdef VMTOC
+		if (viewmodel)
+			bits |= U_VIEWMODEL;
+
 		if (bits >= 256)
 			bits |= U_MOREBITS;
+		if (bits >= 65536)
+			bits |= U_EXTEND1;
+		if (bits >= 16777216)
+			bits |= U_EXTEND2;
+#else
+			if (bits >= 256)
+			bits |= U_MOREBITS;
+#ifdef SONOFABITS
+			// Tomaz - QC Control Begin
+		if (bits >= 65536)
+			bits |= U_EXTEND1;
+
+		if (bits >= 16777216)
+			bits |= U_EXTEND2;
+		// Tomaz - QC Control End
+#endif
+#endif
 
 	//
 	// write the message
 	//
 		MSG_WriteByte (msg,bits | U_SIGNAL);
+#ifdef SONOFABITS
+/*	// ??
+		if (bits & U_MOREBITS)
+			MSG_WriteByte(msg, (bits & 0x0000FF00) >> 8);
+		if (bits & U_EXTEND1)
+			MSG_WriteByte(msg, (bits & 0x00FF0000) >> 16);
+		if (bits & U_EXTEND2)
+			MSG_WriteByte(msg, (bits & 0xFF000000) >> 24);
+*/
+			if (bits & U_MOREBITS)
+			MSG_WriteByte (msg, bits>>8);
+		if (bits & U_EXTEND1)
+			MSG_WriteByte (msg, bits>>16);
+		if (bits & U_EXTEND2)
+			MSG_WriteByte (msg, bits>>24);
 
+#else
 		if (bits & U_MOREBITS)
 			MSG_WriteByte (msg, bits>>8);
+		if (bits & U_EXTEND1)
+			MSG_WriteByte (msg, bits>>16);
+		if (bits & U_EXTEND2)
+			MSG_WriteByte (msg, bits>>24);
+#endif
 		if (bits & U_LONGENTITY)
 			MSG_WriteShort (msg,e);
 		else
@@ -608,6 +853,19 @@ void SV_WriteEntitiesToClient (edict_t	*clent, sizebuf_t *msg)
 			MSG_WriteCoord (msg, ent->v.origin[2]);
 		if (bits & U_ANGLE3)
 			MSG_WriteAngle(msg, ent->v.angles[2]);
+#ifdef ALPHASCALE
+		if(dpprotocol){
+		if (bits & U_ALPHA)
+			MSG_WriteFloat(msg, alpha);
+		if (bits & U_GLOWCOLOR)
+			MSG_WriteFloat(msg, glowcolor);
+		if (bits & U_GLOWSIZE)
+			MSG_WriteFloat(msg, glowsize);
+
+//		if (bits & U_SCALE)
+	//		MSG_WriteFloat(msg, scale);
+		}
+#endif
 	}
 }
 
@@ -759,7 +1017,6 @@ void SV_WriteClientdataToMessage (edict_t *ent, sizebuf_t *msg)
 		if (bits & (SU_VELOCITY1<<i))
 			MSG_WriteChar (msg, ent->v.velocity[i]/16);
 	}
-
 // [always sent]	if (bits & SU_ITEMS)
 	MSG_WriteLong (msg, items);
 
@@ -1033,6 +1290,9 @@ void SV_CreateBaseline (void)
 		if (entnum > 0 && entnum <= svs.maxclients)
 		{
 			svent->baseline.colormap = entnum;
+			if(gamemode == GAME_LASER_ARENA)
+			svent->baseline.modelindex = SV_ModelIndex("progs/player.mdl");
+			else
 			svent->baseline.modelindex = SV_ModelIndex("progs/player.mdl");
 		}
 		else
@@ -1135,7 +1395,7 @@ void SV_SpawnServer (char *server)
 {
 	edict_t		*ent;
 	int			i;
-
+	imsaving = 1;
 	// let's not have any servers with no name
 	if (hostname->string[0] == 0)
 		Cvar_Set (hostname, "UNNAMED");
@@ -1323,4 +1583,5 @@ void SV_SpawnServer (char *server)
 			SV_SendServerinfo (host_client);
 
 	Con_DPrintf ("Server spawned.\n");
+	imsaving = 0;
 }

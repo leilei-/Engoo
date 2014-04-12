@@ -681,6 +681,8 @@ VID_ResetFramebuffer()
 
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
+		vid.maxlowwidth = LOW_WIDTH;
+	vid.maxlowheight = LOW_HEIGHT;
 	vid.recalc_refdef = 1;				// force a surface cache flush
 
 	free(d_pzbuffer);
@@ -1119,6 +1121,8 @@ drain_renderpipeline(XilImage old)
 
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
+		vid.maxlowwidth = LOW_WIDTH;
+	vid.maxlowheight = LOW_HEIGHT;
 	vid.recalc_refdef = 1;				// force a surface cache flush
 
 	return(new);

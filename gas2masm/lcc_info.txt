@@ -1,0 +1,9 @@
+The project file has been adapted from the QBism port http://qbism.telefragged.com/
+For the case you have to change the assembler coding, I added some useful batch
+files to recreate the libraries. Note that you currently need Microsoft's MASM
+to compile the assembler code (see the QSML FAQ at http://www.quake-info-pool.net/ 
+how to obtain it for free legally).
+
+Before using the project file with WEdit32 you have to adapt them to your directory structure.
+1. Replace D:\Coding\Quake with the directory you extracted the GAS2MASM source
+2. Replace D:\Programme\Coding\lcc with the directory you installed LCC

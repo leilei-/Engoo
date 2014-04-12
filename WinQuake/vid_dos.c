@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "d_local.h"
 #include "dosisms.h"
 #include "vid_dos.h"
-
+extern	int reflectavailable;	// leilei
 int			vid_modenum;
 vmode_t		*pcurrentmode = NULL;
 int			vid_testingmode, vid_realmode;
@@ -48,6 +48,7 @@ cvar_t	*_vid_default_mode_win;
 cvar_t	*vid_config_x;
 cvar_t	*vid_config_y;
 cvar_t	*vid_stretch_by_2;
+cvar_t	*vid_stretch_x_by_2;
 cvar_t	*_windowed_mouse;
 cvar_t	*vid_fullscreen_mode;
 cvar_t	*vid_windowed_mode;
@@ -70,16 +71,18 @@ void VID_DescribeCurrentMode_f (void);
 void VID_DescribeMode_f (void);
 void VID_DescribeModes_f (void);
 
+
 byte	vid_current_palette[768];	// save for mode changes
 
 
 static qboolean	nomodecheck = false;
 
 unsigned short	d_8to16table[256];	// not used in 8 bpp mode
-unsigned		d_8to24table[256];	// not used in 8 bpp mode
+unsigned		d_8to24table[256];	// really used in 8 bpp mode
 
 void VID_MenuDraw (void);
 void VID_MenuKey (int key);
+
 
 
 // 2001-09-18 New cvar system by Maddes (Init)  start
@@ -102,6 +105,7 @@ void VID_Init_Cvars (void)
 	vid_window_y = Cvar_Get ("vid_window_y", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
 }
 // 2001-09-18 New cvar system by Maddes (Init)  end
+int	yeahimconsoled;
 
 /*
 ================
@@ -110,31 +114,14 @@ VID_Init
 */
 void    VID_Init (unsigned char *palette)
 {
-// 2001-09-18 New cvar system by Maddes (Init)  start
-/*
-	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
-	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
-	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	vid_fullscreen_mode = Cvar_Get ("vid_fullscreen_mode", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	vid_windowed_mode = Cvar_Get ("vid_windowed_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	block_switch = Cvar_Get ("block_switch", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
-	vid_window_x = Cvar_Get ("vid_window_x", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
-	vid_window_y = Cvar_Get ("vid_window_y", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
-*/
-// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("vid_testmode", VID_TestMode_f);
 	Cmd_AddCommand ("vid_nummodes", VID_NumModes_f);
 	Cmd_AddCommand ("vid_describecurrentmode", VID_DescribeCurrentMode_f);
 	Cmd_AddCommand ("vid_describemode", VID_DescribeMode_f);
 	Cmd_AddCommand ("vid_describemodes", VID_DescribeModes_f);
+
+	SCR_StretchInit();
 
 // set up the mode list; note that later inits link in their modes ahead of
 // earlier ones, so the standard VGA modes are always first in the list. This
@@ -153,6 +140,12 @@ void    VID_Init (unsigned char *palette)
 
 	vid_menudrawfn = VID_MenuDraw;
 	vid_menukeyfn = VID_MenuKey;
+
+	reflectavailable = 0;	// leilei - :(
+#ifdef WATERREFLECTIONS
+	if (vid.reflectbuffer)
+		vid.reflectbuffer = NULL;
+#endif
 }
 
 
@@ -178,6 +171,10 @@ vmode_t *VID_GetModePtr (int modenum)
 
 	return pv;
 }
+
+byte globalcolormap[VID_GRADES*256], lastglobalcolor = 0;
+byte *lastsourcecolormap = NULL;
+
 
 /*
 ================
@@ -257,6 +254,12 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	vid.width = pcurrentmode->width;
 	vid.height = pcurrentmode->height;
+	if (!yeahimconsoled){
+	vid.vconheight = pcurrentmode->width;
+	vid.vconwidth = pcurrentmode->height;}	
+	SCR_StretchRefresh();
+	SCR_CvarCheck();	
+
 	vid.aspect = pcurrentmode->aspect;
 	vid.rowbytes = pcurrentmode->rowbytes;
 
@@ -279,6 +282,9 @@ int VID_SetMode (int modenum, unsigned char *palette)
 			pcurrentmode = poldmode;
 			vid.width = pcurrentmode->width;
 			vid.height = pcurrentmode->height;
+			if (!yeahimconsoled){
+			vid.vconheight = pcurrentmode->width;
+			vid.vconwidth = pcurrentmode->height;}
 			vid.aspect = pcurrentmode->aspect;
 			vid.rowbytes = pcurrentmode->rowbytes;
 			return 0;
@@ -315,6 +321,7 @@ void    VID_SetPalette (unsigned char *palette)
 		Q_memcpy(vid_current_palette, palette, 768);
 	(*pcurrentmode->setpalette)(&vid, pcurrentmode, vid_current_palette);
 }
+
 
 
 /*

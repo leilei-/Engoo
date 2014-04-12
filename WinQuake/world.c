@@ -136,8 +136,8 @@ hull_t *SV_HullForEntity (edict_t *ent, vec3_t mins, vec3_t maxs, vec3_t offset)
 // decide which clipping hull to use, based on the size
 	if (ent->v.solid == SOLID_BSP)
 	{	// explicit hulls in the BSP model
-		if (ent->v.movetype != MOVETYPE_PUSH)
-			Sys_Error ("SOLID_BSP without MOVETYPE_PUSH");
+	//	if (ent->v.movetype != MOVETYPE_PUSH)
+	//	//	Sys_Error ("SOLID_BSP without MOVETYPE_PUSH");
 
 		model = sv.models[ (int)ent->v.modelindex ];
 
@@ -148,13 +148,23 @@ hull_t *SV_HullForEntity (edict_t *ent, vec3_t mins, vec3_t maxs, vec3_t offset)
 // 1999-10-07 MOVETYPE_PUSH fix by LordHavoc/Maddes  end
 
 		VectorSubtract (maxs, mins, size);
+
+			// what the hull is going on here
+		if (model->fromgame == fg_halflife) {
+			if (size[0] < 3) { hull = &model->hulls[0]; 
+			} else if (size[0] <= 32) { if (size[2] < 54) 
+					hull = &model->hulls[3]; else hull = &model->hulls[1]; 
+					} else {
+					hull = &model->hulls[2]; 
+					}
+			} else { 
 		if (size[0] < 3)
 			hull = &model->hulls[0];
 		else if (size[0] <= 32)
 			hull = &model->hulls[1];
 		else
 			hull = &model->hulls[2];
-
+			}
 // calculate an offset value to center the origin
 		VectorSubtract (hull->clip_mins, mins, offset);
 		VectorAdd (offset, ent->v.origin, offset);
@@ -417,11 +427,13 @@ void SV_LinkEdict (edict_t *ent, qboolean touch_triggers)
 		max = sqrt(max);
 // 2001-12-17 Incorrect bounding box of rotating bmodels fix by LordHavoc  end
 
-		for (i=0 ; i<3 ; i++)
-		{
-			ent->v.absmin[i] = ent->v.origin[i] - max;
-			ent->v.absmax[i] = ent->v.origin[i] + max;
-		}
+		// leilei - unroll
+			ent->v.absmin[0] = ent->v.origin[0] - max;
+			ent->v.absmax[0] = ent->v.origin[0] + max;
+			ent->v.absmin[1] = ent->v.origin[1] - max;
+			ent->v.absmax[1] = ent->v.origin[1] + max;
+			ent->v.absmin[2] = ent->v.origin[2] - max;
+			ent->v.absmax[2] = ent->v.origin[2] + max;
 	}
 	else
 #endif
@@ -664,9 +676,11 @@ qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec
 		frac = 1;
 
 	midf = p1f + (p2f - p1f)*frac;
-	for (i=0 ; i<3 ; i++)
-		mid[i] = p1[i] + frac*(p2[i] - p1[i]);
-
+	// leilei - unroll
+	mid[0] = p1[0] + frac*(p2[0] - p1[0]);
+	mid[1] = p1[1] + frac*(p2[1] - p1[1]);
+	mid[2] = p1[2] + frac*(p2[2] - p1[2]);
+	
 	side = (t1 < 0);
 
 // move up to the node
@@ -716,8 +730,10 @@ qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec
 			return false;
 		}
 		midf = p1f + (p2f - p1f)*frac;
-		for (i=0 ; i<3 ; i++)
-			mid[i] = p1[i] + frac*(p2[i] - p1[i]);
+		// leilei  - unroll
+			mid[0] = p1[0] + frac*(p2[0] - p1[0]);
+			mid[1] = p1[1] + frac*(p2[1] - p1[1]);
+			mid[2] = p1[2] + frac*(p2[2] - p1[2]);
 	}
 
 	trace->fraction = midf;
@@ -914,7 +930,7 @@ boxmins[0] = boxmins[1] = boxmins[2] = -9999;
 boxmaxs[0] = boxmaxs[1] = boxmaxs[2] = 9999;
 #else
 	int		i;
-
+/*
 	for (i=0 ; i<3 ; i++)
 	{
 		if (end[i] > start[i])
@@ -928,6 +944,40 @@ boxmaxs[0] = boxmaxs[1] = boxmaxs[2] = 9999;
 			boxmaxs[i] = start[i] + maxs[i] + 1;
 		}
 	}
+*/
+	// leilei - unroll
+
+		if (end[0] > start[0])
+		{
+			boxmins[0] = start[0] + mins[0] - 1;
+			boxmaxs[0] = end[0] + maxs[0] + 1;
+		}
+		else
+		{
+			boxmins[0] = end[0] + mins[0] - 1;
+			boxmaxs[0] = start[0] + maxs[0] + 1;
+		}
+		if (end[1] > start[1])
+		{
+			boxmins[1] = start[1] + mins[1] - 1;
+			boxmaxs[1] = end[1] + maxs[1] + 1;
+		}
+		else
+		{
+			boxmins[1] = end[1] + mins[1] - 1;
+			boxmaxs[1] = start[1] + maxs[1] + 1;
+		}
+		if (end[2] > start[2])
+		{
+			boxmins[2] = start[2] + mins[2] - 1;
+			boxmaxs[2] = end[2] + maxs[2] + 1;
+		}
+		else
+		{
+			boxmins[2] = end[2] + mins[2] - 1;
+			boxmaxs[2] = start[2] + maxs[2] + 1;
+		}
+
 #endif
 }
 
@@ -955,11 +1005,14 @@ trace_t SV_Move (vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int type, e
 
 	if (type == MOVE_MISSILE)
 	{
-		for (i=0 ; i<3 ; i++)
-		{
-			clip.mins2[i] = -15;
-			clip.maxs2[i] = 15;
-		}
+		// leilei - unroll
+			clip.mins2[0] = -15;
+			clip.maxs2[0] = 15;
+			clip.mins2[1] = -15;
+			clip.maxs2[1] = 15;
+			clip.mins2[2] = -15;
+			clip.maxs2[2] = 15;
+
 	}
 	else
 	{

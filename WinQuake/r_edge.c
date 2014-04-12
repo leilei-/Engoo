@@ -158,7 +158,7 @@ void R_BeginEdgeFrame (void)
 }
 
 
-#if	!id386
+#if	!id386broken
 
 /*
 ==============
@@ -204,7 +204,7 @@ addedge:
 #endif	// !id386
 
 
-#if	!id386
+#if	!id386broken
 
 /*
 ==============
@@ -224,7 +224,7 @@ void R_RemoveEdges (edge_t *pedge)
 #endif	// !id386
 
 
-#if	!id386
+#if	!id386broken
 
 /*
 ==============
@@ -450,7 +450,7 @@ void R_TrailingEdge (surf_t *surf, edge_t *edge)
 }
 
 
-#if	!id386
+#if	!id386broken
 
 /*
 ==============

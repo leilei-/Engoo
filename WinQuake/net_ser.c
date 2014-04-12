@@ -353,7 +353,9 @@ int Serial_Init (void)
 #ifdef	_WIN32
 	return -1;
 #endif
-
+#ifdef WINDOWS31
+	return -1;
+#endif
 	if (COM_CheckParm("-nolan"))
 		return -1;
 	if (COM_CheckParm ("-noserial"))

@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 edict_t	*sv_player;
 
+extern cvar_t	*sv_standstill;
 extern cvar_t	*sv_friction;
 cvar_t	*sv_edgefriction;
 extern cvar_t	*sv_stopspeed;
@@ -32,6 +33,7 @@ static	vec3_t		forward, right, up;
 vec3_t	wishdir;
 float	wishspeed;
 
+float amouse_x; amouse_y;
 // world
 float	*angles;
 float	*origin;
@@ -377,23 +379,93 @@ the move fields specify an intended velocity in pix/sec
 the angle fields specify an exact angular motion in degrees
 ===================
 */
+extern	int aimlock;
+extern float	aimlockangle = 15;	// maximum extremities of aiming in the aimlock
+extern float	aimlockangled;
+extern vec3_t		lockedangle;
+extern vec3_t		deathcam_angles;
+extern	cvar_t	*cl_diecam;
+vec3_t	dangles;
+extern int		deathcam_yesiamdead;
+extern float	deathcam_whenidied;	
+extern float	thestandstill;
 void SV_ClientThink (void)
 {
 	vec3_t		v_angle;
+	int yeahdead;
 
 	if (sv_player->v.movetype == MOVETYPE_NONE)
 		return;
+
+	if (cl.stats[STAT_HEALTH] <= 0) {	
+		
+			yeahdead = 1;
+		
+			if (!deathcam_yesiamdead){
+
+				deathcam_angles[PITCH] = 50;
+			//	deathcam_angles[YAW] = 20;
+				deathcam_angles[ROLL] = 0;
+				deathcam_whenidied = sv.time;
+				//Con_Printf("I died at %f. sob.\n", deathcam_whenidied);
+			}
+
+			if (cl_diecam->value)
+			deathcam_yesiamdead = cl_diecam->value;
+
+	}
+	else	
+	{
+			yeahdead = 0;
+			deathcam_yesiamdead = 0;
+	}
 
 	onground = (int)sv_player->v.flags & FL_ONGROUND;
 
 	origin = sv_player->v.origin;
 	velocity = sv_player->v.velocity;
 
+
+		
+
 	DropPunchAngle ();
+
 
 //
 // if dead, behave differently
 //
+
+	// leilei - standstill hack
+	if (sv_standstill->value)
+	{
+		float sample1, sample2, sample3, sample4, sample5;
+		float divided;
+
+		if (sv_maxspeed->value)
+		divided = 1 / sv_maxspeed->value * sv_standstill->value;
+		else
+		divided = 1;	// avoiding a div0......
+
+		sample1 = cmd.forwardmove * divided;
+		sample2 = cmd.sidemove * divided;
+		sample3 = cmd.upmove  * divided;
+		sample4 = amouse_x * divided;
+		sample5 = amouse_y * divided;
+		
+		if (sample1 < 0) sample1 *= -1;
+		if (sample2 < 0) sample2 *= -1;
+		if (sample3 < 0) sample3 *= -1;
+		if (sample4 < 0) sample4 *= -1;
+		if (sample5 < 0) sample5 *= -1;
+		
+		thestandstill = sample1 + sample2 + sample3 + sample4 + sample5 * 0.5;
+		if (thestandstill > 1)
+			thestandstill = 1;
+		
+		Cvar_SetValue (host_timescale,thestandstill); // slow it down!
+	}
+
+
 	if (sv_player->v.health <= 0)
 		return;
 
@@ -401,14 +473,45 @@ void SV_ClientThink (void)
 // angles
 // show 1/3 the pitch angle and all the roll angle
 	cmd = host_client->cmd;
-	angles = sv_player->v.angles;
 
+
+	angles = sv_player->v.angles;
+	// leilei - aim lock
+	if (aimlock){
+		if ((lockedangle[YAW] + aimlockangle) > 360){
+//			Con_Printf("goddamnit.\n");
+			if (cl.viewangles[YAW] > (lockedangle[YAW] + aimlockangle > 360)) sv_player->v.angles[YAW] -= 360;
+			if (cl.viewangles[YAW] > lockedangle[YAW] + aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] + aimlockangle;
+		}
+		else
+			if (cl.viewangles[YAW] > lockedangle[YAW] + aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] + aimlockangle;
+			if ((lockedangle[YAW] - aimlockangle) < 0){
+			if (cl.viewangles[YAW] < lockedangle[YAW] - aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] - aimlockangle + 360;
+			if (cl.viewangles[YAW] < lockedangle[YAW] - aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] - aimlockangle;
+	//		Con_Printf("mother\n");
+			}
+			else
+			if (cl.viewangles[YAW] < lockedangle[YAW] - aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] - aimlockangle;
+
+			// TODO: wrap angle, wrapangle
+		if (cl.viewangles[PITCH] < lockedangle[PITCH] - aimlockangle) cl.viewangles[PITCH] = lockedangle[PITCH] - aimlockangle;
+		if (cl.viewangles[PITCH] > lockedangle[PITCH] + aimlockangle) cl.viewangles[PITCH] = lockedangle[PITCH] + aimlockangle;
+//		if (cl.viewangles[YAW] < lockedangle[YAW] - aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] - aimlockangle;
+//		if (cl.viewangles[YAW] > lockedangle[YAW] + aimlockangle) cl.viewangles[YAW] = lockedangle[YAW] + aimlockangle;
+	
+
+	}
+
+	
 	VectorAdd (sv_player->v.v_angle, sv_player->v.punchangle, v_angle);
 	angles[ROLL] = V_CalcRoll (sv_player->v.angles, sv_player->v.velocity)*4;
-	if (!sv_player->v.fixangle)
+
+
+	 if (!sv_player->v.fixangle)
 	{
 		angles[PITCH] = -v_angle[PITCH]/3;
 		angles[YAW] = v_angle[YAW];
+
 	}
 
 	if ( (int)sv_player->v.flags & FL_WATERJUMP )
@@ -425,6 +528,7 @@ void SV_ClientThink (void)
 		SV_WaterMove ();
 		return;
 	}
+
 
 	SV_AirMove ();
 }
@@ -625,7 +729,29 @@ nextmsg:
 	return true;
 }
 
+#ifdef GLOBOT
 
+/*
+==================
+SV_RunBots
+==================
+*/
+void SV_RunBots (void)
+{
+	int	i;
+	
+	for (i=0, host_client = svs.clients ; i<svs.maxclients ; i++, host_client++)
+	{
+		if (!host_client->edict->bot.isbot)
+			continue;
+
+		sv_player = host_client->edict;
+
+		if (!sv.paused && (svs.maxclients > 1 || key_dest == key_game) )
+			SV_ClientThink ();
+	}
+}
+#endif
 /*
 ==================
 SV_RunClients
@@ -659,4 +785,7 @@ void SV_RunClients (void)
 		if (!sv.paused && (svs.maxclients > 1 || key_dest == key_game) )
 			SV_ClientThink ();
 	}
+#ifdef GLOBOT
+		SV_RunBots ();
+#endif
 }

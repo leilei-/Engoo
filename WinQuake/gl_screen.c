@@ -548,6 +548,7 @@ void SCR_DrawPause (void)
 		return;
 
 	pic = Draw_CachePic ("gfx/pause.lmp");
+
 	Draw_Pic ( (vid.width - pic->width)/2,
 		(vid.height - 48 - pic->height)/2, pic);
 }

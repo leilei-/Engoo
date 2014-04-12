@@ -26,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_MODE_LIST	30
 #define VID_ROW_SIZE	3
+#define LOW_WIDTH		160
+#define LOW_HEIGHT		200
 #define WARP_WIDTH		320
 #define WARP_HEIGHT		200
 #define MAXWIDTH		10000
@@ -111,7 +113,7 @@ viddef_t	vid;				// global video state
 
 unsigned short	d_8to16table[256];
 unsigned	d_8to24table[256];
-unsigned char d_15to8table[65536];
+unsigned char d_table[65536];
 
 float		gldepthmin, gldepthmax;
 
@@ -612,7 +614,7 @@ void GL_Init (void)
 	gl_extensions = glGetString (GL_EXTENSIONS);
 	Con_Printf ("GL_EXTENSIONS: %s\n", gl_extensions);
 
-//	Con_Printf ("%s %s\n", gl_renderer, gl_version);
+	Con_Printf ("%s %s\n", gl_renderer, gl_version);
 
 	if (strnicmp(gl_renderer,"PowerVR",7)==0)
 		fullsbardraw = true;
@@ -760,7 +762,7 @@ void	VID_SetPalette (unsigned char *palette)
 				l=j;
 			}
 		}
-		d_15to8table[i]=k;
+		d_table[i]=k;
 	}
 }
 
@@ -1821,6 +1823,8 @@ void	VID_Init (unsigned char *palette)
 
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
+		vid.maxlowwidth = LOW_WIDTH;
+	vid.maxlowheight = LOW_HEIGHT;
 	vid.colormap = host_colormap;
 	vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
 

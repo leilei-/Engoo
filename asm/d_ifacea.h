@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define	CYCLE	128
 
 // !!! if this is changed, it must be changed in r_shared.h too !!!
-#define	MAXHEIGHT	1024
+#define	MAXHEIGHT	1536
 
 // !!! if this is changed, it must be changed in quakedef.h too !!!
 #define CACHE_SIZE	32		// used to align key data structures
@@ -55,20 +55,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define pt_die				36
 #define pt_type				40
 #define pt_size				44
+#define pt_alpha			48
+#define pt_alphavel			52
+#define	pt_blend			56
+#define	pt_lit				60
+#define	pt_polor			64
+#define	pt_trail			68
+#define	pt_normal			72
+#define	pt_flat				84
 
 #define PARTICLE_Z_CLIP	8.0
 
 // finalvert_t structure
 // !!! if this is changed, it must be changed in d_iface.h too !!!
-#define fv_v				0	// !!! if this is moved, cases where the !!!
+/*#define fv_v				0	// !!! if this is moved, cases where the !!!
 								// !!! address of this field is pushed in !!!
 								// !!! d_polysa.s must be changed !!!
 #define fv_flags			24
 #define fv_reserved			28
 #define fv_size				32
 #define fv_shift			5
+*/
 
-
+#define fv_v				0	// !!! if this is moved, cases where the !!!
+								// !!! address of this field is pushed in !!!
+								// !!! d_polysa.s must be changed !!!
+#define fv_flags			36
+#define fv_reserved			40
+#define fv_size				44
+#define fv_shift			5
 // stvert_t structure
 // !!! if this is changed, it must be changed in modelgen.h too !!!
 #define stv_onseam	0
@@ -95,4 +110,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define atd_drawtype		28
 #define atd_seamfixupX16	32
 #define atd_size			36
+
 

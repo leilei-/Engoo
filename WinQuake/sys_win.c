@@ -24,9 +24,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "errno.h"
 #include "resource.h"
 #include "conproc.h"
-
+#ifdef QSB
+#define MINIMUM_WIN_MEMORY		0x02000000 
+#define MAXIMUM_WIN_MEMORY		0x08000000
+#else
 #define MINIMUM_WIN_MEMORY		0x0880000
 #define MAXIMUM_WIN_MEMORY		0x1000000
+#endif
+#ifdef ENDOOM
+#include "txt_main.h"
+#define ENDOOM_W 80
+#define ENDOOM_H 25
+#endif
 
 #define CONSOLE_ERROR_TIMEOUT	60.0	// # of seconds to wait on Sys_Error running
 										//  dedicated before exiting
@@ -36,6 +45,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int			starttime;
 qboolean	ActiveApp, Minimized;
 qboolean	WinNT;
+qboolean	Win31;
 
 static double		pfreq;
 static double		curtime = 0.0;
@@ -113,10 +123,10 @@ int		findhandle (void)
 
 /*
 ================
-filelength
+firelength
 ================
 */
-int filelength (FILE *f)
+int firelength (FILE *f)
 {
 	int		pos;
 	int		end;
@@ -155,7 +165,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	{
 		sys_handles[i] = f;
 		*hndl = i;
-		retval = filelength(f);
+		retval = firelength(f);
 	}
 
 	VID_ForceLockState (t);
@@ -336,13 +346,18 @@ void Sys_Init (void)
 	if ((vinfo.dwMajorVersion < 4) ||
 		(vinfo.dwPlatformId == VER_PLATFORM_WIN32s))
 	{
-		Sys_Error ("WinQuake requires at least Win95 or NT 4.0");
+		Win31 = true;	// leilei - windows 3.1 hack
+	//	Sys_Error ("WinQuake requires at least Win95 or NT 4.0");
 	}
 
 	if (vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT)
 		WinNT = true;
 	else
 		WinNT = false;
+
+
+	
+	SetThreadPriority(0, -1);	// leilei	- try to work around the ati hotkey poller latency bug
 }
 
 
@@ -400,12 +415,12 @@ void Sys_Error (char *error, ...)
 		{
 			in_sys_error0 = 1;
 			VID_SetDefaultMode ();
-			MessageBox(NULL, text, "Quake Error",
+			MessageBox(NULL, text, "We have malfunction",
 					   MB_OK | MB_SETFOREGROUND | MB_ICONSTOP);
 		}
 		else
 		{
-			MessageBox(NULL, text, "Double Quake Error",
+			MessageBox(NULL, text, "you really screwed up pal",
 					   MB_OK | MB_SETFOREGROUND | MB_ICONSTOP);
 		}
 	}
@@ -467,9 +482,54 @@ void Sys_Quit (void)
 /*
 ================
 Sys_FloatTime
+
+
+  New MH code
 ================
 */
+
 double Sys_FloatTime (void)
+{
+   static qboolean firsttime = true;
+   static __int64 qpcfreq = 0;
+   static __int64 currqpccount = 0;
+   static __int64 lastqpccount = 0;
+   static double qpcfudge = 0;
+   DWORD currtime = 0;
+   static DWORD lasttime = 0;
+   static DWORD starttime = 0;
+
+   if (firsttime)
+   {
+      timeBeginPeriod (1);
+      starttime = lasttime = timeGetTime ();
+      QueryPerformanceFrequency ((LARGE_INTEGER *) &qpcfreq);
+      QueryPerformanceCounter ((LARGE_INTEGER *) &lastqpccount);
+      firsttime = false;
+      return 0;
+   }
+
+   // get the current time from both counters
+   currtime = timeGetTime ();
+   QueryPerformanceCounter ((LARGE_INTEGER *) &currqpccount);
+
+   if (currtime != lasttime)
+   {
+      // requery the frequency in case it changes (which it can on multicore machines)
+      QueryPerformanceFrequency ((LARGE_INTEGER *) &qpcfreq);
+
+      // store back times and calc a fudge factor as timeGetTime can overshoot on a sub-millisecond scale
+      qpcfudge = ((double) (currqpccount - lastqpccount) / (double) qpcfreq) - ((double) (currtime - lasttime) * 0.001);
+      lastqpccount = currqpccount;
+      lasttime = currtime;
+   }
+   else qpcfudge = 0;
+
+   // the final time is the base from timeGetTime plus an addition from QPC
+   return ((double) (currtime - starttime) * 0.001) + ((double) (currqpccount - lastqpccount) / (double) qpcfreq) + qpcfudge;
+}
+
+double Sys_OldFloatTime (void)
 {
 	static int			sametimecount;
 	static unsigned int	oldtime;
@@ -756,7 +816,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	parms.argv = com_argv;
 
 	isDedicated = (COM_CheckParm ("-dedicated") != 0);
-
+	qbeta = (COM_CheckParm ("-beta") != 0); // leilei - check if running a beta version (pre-1.00)
 	if (!isDedicated)
 	{
 		hwnd_dialog = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_DIALOG1), NULL, NULL);
@@ -777,6 +837,7 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 			ShowWindow (hwnd_dialog, SW_SHOWDEFAULT);
 			UpdateWindow (hwnd_dialog);
 			SetForegroundWindow (hwnd_dialog);
+			
 		}
 	}
 
@@ -801,7 +862,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		if (t < com_argc)
 			parms.memsize = Q_atoi (com_argv[t]) * 1024;
 	}
-
+	if(Win31)
+	Sys_Error ("damn");
 	parms.membase = malloc (parms.memsize);
 
 	if (!parms.membase)

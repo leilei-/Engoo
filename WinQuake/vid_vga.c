@@ -48,8 +48,11 @@ int		VGA_highhunkmark;
 
 #include "vgamodes.h"
 
+#ifndef EGA
 #define NUMVIDMODES		(sizeof(vgavidmodes) / sizeof(vgavidmodes[0]))
-
+#else
+#define NUMVIDMODES		(sizeof(egavidmodes) / sizeof(egavidmodes[0]))
+#endif
 void VGA_UpdatePlanarScreen (void *srcbuffer);
 
 static byte	backingbuf[48*24];
@@ -198,14 +201,28 @@ void VGA_Init (void)
 // link together all the VGA modes
 	for (i=0 ; i<(NUMVIDMODES - 1) ; i++)
 	{
+#ifndef EGA
 		vgavidmodes[i].pnext = &vgavidmodes[i+1];
-	}
+
+}
 
 // add the VGA modes at the start of the mode list
 	vgavidmodes[NUMVIDMODES-1].pnext = pvidmodes;
 	pvidmodes = &vgavidmodes[0];
 
 	numvidmodes += NUMVIDMODES;
+#else
+	egavidmodes[i].pnext = &egavidmodes[i+1];
+
+}
+
+// add the VGA modes at the start of the mode list
+	egavidmodes[NUMVIDMODES-1].pnext = pvidmodes;
+	pvidmodes = &egavidmodes[0];
+
+	numvidmodes += NUMVIDMODES;
+#endif
+	
 }
 
 
@@ -353,7 +370,15 @@ int VGA_InitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 
 // mode 0x13 is the base for all the Mode X-class mode sets
 	regs.h.ah = 0;
+#ifndef EGA
 	regs.h.al = 0x13;
+#else
+	regs.h.al = 0x000d; // EGA 320x200
+//	regs.h.al = 0x000e; // EGA 640x200
+//	regs.h.al = 0x0010; // EGA 640x350
+#endif
+
+
 	dos_int86(0x10);
 
 	VGA_pagebase = (void *)real2ptr(0xa0000);
@@ -373,11 +398,19 @@ int VGA_InitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 	else
 		VGA_rowbytes = lvid->rowbytes;
 	VGA_bufferrowbytes = lvid->rowbytes;
+#ifndef EGA
 	lvid->colormap = host_colormap;
 	lvid->fullbright = 256 - LittleLong (*((int *)lvid->colormap + 2048));
+#else
+	lvid->colormap = host_egamap;
+	//lvid->colormap = host_colormap;
 
+	lvid->fullbright = 16 - LittleLong (*((int *)lvid->egamap + 2048));
+#endif
 	lvid->maxwarpwidth = WARP_WIDTH;
 	lvid->maxwarpheight = WARP_HEIGHT;
+	lvid->maxlowwidth = 160;
+	lvid->maxlowheight = 200;
 
 	lvid->conbuffer = lvid->buffer;
 	lvid->conrowbytes = lvid->rowbytes;
@@ -410,6 +443,7 @@ VGA_SetPalette
 */
 void VGA_SetPalette(viddef_t *lvid, vmode_t *pcurrentmode, unsigned char *pal)
 {
+#ifndef EGA
 	int shiftcomponents=2;
 	int i;
 
@@ -419,6 +453,8 @@ void VGA_SetPalette(viddef_t *lvid, vmode_t *pcurrentmode, unsigned char *pal)
 	dos_outportb(0x3c8, 0);
 	for (i=0 ; i<768 ; i++)
 		outportb(0x3c9, pal[i]>>shiftcomponents);
+#else
+#endif
 }
 
 

@@ -25,8 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void (*vid_menudrawfn)(void);
 void (*vid_menukeyfn)(int key);
-
-enum {m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup, m_net, m_options, m_video, m_keys, m_help, m_quit, m_serialconfig, m_modemconfig, m_lanconfig, m_gameoptions, m_search, m_slist} m_state;
+extern cvar_t *loadscreen;
+enum {m_none, m_main, m_singleplayer, m_load, m_save, m_multiplayer, m_setup, m_net, m_options, m_video, m_keys, m_help, m_quit, m_serialconfig, m_modemconfig, m_lanconfig, m_gameoptions, m_search, m_slist, m_keys2, m_broken} m_state;
 
 void M_Menu_Main_f (void);
 	void M_Menu_SinglePlayer_f (void);
@@ -37,6 +37,7 @@ void M_Menu_Main_f (void);
 		void M_Menu_Net_f (void);
 	void M_Menu_Options_f (void);
 		void M_Menu_Keys_f (void);
+		void M_Menu_Keys_f2 (void); // leilei
 		void M_Menu_Video_f (void);
 	void M_Menu_Help_f (void);
 	void M_Menu_Quit_f (void);
@@ -85,10 +86,20 @@ void M_GameOptions_Key (int key);
 void M_Search_Key (int key);
 void M_ServerList_Key (int key);
 
+void Preset_Q101(void);
+void Preset_Q107(void);
+void Preset_Q64(void);
+void Preset_GLQ(void);
+void Preset_D(void);
+void Preset_U(void);
+void Preset_Xtreem(void);
+void Preset_Lei(void);
+void Preset_Crap(void);
+
 qboolean	m_entersound;		// play after drawing a frame, so caching
 								// won't disrupt the sound
 qboolean	m_recursiveDraw;
-
+extern int	menu_scaled;
 int			m_return_state;
 qboolean	m_return_onerror;
 char		m_return_reason [32];
@@ -102,6 +113,8 @@ char		m_return_reason [32];
 
 void M_ConfigureNetSubsystem(void);
 
+extern cvar_t *v_contrast;
+extern cvar_t *v_saturation;
 // 2002-01-31 New menu system by Maddes  start
 // menu entry types
 #define MENU_SELECTABLE	0
@@ -119,7 +132,71 @@ typedef struct menu_definition_s
 int		*current_cursor;
 menu_definition_t	*current_menu;
 int 	menu_last_index, menu_first_index;
+extern cvar_t *r_menucolor;
+#ifndef BENCH
+extern cvar_t *s_pitchin;
+extern cvar_t *s_oldspatial;
+#endif
+extern cvar_t *r_coloredlights;
+extern cvar_t *r_shiftlighting;
+extern cvar_t *r_truecolor;
+extern cvar_t *r_waterquality;
+extern cvar_t *r_fogquality;
+extern cvar_t *r_fogdither;
+extern cvar_t *r_overbrightBits;
+extern cvar_t *r_fullbrights;
+extern cvar_t *r_coloreddyns;
+extern cvar_t *r_particlespray;
+extern cvar_t *r_particleset;
+extern cvar_t *r_particleblood;
+extern cvar_t *r_flares;
+extern cvar_t *cl_bobmodel;
+extern cvar_t *cl_bobfall;
+extern cvar_t *cl_bob2;
+extern cvar_t *cl_leanmodel;
+extern cvar_t *cl_followmodel;
+extern cvar_t *cl_gundraw;
+extern cvar_t *r_shading;
+extern cvar_t *cl_gunhold;
 
+extern cvar_t *sv_standstill;
+extern cvar_t *scr_scale;
+extern cvar_t *scr_retroscale;
+extern cvar_t *r_shadowhack;
+extern cvar_t *r_alphashift;
+extern cvar_t *r_tranquality;
+extern cvar_t *r_lightquality;
+extern cvar_t *r_shadedither;
+extern cvar_t *r_shinygrays;
+extern cvar_t *r_lowmodels;
+extern cvar_t *r_lowdetail;
+extern cvar_t *r_virtualmode;
+extern cvar_t *r_lowworld;
+extern cvar_t *r_filter;
+extern cvar_t *r_dither;
+extern cvar_t *d_mipdetail;
+extern cvar_t *r_overbrightmdl;
+
+extern cvar_t *r_wateralpha;
+extern cvar_t *r_waterblend;
+extern cvar_t *r_flamehack;
+extern cvar_t *r_particlesprite;
+extern cvar_t *r_lerpmodels;
+extern cvar_t *midivolume;
+extern cvar_t *autosaver;
+extern cvar_t *loadscreen;
+extern cvar_t *r_dynamic;
+extern cvar_t *r_muzzlehack;
+extern cvar_t *cl_diecam;
+extern cvar_t *scr_aspectmode;
+
+extern cvar_t *s_underwater;
+extern cvar_t *s_gibs;
+extern cvar_t *s_blood;
+extern cvar_t *s_playerdeath;
+#ifdef _WIN32
+extern cvar_t *vid_stretch_by_2;
+#endif
 // function number definitions
 // Menus
 #define MENU_OFF				1
@@ -177,25 +254,131 @@ int 	menu_last_index, menu_first_index;
 #define MENU_CON_HEIGHT					172
 #define MENU_SHOW_FPS					173
 #define MENU_GL_MAXDEPTH				174
+#define MENU_COLOR						175
+#define MENU_SOUND_PITCH				176
+#define MENU_COLORED					177
+#define MENU_LOWDETAIL					178
+#define MENU_LOWWORLD					179
+#define MENU_LOWMODELS					180
+#define MENU_LERPMODELS					181
+#define MENU_MIDI_VOLUME				182
+#define MENU_COLOREDDYNS				183
+#define MENU_TRANQUALITY				184
+#define MENU_LIGHTQUALITY				185
+#define MENU_ALPHASHIFT					186
+#define MENU_WATERALPHA					187
+#define MENU_WATERBLEND					188
+#define MENU_CUSTOMIZE_CONTROLS2		189
+#define MENU_CLASSICSPAT				190
+#define MENU_SHADOWHACK					191
+#define MENU_BROKEN_OPTIONS				192
+#define MENU_OVERBRIGHT					193
+#define MENU_VIEW_OPTIONS				194
+#define MENU_QUALITY_OPTIONS			195
+#define MENU_SPRAY						196
+#define MENU_BLOODHACK					197
+#define MENU_PARTICLESET				198
+#define MENU_STRETCHMODE				199
+#define MENU_OLDSTATBAR					200
+#define MENU_HUDSWAP					201
+#define MENU_PSET_VANILLA				202
+#define MENU_PSET_DP					203
+#define MENU_PSET_FAKE					204
+#define MENU_PSET_PLASMA				205
+#define MENU_PSET_WEEEEE				206
+#define MENU_FILTERING					207
+#define MENU_COLORMAP_OPTIONS			208
+#define MENU_OVERBRIGHTS				209
+#define MENU_FULLBRIGHTS				210
+#define MENU_REVERT_COLORMAP			211
+#define MENU_MIPDETAIL					212
+#define MENU_GUNDRAW					213
+#define MENU_GUNHOLD					214
+#define MENU_BOBMODEL					215
+#define MENU_LEANMODEL					216
+#define MENU_FOLLOWMODEL				217
+#define MENU_INTERNAL_OPTIONS			218
+#define MENU_DITHERING					219
+#define MENU_SCREENSCALE				220
+#define MENU_AUTOSAVER					221
+#define MENU_LOADSCREEN					222
+#define MENU_CONTRAST					223
+#define MENU_SATURATION					224
+#define MENU_BLOODLEVEL					225
+#define MENU_DYNAMIC					226
+#define MENU_CONTENT_OPTIONS			227
+#define MENU_MUZZLEBLEND				228
+#define MENU_FOGQUALITY					229
+#define MENU_WATERQUALITY				230
+#define MENU_SHADEDITHER				231
+#define MENU_PARTICLESPRITES			232
+#define MENU_FLAMEHACK					233
+#define MENU_FLARES						234
+#define MENU_SHADING						235
+#define MENU_PRESET_OPTIONS				236
+#define MENU_HUD_OPTIONS				237
+#define MENU_PRESET_Q101				238
+#define MENU_PRESET_Q107				239
+#define MENU_PRESET_GLQ					240
+#define MENU_PRESET_Q64					241
+#define MENU_PRESET_D					242
+#define MENU_PRESET_U					243
+#define MENU_PRESET_XTREEM				244
+#define MENU_PRESET_LEI					245
+#define MENU_PRESET_CRAP				246
 
+#define MENU_DEATHCAM					247
+#define MENU_ASPECT						248
+#define MENU_RETROSCALE					249
+#define MENU_GIBBURST					250
+#define MENU_PLAYERDEATH				251
+#define MENU_UNDERWATER					252
+#define MENU_STANDSTILL					253
+#define MENU_BLOODBURST					254
+#define MENU_SHINYGRAYS					255
+
+extern int nolookups;
 // menu definitions
 int		options_cursor;
 menu_definition_t	m_menu_options[] =
 {	// Options Menu
 	{MENU_MAIN, MENU_OPTIONS},	// this is the ESC key function and title
 	{MENU_CUSTOMIZE_CONTROLS, MENU_SELECTABLE},
+//	{MENU_CUSTOMIZE_CONTROLS2, MENU_SELECTABLE},
 	{MENU_GO_TO_CONSOLE, MENU_SELECTABLE},
 	{MENU_LOAD_DEFAULT_CFG, MENU_SELECTABLE},
 	{MENU_CONTROL_OPTIONS, MENU_SELECTABLE},
 	{MENU_SOUND_OPTIONS, MENU_SELECTABLE},
+	{MENU_INTERNAL_OPTIONS, MENU_SELECTABLE},
+//	{MENU_CLIENT_OPTIONS, MENU_SELECTABLE},	// leilei - moved this to another submenu
+//	{MENU_SERVER_OPTIONS, MENU_SELECTABLE},	// also moved to another menu
+	{MENU_VIEW_OPTIONS, MENU_SELECTABLE},
+	{MENU_VIDEO_OPTIONS, MENU_SELECTABLE},
+	{MENU_QUALITY_OPTIONS, MENU_SELECTABLE},
+	{MENU_CONTENT_OPTIONS, MENU_SELECTABLE},
+//	{MENU_COLORMAP_OPTIONS, MENU_SELECTABLE}, // deprecated
+#ifdef EXPERIMENT
+	{MENU_BROKEN_OPTIONS, MENU_SELECTABLE},
+#endif
+	{MENU_VIDEO_RESOLUTION, MENU_SELECTABLE},
+	{MENU_PRESET_OPTIONS, MENU_SELECTABLE},
+	//{MENU_HUD_OPTIONS, MENU_SELECTABLE}, // completely unfinished
+	{MENU_AUTOSAVER, MENU_SELECTABLE},
+	
+	{0, 0},	// end of submenu
+};
+menu_definition_t	m_menu_internal_options[] =
+{	// Options Menu
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
 	{MENU_EXTERNAL_DATA, MENU_SELECTABLE},
 	{MENU_CLIENT_OPTIONS, MENU_SELECTABLE},
 	{MENU_SERVER_OPTIONS, MENU_SELECTABLE},
-	{MENU_VIDEO_OPTIONS, MENU_SELECTABLE},
-	{MENU_VIDEO_RESOLUTION, MENU_SELECTABLE},
 	{0, 0},	// end of submenu
 };
+int		shadowhack;
+extern	cvar_t  *r_shadowhack;
 
+cvar_t  *menu_quitscreen;
 int		control_options_cursor;
 menu_definition_t	m_menu_control_options[] =
 {	// Control Options
@@ -217,26 +400,28 @@ menu_definition_t	m_menu_sound_options[] =
 {	// Sound Options
 	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
 	{MENU_CD_VOLUME, MENU_SELECTABLE},
+	{MENU_MIDI_VOLUME, MENU_SELECTABLE},
 	{MENU_SOUND_VOLUME, MENU_SELECTABLE},
+	{MENU_SOUND_PITCH, MENU_SELECTABLE},
+	{MENU_CLASSICSPAT, MENU_SELECTABLE},
+	{MENU_UNDERWATER, MENU_SELECTABLE},
 	{0, 0},	// end of submenu
 };
 
 int		external_data_cursor;
 menu_definition_t	m_menu_external_data[] =
 {	// External Data
-	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_INTERNAL_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
 	{MENU_EXTERNAL_ENT, MENU_SELECTABLE},
 	{MENU_EXTERNAL_VIS, MENU_SELECTABLE},
-#ifdef GLQUAKE
-	{MENU_EXTERNAL_LIT, MENU_SELECTABLE},	// only useful in GLQuake
-#endif
+	{MENU_EXTERNAL_LIT, MENU_SELECTABLE},
 	{0, 0},	// end of submenu
 };
 
 int		client_options_cursor;
 menu_definition_t	m_menu_client_options[] =
 {	// Client Options
-	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_INTERNAL_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
 	{MENU_CL_ENTITIES_MIN, MENU_SELECTABLE},
 	{MENU_CL_ENTITIES_TEMP_MIN, MENU_SELECTABLE},
 	{MENU_CL_ENTITIES_STATIC_MIN, MENU_SELECTABLE},
@@ -247,7 +432,7 @@ menu_definition_t	m_menu_client_options[] =
 int		server_options_cursor;
 menu_definition_t	m_menu_server_options[] =
 {	// Server Options
-	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_INTERNAL_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
 	{MENU_SV_ENTITIES, MENU_SELECTABLE},
 	{MENU_SV_ENTITIES_TEMP, MENU_SELECTABLE},
 	{MENU_SV_ENTITIES_STATIC, MENU_SELECTABLE},
@@ -260,14 +445,28 @@ menu_definition_t	m_menu_server_options[] =
 };
 
 int		video_options_cursor;
+int		view_options_cursor;
+int		quality_options_cursor;
+int		content_options_cursor;
+int		internal_options_cursor;
+int		preset_options_cursor;
+int		hud_options_cursor;
 menu_definition_t	m_menu_video_options[] =
 {	// Video Options
 	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
-	{MENU_SCREENSIZE, MENU_SELECTABLE},
-	{MENU_BRIGHTNESS, MENU_SELECTABLE},
+//	{MENU_SCREENSIZE, MENU_SELECTABLE},		// redundant
+//	{MENU_BRIGHTNESS, MENU_SELECTABLE},		// redundant
 	{MENU_CON_ALPHA, MENU_SELECTABLE},
 	{MENU_CON_HEIGHT, MENU_SELECTABLE},
 	{MENU_SHOW_FPS, MENU_SELECTABLE},
+	{MENU_COLOR, MENU_SELECTABLE},
+
+	{MENU_COLORED, MENU_SELECTABLE},
+	
+	{MENU_WATERALPHA, MENU_SELECTABLE},
+	{MENU_WATERBLEND, MENU_SELECTABLE},
+
+	
 #ifdef GLQUAKE
 	{MENU_GL_MAXDEPTH, MENU_SELECTABLE},
 #endif
@@ -278,6 +477,123 @@ menu_definition_t	m_menu_video_options[] =
 };
 // 2002-01-31 New menu system by Maddes  end
 
+menu_definition_t	m_menu_quality_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	//{MENU_LOWWORLD, MENU_SELECTABLE},		// no c implementation
+	{MENU_LOWDETAIL, MENU_SELECTABLE},	// crashes with water
+	//{MENU_LOWMODELS, MENU_SELECTABLE},	// unimplemented
+	{MENU_TRANQUALITY, MENU_SELECTABLE},
+	{MENU_WATERQUALITY, MENU_SELECTABLE},
+	//{MENU_LIGHTQUALITY, MENU_SELECTABLE},	// deprecated 
+	{MENU_MIPDETAIL, MENU_SELECTABLE},
+	{MENU_FILTERING, MENU_SELECTABLE},
+	{MENU_LERPMODELS, MENU_SELECTABLE},
+	{MENU_SHADEDITHER, MENU_SELECTABLE},
+	{MENU_SHADING, MENU_SELECTABLE},
+	{MENU_DYNAMIC, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+menu_definition_t	m_menu_preset_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_PRESET_Q101, MENU_SELECTABLE},
+	{MENU_PRESET_Q107, MENU_SELECTABLE},
+	{MENU_PRESET_GLQ, MENU_SELECTABLE},
+	{MENU_PRESET_Q64, MENU_SELECTABLE},
+	{MENU_PRESET_D, MENU_SELECTABLE},
+	{MENU_PRESET_U, MENU_SELECTABLE},
+	{MENU_PRESET_XTREEM, MENU_SELECTABLE},
+	{MENU_PRESET_LEI, MENU_SELECTABLE},
+	{MENU_PRESET_CRAP, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+
+menu_definition_t	m_menu_hud_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_SHADEDITHER, MENU_SELECTABLE},
+	{MENU_SHADING, MENU_SELECTABLE},
+	{MENU_DYNAMIC, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+
+menu_definition_t	m_menu_content_options[] =
+{	// Content Hacks
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_COLOREDDYNS, MENU_SELECTABLE},
+	{MENU_MUZZLEBLEND, MENU_SELECTABLE},
+	{MENU_SHINYGRAYS, MENU_SELECTABLE},
+	{MENU_SHADOWHACK, MENU_SELECTABLE},
+	{MENU_BLOODLEVEL, MENU_SELECTABLE},
+	{MENU_FLAMEHACK, MENU_SELECTABLE},
+	{MENU_FLARES, MENU_SELECTABLE},
+	{MENU_PARTICLESET, MENU_SELECTABLE},
+	{MENU_GIBBURST, MENU_SELECTABLE},
+	{MENU_BLOODBURST, MENU_SELECTABLE},
+	{MENU_PLAYERDEATH, MENU_SELECTABLE},
+	{MENU_STANDSTILL, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+
+menu_definition_t	m_menu_view_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_SCREENSIZE, MENU_SELECTABLE},
+	{MENU_ASPECT, MENU_SELECTABLE},
+	{MENU_BRIGHTNESS, MENU_SELECTABLE},
+	{MENU_SATURATION, MENU_SELECTABLE},
+	{MENU_CONTRAST, MENU_SELECTABLE},
+	{MENU_OLDSTATBAR, MENU_SELECTABLE},
+	{MENU_HUDSWAP, MENU_SELECTABLE},
+#ifdef _WIN32
+//	{MENU_STRETCHMODE,MENU_SELECTABLE},	// only present in windowed mode on Win32
+#endif
+	{MENU_BOBMODEL, MENU_SELECTABLE},
+	{MENU_FOLLOWMODEL, MENU_SELECTABLE},
+	{MENU_LEANMODEL, MENU_SELECTABLE},
+	{MENU_GUNDRAW, MENU_SELECTABLE},
+	{MENU_GUNHOLD, MENU_SELECTABLE},
+	{MENU_DEATHCAM, MENU_SELECTABLE},
+	{MENU_SCREENSCALE, MENU_SELECTABLE},
+	{MENU_RETROSCALE, MENU_SELECTABLE},
+	{MENU_LOADSCREEN, MENU_SELECTABLE},
+	
+	{0, 0},	// end of submenu
+};
+
+
+
+int		broken_options_cursor;
+menu_definition_t	m_menu_broken_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+//	{MENU_LOWWORLD, MENU_SELECTABLE},
+//	{MENU_LOWMODELS, MENU_SELECTABLE},
+	{MENU_ALPHASHIFT, MENU_SELECTABLE},
+	{MENU_OVERBRIGHT, MENU_SELECTABLE},
+	{MENU_SPRAY, MENU_SELECTABLE},
+	{MENU_PARTICLESET, MENU_SELECTABLE},
+	{MENU_BLOODHACK, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+
+int		colormap_options_cursor;
+menu_definition_t	m_menu_colormap_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_OVERBRIGHTS, MENU_SELECTABLE},
+	{MENU_FULLBRIGHTS, MENU_SELECTABLE},
+//	{MENU_REVERT_COLORMAP, MENU_SELECTABLE}, // causes a crash.
+	{0, 0},	// end of submenu
+};
+
+extern int lilchar;
 /*
 ================
 M_DrawCharacter
@@ -287,21 +603,44 @@ Draws one solid graphics character
 */
 void M_DrawCharacter (int cx, int line, int num)
 {
+#ifdef SCALED2D
+	if (menu_scaled)
+	Draw_Character_Scaled ( cx + ((vid.vconwidth - 320)>>1), line, num);
+	else
 	Draw_Character ( cx + ((vid.width - 320)>>1), line, num);
+	
+#else
+	Draw_Character ( cx + ((vid.width - 320)>>1), line, num);
+#endif
 }
 
 void M_Print (int cx, int cy, char *str)
-{
+{	
+	//int ye; if(lilchar)	ye = 4;	else ye = 8;
+	if (!qbeta){
 	while (*str)
 	{
+		
 		M_DrawCharacter (cx, cy, (*str)+128);
 		str++;
 		cx += 8;
+	}
+	}
+	else
+	{
+		while (*str)
+	{	// leilei - old versions had white menus
+		
+		M_DrawCharacter (cx, cy, *str);
+		str++;
+		cx += 8;
+	}
 	}
 }
 
 void M_PrintWhite (int cx, int cy, char *str)
 {
+	//int ye; if(lilchar)	ye = 4;	else ye = 8;
 	while (*str)
 	{
 		M_DrawCharacter (cx, cy, *str);
@@ -312,12 +651,27 @@ void M_PrintWhite (int cx, int cy, char *str)
 
 void M_DrawTransPic (int x, int y, qpic_t *pic)
 {
+#ifdef SCALED2D
+	if (menu_scaled)
+	Draw_TransPic_Scaled (x + ((vid.vconwidth - 320)>>1), y, pic);
+	else
 	Draw_TransPic (x + ((vid.width - 320)>>1), y, pic);
+#else
+	Draw_TransPic (x + ((vid.width - 320)>>1), y, pic);
+#endif
 }
 
 void M_DrawPic (int x, int y, qpic_t *pic)
 {
+#ifdef SCALED2D
+	if (menu_scaled)
+	if (gamemode == GAME_TRANSFUSION) Draw_TransPic_Scaled (x + ((vid.vconwidth - 320)>>1), y, pic); // transfusion uses transparencies a lot for the main menu. Maybe this can be default?
+	else Draw_Pic_Scaled (x + ((vid.vconwidth - 320)>>1), y, pic);
+	else
 	Draw_Pic (x + ((vid.width - 320)>>1), y, pic);
+#else
+	Draw_Pic (x + ((vid.width - 320)>>1), y, pic);
+#endif
 }
 
 byte identityTable[256];
@@ -350,7 +704,12 @@ void M_BuildTranslationTable(int top, int bottom)
 
 void M_DrawTransPicTranslate (int x, int y, qpic_t *pic)
 {
-	Draw_TransPicTranslate (x + ((vid.width - 320)>>1), y, pic, translationTable);
+#ifdef SCALED2D
+	if (menu_scaled)
+	Draw_TransPicTranslate_Scaled (x + ((vid.vconwidth - 320)>>1), y, pic, translationTable);
+	else
+#endif
+		Draw_TransPicTranslate (x + ((vid.width - 320)>>1), y, pic, translationTable);
 }
 
 
@@ -469,16 +828,24 @@ void M_Main_Draw (void)
 	int		f;
 	qpic_t	*p;
 
+	if (qbeta){
+	M_DrawTransPic (0, 0, Draw_CachePic ("gfx/mainmenu.lmp") );
+	}
+	else
+	{
+		if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/ttl_main.lmp");
+
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mainmenu.lmp") );
-
+		}
+	}
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
 //	f = (int)(host_time * 10)%6;
-	f = (int)(realtime * 10)%6;
+	if (qbeta) f = (int)(realtime * 10)%2;	else	f = (int)(realtime * 10)%6;
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
-
+if(gamemode != GAME_LASER_ARENA)
 	M_DrawTransPic (54, 32 + m_main_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
 
@@ -506,6 +873,22 @@ void M_Main_Key (int key)
 		if (--m_main_cursor < 0)
 			m_main_cursor = MAIN_ITEMS - 1;
 		break;
+
+// leilei - xb controller standard
+
+	case K_AUX29:
+		S_LocalSound ("misc/menu1.wav");
+		if (--m_main_cursor < 0)
+			m_main_cursor = MAIN_ITEMS - 1;
+		break;
+
+	case K_AUX31:
+		S_LocalSound ("misc/menu1.wav");
+		if (++m_main_cursor >= MAIN_ITEMS)
+			m_main_cursor = 0;
+		break;
+
+
 
 	case K_ENTER:
 		m_entersound = true;
@@ -554,17 +937,17 @@ void M_SinglePlayer_Draw (void)
 {
 	int		f;
 	qpic_t	*p;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/ttl_sgl.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/sp_menu.lmp") );
-
+	}
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
 //	f = (int)(host_time * 10)%6;
-	f = (int)(realtime * 10)%6;
+	if (qbeta) f = (int)(realtime * 10)%2;	else	f = (int)(realtime * 10)%6;
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
-
+if(gamemode != GAME_LASER_ARENA)
 	M_DrawTransPic (54, 32 + m_singleplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
 
@@ -724,8 +1107,12 @@ void M_Load_Key (int k)
 		m_state = m_none;
 		key_dest = key_game;
 
+
+	
+
 	// Host_Loadgame_f can't bring up the loading plaque because too much
 	// stack space has been used, so do it now
+		if (loadscreen->value)
 		SCR_BeginLoadingPlaque ();
 
 	// issue the load command
@@ -802,17 +1189,26 @@ void M_MultiPlayer_Draw (void)
 {
 	int		f;
 	qpic_t	*p;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mp_menu.lmp") );
-
+	}
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
 //	f = (int)(host_time * 10)%6;
-	f = (int)(realtime * 10)%6;
+	if (qbeta) f = (int)(realtime * 10)%2;	else	f = (int)(realtime * 10)%6;
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+#ifdef QSB_NET 
+	//	leilei - warn, because it most likely will not work.
+	M_PrintWhite ((320/2) - ((27*8)/2), 148, "WARNING: This build is an\nexperi-");
+	M_PrintWhite ((320/2) - ((27*8)/2), 156, "mental build with a highly raised ");
+	M_PrintWhite ((320/2) - ((27*8)/2), 164, "max datagram value. Compatibility ");
+	M_PrintWhite ((320/2) - ((27*8)/2), 172, "with other clients not guaranteed.");
+	M_PrintWhite ((320/2) - ((27*8)/2), 180, " USE AT YOUR OWN RISK!!! PERIOD!!!");
 
+#endif
+if(gamemode != GAME_LASER_ARENA)
 	M_DrawTransPic (54, 32 + m_multiplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 
 	if (serialAvailable || ipxAvailable || tcpipAvailable)
@@ -828,6 +1224,10 @@ void M_MultiPlayer_Key (int key)
 	case K_ESCAPE:
 		M_Menu_Main_f ();
 		break;
+	case K_JOY2:
+		M_Menu_Main_f ();
+		break;
+
 
 	case K_DOWNARROW:
 		S_LocalSound ("misc/menu1.wav");
@@ -842,6 +1242,24 @@ void M_MultiPlayer_Key (int key)
 		break;
 
 	case K_ENTER:
+		m_entersound = true;
+		switch (m_multiplayer_cursor)
+		{
+		case 0:
+			if (serialAvailable || ipxAvailable || tcpipAvailable)
+				M_Menu_Net_f ();
+			break;
+
+		case 1:
+			if (serialAvailable || ipxAvailable || tcpipAvailable)
+				M_Menu_Net_f ();
+			break;
+
+		case 2:
+			M_Menu_Setup_f ();
+			break;
+		}
+	case K_JOY1:
 		m_entersound = true;
 		switch (m_multiplayer_cursor)
 		{
@@ -892,11 +1310,12 @@ void M_Menu_Setup_f (void)
 void M_Setup_Draw (void)
 {
 	qpic_t	*p;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
 
+	M_DrawPic ( (320-p->width)/2, 4, p);
+	}
 	M_Print (64, 40, "Hostname");
 	M_DrawTextBox (160, 32, 16, 1);
 	M_Print (168, 40, setup_hostname);
@@ -913,6 +1332,7 @@ void M_Setup_Draw (void)
 
 	p = Draw_CachePic ("gfx/bigbox.lmp");
 	M_DrawTransPic (160, 64, p);
+
 	p = Draw_CachePic ("gfx/menuplyr.lmp");
 	M_BuildTranslationTable(setup_top*16, setup_bottom*16);
 	M_DrawTransPicTranslate (172, 72, p);
@@ -936,6 +1356,11 @@ void M_Setup_Key (int k)
 	case K_ESCAPE:
 		M_Menu_MultiPlayer_f ();
 		break;
+
+	case K_JOY2:
+		M_Menu_MultiPlayer_f ();
+		break;
+
 
 	case K_UPARROW:
 		S_LocalSound ("misc/menu1.wav");
@@ -988,6 +1413,25 @@ forward:
 		m_entersound = true;
 		M_Menu_MultiPlayer_f ();
 		break;
+
+	case K_JOY1:
+		if (setup_cursor == 0 || setup_cursor == 1)
+			return;
+
+		if (setup_cursor == 2 || setup_cursor == 3)
+			goto forward;
+
+		// setup_cursor == 4 (OK)
+		if (strcmp(cl_name->string, setup_myname) != 0)
+			Cbuf_AddText ( va ("name \"%s\"\n", setup_myname) );
+		if (strcmp(hostname->string, setup_hostname) != 0)
+			Cvar_Set(hostname, setup_hostname);
+		if (setup_top != setup_oldtop || setup_bottom != setup_oldbottom)
+			Cbuf_AddText( va ("color %i %i\n", setup_top, setup_bottom) );
+		m_entersound = true;
+		M_Menu_MultiPlayer_f ();
+		break;
+
 
 	case K_BACKSPACE:
 		if (setup_cursor == 0)
@@ -1085,9 +1529,10 @@ void M_Net_Draw (void)
 {
 	int		f;
 	qpic_t	*p;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
+	}
 	M_DrawPic ( (320-p->width)/2, 4, p);
 
 	f = 32;
@@ -1098,11 +1543,7 @@ void M_Net_Draw (void)
 	}
 	else
 	{
-#ifdef _WIN32
-		p = NULL;
-#else
-		p = Draw_CachePic ("gfx/dim_modm.lmp");
-#endif
+		p = Draw_CachePic ("gfx/dim_modm.lmp"); // leilei - dim the modem thing.
 	}
 
 	if (p)
@@ -1116,11 +1557,7 @@ void M_Net_Draw (void)
 	}
 	else
 	{
-#ifdef _WIN32
-		p = NULL;
-#else
 		p = Draw_CachePic ("gfx/dim_drct.lmp");
-#endif
 	}
 
 	if (p)
@@ -1149,7 +1586,7 @@ void M_Net_Draw (void)
 
 	f = (320-26*8)/2;
 	M_DrawTextBox (f, 134, 24, 4);
-	f += 8;
+	
 	M_Print (f, 142, net_helpMessage[m_net_cursor*4+0]);
 	M_Print (f, 150, net_helpMessage[m_net_cursor*4+1]);
 	M_Print (f, 158, net_helpMessage[m_net_cursor*4+2]);
@@ -1157,8 +1594,9 @@ void M_Net_Draw (void)
 
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
 //	f = (int)(host_time * 10)%6;
-	f = (int)(realtime * 10)%6;
+	if (qbeta) f = (int)(realtime * 10)%2;	else	f = (int)(realtime * 10)%6;
 // 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+	if(gamemode != GAME_LASER_ARENA)
 	M_DrawTransPic (54, 32 + m_net_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
 
@@ -1169,6 +1607,9 @@ again:
 	switch (k)
 	{
 	case K_ESCAPE:
+		M_Menu_MultiPlayer_f ();
+		break;
+	case K_JOY2:
 		M_Menu_MultiPlayer_f ();
 		break;
 
@@ -1209,6 +1650,31 @@ again:
 // multiprotocol
 			break;
 		}
+case K_JOY1:
+		m_entersound = true;
+
+		switch (m_net_cursor)
+		{
+		case 0:
+			M_Menu_SerialConfig_f ();
+			break;
+
+		case 1:
+			M_Menu_SerialConfig_f ();
+			break;
+
+		case 2:
+			M_Menu_LanConfig_f ();
+			break;
+
+		case 3:
+			M_Menu_LanConfig_f ();
+			break;
+
+		case 4:
+// multiprotocol
+			break;
+		}
 	}
 
 	if (m_net_cursor == 0 && !serialAvailable)
@@ -1224,17 +1690,6 @@ again:
 //=============================================================================
 /* OPTIONS MENU */
 
-// 2002-01-31 New menu system by Maddes  start
-// no more messing around with OPTIONS_ITEMS :)
-/*
-#ifdef _WIN32
-#define	OPTIONS_ITEMS	15	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-#else
-#define	OPTIONS_ITEMS	14	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-#endif
-*/
-// 2002-01-31 New menu system by Maddes  end
-
 #define	SLIDER_RANGE	10
 
 //int		options_cursor;	// 2002-01-31 New menu system by Maddes
@@ -1249,119 +1704,7 @@ void M_Menu_Options_f (void)
 	current_menu = m_menu_options;
 	current_cursor = &options_cursor;
 
-/*
-#ifdef _WIN32
-	if ((options_cursor == 14) && (modestate != MS_WINDOWED))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-	{
-		options_cursor = 0;
-	}
-#endif
-*/
-// 2002-01-31 New menu system by Maddes  end
 }
-
-// 2002-01-31 New menu system by Maddes  start
-/*
-void M_AdjustSliders (int dir)
-{
-	S_LocalSound ("misc/menu3.wav");
-
-	switch (options_cursor)
-	{
-	case 3:	// screen size
-		scr_viewsize->value += dir * 10;
-		if (scr_viewsize->value < 30)
-			scr_viewsize->value = 30;
-		if (scr_viewsize->value > 120)
-			scr_viewsize->value = 120;
-		Cvar_SetValue (scr_viewsize, scr_viewsize->value);
-		break;
-	case 4:	// gamma
-		v_gamma->value -= dir * 0.05;
-		if (v_gamma->value < 0.5)
-			v_gamma->value = 0.5;
-		if (v_gamma->value > 1)
-			v_gamma->value = 1;
-		Cvar_SetValue (v_gamma, v_gamma->value);
-		break;
-	case 5:	// mouse speed
-		sensitivity->value += dir * 0.5;
-		if (sensitivity->value < 1)
-			sensitivity->value = 1;
-		if (sensitivity->value > 11)
-			sensitivity->value = 11;
-		Cvar_SetValue (sensitivity, sensitivity->value);
-		break;
-	case 6:	// music volume
-#ifdef _WIN32
-		bgmvolume->value += dir * 1.0;
-#else
-		bgmvolume->value += dir * 0.1;
-#endif
-		if (bgmvolume->value < 0)
-			bgmvolume->value = 0;
-		if (bgmvolume->value > 1)
-			bgmvolume->value = 1;
-		Cvar_SetValue (bgmvolume, bgmvolume->value);
-		break;
-	case 7:	// sfx volume
-		volume->value += dir * 0.1;
-		if (volume->value < 0)
-			volume->value = 0;
-		if (volume->value > 1)
-			volume->value = 1;
-		Cvar_SetValue (volume, volume->value);
-		break;
-
-	case 8:	// always run
-		if (cl_forwardspeed->value > 200)
-		{
-			Cvar_Set (cl_forwardspeed, "200");
-			Cvar_Set (cl_backspeed, "200");
-		}
-		else
-		{
-			Cvar_Set (cl_forwardspeed, "400");
-			Cvar_Set (cl_backspeed, "400");
-		}
-		break;
-
-// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
-/ *
-	case 9:	// invert mouse
-		Cvar_SetValue (m_pitch, -m_pitch->value);
-		break;
-* /
-// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
-
-	case 9:	// lookspring	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-		Cvar_SetValue (lookspring, !lookspring->value);
-		break;
-
-	case 10:	// lookstrafe	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-		Cvar_SetValue (lookstrafe, !lookstrafe->value);
-		break;
-
-// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
-	case 11:	// mouselook
-		Cvar_SetValue (m_look, !m_look->value);
-		break;
-
-	case 12:	// invert mouse
-		Cvar_SetValue (m_pitch, -m_pitch->value);
-		break;
-// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
-
-#ifdef _WIN32
-	case 14:	// _windowed_mouse	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-		Cvar_SetValue (_windowed_mouse, !_windowed_mouse->value);
-		break;
-#endif
-	}
-}
-*/
-// 2002-01-31 New menu system by Maddes  end
-
 void M_DrawSlider (int x, int y, float range)
 {
 	int	i;
@@ -1391,78 +1734,292 @@ void M_DrawCheckbox (int x, int y, int on)
 		M_Print (x, y, "off");
 }
 
-// 2002-01-31 New menu system by Maddes  end
-/*
-void M_Options_Draw (void)
+void M_DrawCheckboxMidi (int x, int y, int on)
 {
-	float		r;
-	qpic_t	*p;
-
-	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
-	p = Draw_CachePic ("gfx/p_option.lmp");
-	M_DrawPic ( (320-p->width)/2, 4, p);
-
-	M_Print (16, 32, "    Customize controls");
-	M_Print (16, 40, "         Go to console");
-	M_Print (16, 48, "     Reset to defaults");
-
-	M_Print (16, 56, "           Screen size");
-	r = (scr_viewsize->value - 30) / (120 - 30);
-	M_DrawSlider (220, 56, r);
-
-	M_Print (16, 64, "            Brightness");
-	r = (1.0 - v_gamma->value) / 0.5;
-	M_DrawSlider (220, 64, r);
-
-	M_Print (16, 72, "           Mouse Speed");
-	r = (sensitivity->value - 1)/10;
-	M_DrawSlider (220, 72, r);
-
-	M_Print (16, 80, "       CD Music Volume");
-	r = bgmvolume->value;
-	M_DrawSlider (220, 80, r);
-
-	M_Print (16, 88, "          Sound Volume");
-	r = volume->value;
-	M_DrawSlider (220, 88, r);
-
-	M_Print (16, 96,  "            Always Run");
-	M_DrawCheckbox (220, 96, cl_forwardspeed->value > 200);
-
-// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
-/ *
-	M_Print (16, 104, "          Invert Mouse");
-	M_DrawCheckbox (220, 104, m_pitch->value < 0);
-* /
-
-	M_Print (16, 104, "            Lookspring");
-	M_DrawCheckbox (220, 104, lookspring->value);
-
-	M_Print (16, 112, "            Lookstrafe");
-	M_DrawCheckbox (220, 112, lookstrafe->value);
-
-	M_Print (16, 120, "             Mouselook");
-	M_DrawCheckbox (220, 120, m_look->value);
-
-	M_Print (16, 128, "          Invert Mouse");
-	M_DrawCheckbox (220, 128, m_pitch->value < 0);
-// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
-
-	if (vid_menudrawfn)
-		M_Print (16, 136, "         Video Options");	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-
-#ifdef _WIN32
-	if (modestate == MS_WINDOWED)
-	{
-		M_Print (16, 144, "             Use Mouse");	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-		M_DrawCheckbox (220, 144, _windowed_mouse->value);	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-	}
-#endif
-
-// cursor
-	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
+	if (on == 1)
+		M_Print (x, y, "midi");
+	else if (on == 2)
+		M_Print (x, y, "mod");
+	else if (on == 3)
+		M_Print (x, y, "ogg");  // someday...
+	else
+		M_Print (x, y, "cd");	
 }
-*/
+
+
+void M_DrawCheckboxPset (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "glquake");
+	else if (on == 2)
+		M_Print (x, y, "2001");
+	else if (on == 3)
+		M_Print (x, y, "transfusn");
+	else
+		M_Print (x, y, "classic");
+}
+
+
+
+void M_DrawCheckboxFlamehack (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "normal");
+	else if (on == 2)
+		M_Print (x, y, "additive");
+	else if (on == 3)
+		M_Print (x, y, "particles");
+	else
+		M_Print (x, y, "normal");
+}
+
+
+
+void M_DrawCheckboxShading (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "normal");
+	else if (on == 2)
+		M_Print (x, y, "enhanced");
+	else if (on == 3)
+		M_Print (x, y, "bold");
+	else
+		M_Print (x, y, "simple");
+}
+
+void M_DrawCheckboxFlares (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "normal");
+	else if (on == 2)
+		M_Print (x, y, "dyn. lights");
+	else if (on == 3)
+		M_Print (x, y, "stupid");
+	else
+		M_Print (x, y, "none");
+}
+
+
+void M_DrawCheckboxPsprites (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "normal");
+	else if (on == 2)
+		M_Print (x, y, "glquake");
+	else if (on == 3)
+		M_Print (x, y, "stupid");
+	else
+		M_Print (x, y, "disabled");
+}
+
+
+void M_DrawCheckboxBlood (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "increased");
+	else if (on == 2)
+		M_Print (x, y, "pressured");
+	else if (on == 3)
+		M_Print (x, y, "omfg!");
+	else
+		M_Print (x, y, "normal");
+}
+
+void M_DrawCheckboxWaterQuality (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "refractions");
+	else if (on == 2)
+		M_Print (x, y, "reflections");
+	else
+		M_Print (x, y, "none");
+}
+
+
+
+void M_DrawCheckboxBlood2 (int x, int y, int on)
+{
+	if (on == 4)
+		M_Print (x, y, "gushy");
+	else if (on == 8)
+		M_Print (x, y, "spurty");
+	else if (on == 12)
+		M_Print (x, y, "ketchup");
+	else if (on == 16)
+		M_Print (x, y, "brutal");
+	else if (on <0)
+		M_Print (x, y, "removed");
+	
+	
+	
+
+	else if (on > 665)
+		M_Print (x, y, "you're evil");	
+	else if (on > 96)
+		M_Print (x, y, "thats too much");
+	else if (on > 80)
+		M_Print (x, y, "you monster");
+	else if (on > 64)
+		M_Print (x, y, "get out");
+	else if (on > 48)
+		M_Print (x, y, "insane");
+	else if (on > 24)
+		M_Print (x, y, "you're ill");
+	
+	
+
+	else
+		M_Print (x, y, "original");
+}
+void M_DrawCheckboxLoad (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "some");
+	else if (on == 2)
+		M_Print (x, y, "always");
+	else if (on == 3)
+		M_Print (x, y, "too much");
+	else
+		M_Print (x, y, "none");
+}
+
+
+void M_DrawCheckboxDeathcam (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "yes");
+	else if (on == 2)
+		M_Print (x, y, "arena");
+	else if (on == 3)
+		M_Print (x, y, "tournament");
+	else if (on == 4)
+		M_Print (x, y, "a shame");
+	else
+		M_Print (x, y, "no");
+}
+
+
+void M_DrawCheckboxAspect (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "hor+ Qspasm");
+	else if (on == 2)
+		M_Print (x, y, "hor+ MH");
+	else if (on == 3)
+		M_Print (x, y, "idunnolol");
+	else if (on == 4)
+		M_Print (x, y, "what");
+	else
+		M_Print (x, y, "vert-");
+}
+
+void M_DrawCheckboxVirtual (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "Crap");
+	else if (on == 2)
+		M_Print (x, y, "Low");
+	else if (on == 3)
+		M_Print (x, y, "320x400");
+	else if (on == 4)
+		M_Print (x, y, "360x480");
+	else if (on == 5)
+		M_Print (x, y, "640x400");
+	else
+		M_Print (x, y, "Normal");
+}
+
+
+void M_DrawCheckboxCLight (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "low");
+	else if (on == 2)
+		M_Print (x, y, "high");
+	else if (on == 3)
+		M_Print (x, y, "ultra(dither)");
+	else
+		M_Print (x, y, "off");
+}
+
+
+void M_DrawCheckboxTexFilter (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "kernel");
+	else if (on == 2)
+		M_Print (x, y, "bilinear");
+	else if (on == 3)
+		M_Print (x, y, "error diffusion");
+	else
+		M_Print (x, y, "nearest");
+}
+
+void M_DrawCheckboxBobmodel (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "arc");
+	else if (on == 3)
+		M_Print (x, y, "fig. 8");
+	else if (on == 4)
+		M_Print (x, y, "subtl 8");
+	else if (on == 5)
+		M_Print (x, y, "ads");
+	else if (on == 6)
+		M_Print (x, y, "ads 2");
+	else if (on == 7)
+		M_Print (x, y, "6");
+	else if (on == 8)
+		M_Print (x, y, "7");
+	else if (on == 9)
+		M_Print (x, y, "8");
+	else if (on == 10)
+		M_Print (x, y, "9");
+	else if (on == 2)
+		M_Print (x, y, "arc 2");
+	else
+		M_Print (x, y, "thrust");
+}
+
+
+void M_DrawCheckboxDetail (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "medium");
+	else if (on == 2)
+		M_Print (x, y, "low");
+	else if (on == 3)
+		M_Print (x, y, "crap");
+	else
+		M_Print (x, y, "high");
+}
+
+
+void M_DrawCheckboxWblend (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "additive");
+	else if (on == 2)
+		M_Print (x, y, "multiply");
+	else if (on == 3)
+		M_Print (x, y, "tint");
+	else
+		M_Print (x, y, "alpha");
+}
+
+
+
+void M_DrawCheckboxSmode (int x, int y, int on)
+{
+	if (on == 1)
+		M_Print (x, y, "2x2");
+	else if (on == 2)
+		M_Print (x, y, "2x1");
+	else if (on == 3)
+		M_Print (x, y, "1x2");
+	else
+		M_Print (x, y, "1x1");
+}
 
 int M_DrawFunction (menu_definition_t *menu_definition, int y)
 {
@@ -1476,6 +2033,11 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			y += 8;
 			break;
 
+		case MENU_CUSTOMIZE_CONTROLS2:
+			M_Print (16, y, "        Extra Controls");
+			y += 8;
+			break;
+
 		case MENU_GO_TO_CONSOLE:
 			M_Print (16, y, "         Go to console");
 			y += 8;
@@ -1485,6 +2047,44 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			M_Print (16, y, "     Reset to defaults");
 			y += 8;
 			break;
+
+		case MENU_PRESET_Q101:
+			M_Print (16, y, "      Feel: Quake 1.01");
+			y += 8;
+			break;
+		case MENU_PRESET_Q107:
+			M_Print (16, y, "      Feel: Quake 1.07");
+			y += 8;
+			break;
+		case MENU_PRESET_GLQ:
+			M_Print (16, y, "      Feel:    GLQuake");
+			y += 8;
+			break;
+		case MENU_PRESET_Q64:
+			M_Print (16, y, "      Feel:    Quake64");
+			y += 8;
+			break;
+		case MENU_PRESET_D:
+			M_Print (16, y, "      Feel:       damn");
+			y += 8;
+			break;
+		case MENU_PRESET_U:
+			M_Print (16, y, "      Feel:     fake  ");
+			y += 8;
+			break;
+		case MENU_PRESET_XTREEM:
+			M_Print (16, y, "      Feel: XTREEM!!!!");
+			y += 8;
+			break;
+		case MENU_PRESET_LEI:
+			M_Print (16, y, "      Feel:  My choice");
+			y += 8;
+			break;
+		case MENU_PRESET_CRAP:
+			M_Print (16, y, "      Feel:       Crap");
+			y += 8;
+			break;
+
 
 		case MENU_VIDEO_RESOLUTION:
 			M_Print (16, y, "      Video Resolution");
@@ -1555,12 +2155,27 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			y += 8;
 			break;
 
+		case MENU_MIDI_VOLUME:
+			M_Print (16, y, "     MIDI Music Volume");
+			r = midivolume->value;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
 		case MENU_SOUND_VOLUME:
 			M_Print (16, y, "          Sound Volume");
 			r = volume->value;
 			M_DrawSlider (220, y, r);
 			y += 8;
 			break;
+#ifndef BENCH
+		case MENU_SOUND_PITCH:
+			M_Print (16, y, "        Pitch Variancy");
+			r = (s_pitchin->value)/2;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+#endif
 
 		// External data menu
 		case MENU_EXTERNAL_DATA:
@@ -1580,13 +2195,11 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			y += 8;
 			break;
 
-#ifdef GLQUAKE
 		case MENU_EXTERNAL_LIT:
 			M_Print (16, y, "  Colored Light (.LIT)");
 			M_DrawCheckbox (220, y, external_lit->value);
 			y += 8;
 			break;
-#endif
 
 		// Client options menu
 		case MENU_CLIENT_OPTIONS:
@@ -1672,10 +2285,45 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			M_DrawCheckbox (220, y, nvs_svc_enable->value);
 			y += 8;
 			break;
+		case MENU_INTERNAL_OPTIONS:
+			M_Print (16, y, "      Advanced options");
+			y += 8;
+			break;
 
 		// Video options menu
 		case MENU_VIDEO_OPTIONS:
 			M_Print (16, y, "         Video options");
+			y += 8;
+			break;
+		case MENU_QUALITY_OPTIONS:
+			M_Print (16, y, "       Quality options");
+			y += 8;
+			break;
+		case MENU_PRESET_OPTIONS:
+			M_Print (16, y, "               Presets");
+			y += 8;
+			break;
+		case MENU_HUD_OPTIONS:
+			M_Print (16, y, "           HUD options");
+			y += 8;
+			break;
+		case MENU_CONTENT_OPTIONS:
+			M_Print (16, y, "         Content hacks");
+			y += 8;
+			break;
+		case MENU_VIEW_OPTIONS:
+			M_Print (16, y, "          View options");
+			y += 8;
+			break;
+
+
+		case MENU_BROKEN_OPTIONS:
+			M_Print (16, y, "       FIXME FIXME FIX");
+			y += 8;
+			break;
+
+		case MENU_COLORMAP_OPTIONS:
+			M_Print (16, y, "       Shading Options");
 			y += 8;
 			break;
 
@@ -1693,10 +2341,219 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			y += 8;
 			break;
 
+		case MENU_CONTRAST:
+			M_Print (16, y, "             Intensity");
+			r = (v_contrast->value - 1) / 2;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+
+		case MENU_SATURATION:
+			M_Print (16, y, "                 Color");
+			r = (v_saturation->value) / 3;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+
+		case MENU_BLOODLEVEL:
+			M_Print (16, y, "        Violence Level");
+			r = (r_particleblood->value) / 16;
+			//M_DrawSlider (220, y, r);
+			M_DrawCheckboxBlood2 (220, y, r_particleblood->value);
+			y += 8;
+			break;
+
+		case MENU_WATERQUALITY:
+			M_Print (16, y, "         Water Effects");
+			r = (r_waterquality->value) / 2;
+			
+			M_DrawCheckboxWaterQuality (220, y, r_waterquality->value);
+			y += 8;
+			break;
+
+
 		case MENU_CON_ALPHA:
 			M_Print (16, y, "  Console transparency");
 			r = (1.0 - con_alpha->value);
 			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+		case MENU_WATERALPHA:
+			M_Print (16, y, "         Water Opacity");
+			r = (r_wateralpha->value);
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_COLOR:
+			M_Print (16, y, "       Menu Fade Color");
+			r = (r_menucolor->value)/16;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+
+		case MENU_COLORED:
+			M_Print (16, y, "      Colored Lighting");
+			M_DrawCheckboxCLight (220, y, r_coloredlights->value);
+			//M_DrawCheckbox (220, y, r_coloredlights->value);
+			y += 8;
+			break;
+			#ifdef _WIN32
+		case MENU_STRETCHMODE:
+			M_Print (16, y, "    Video Stretch Mode");
+			M_DrawCheckboxSmode (220, y, vid_stretch_by_2->value);
+			y += 8;
+			break;
+#endif
+		case MENU_COLOREDDYNS:
+			M_Print (16, y, "     Colored dynlights");
+			M_DrawCheckbox (220, y, r_coloreddyns->value);
+			y += 8;
+			break;
+		case MENU_OVERBRIGHT:
+			M_Print (16, y, "     Overbright Models");
+			M_DrawCheckbox (220, y, r_overbrightmdl->value);
+			y += 8;
+			break;
+		case MENU_SCREENSCALE:
+			M_Print (16, y, "        Graphics Scale");
+			r = (scr_scale->value - 1)/ 3;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+		case MENU_RETROSCALE:
+			M_Print (16, y, "     Automatic Scaling");
+			M_DrawCheckbox (220, y, scr_retroscale->value);
+			y += 8;
+		break;
+			case MENU_HUDSWAP:
+			M_Print (16, y, "      hud on left side");
+			M_DrawCheckbox (220, y, cl_hudswap->value);
+			y += 8;
+			break;
+			case MENU_OLDSTATBAR:
+			M_Print (16, y, "    use old status bar");
+			M_DrawCheckbox (220, y, cl_sbar->value);
+			y += 8;
+			break;
+		case MENU_SPRAY:
+			M_Print (16, y, "       spray particles");
+			M_DrawCheckbox (220, y, r_particlespray->value);
+			y += 8;
+			break;
+		case MENU_BLOODHACK:
+			M_Print (16, y,	"			blood level");
+			M_DrawCheckboxBlood (220, y, r_particleblood->value);
+			y += 8;
+			break;
+		case MENU_PARTICLESET:
+			M_Print (16, y, "          particle set");
+			M_DrawCheckboxPset (220, y, r_particleset->value);
+			y += 8;
+			break;
+
+		case MENU_LOWDETAIL:
+			M_Print (16, y, "    virtual resolution");
+			M_DrawCheckboxVirtual (220, y, r_virtualmode->value);
+			y += 8;
+			break;
+		case MENU_LOWWORLD:
+			M_Print (16, y, "         fast lighting");
+			M_DrawCheckbox (220, y, r_lowworld->value);
+			y += 8;
+			break;
+
+		case MENU_FILTERING:
+			M_Print (16, y, "     texture filtering");
+			M_DrawCheckbox (220, y, r_filter->value);
+			y += 8;
+			break;
+
+		case MENU_DITHERING:
+			M_Print (16, y, "             dithering");
+			M_DrawCheckbox (220, y, r_dither->value);
+			y += 8;
+			break;
+
+		case MENU_SHADOWHACK:
+			M_Print (16, y, "         model shadows");
+			M_DrawCheckbox (220, y, r_shadowhack->value);
+			y += 8;
+			break;
+
+		case MENU_DYNAMIC:
+			M_Print (16, y, "        dynamic lights");
+			M_DrawCheckbox (220, y, r_dynamic->value);
+			y += 8;
+			break;
+
+
+		case MENU_MUZZLEBLEND:
+			M_Print (16, y, "     muzzleflash blend");
+			M_DrawCheckbox (220, y, r_muzzlehack->value);
+			y += 8;
+			break;
+
+		case MENU_SHINYGRAYS:
+			M_Print (16, y, "          chrome metal");
+			M_DrawCheckbox (220, y, r_shinygrays->value);
+			y += 8;
+			break;
+
+
+
+		case MENU_LOWMODELS:
+			M_Print (16, y, "    The Worst Models !");
+			M_DrawCheckbox (220, y, r_lowmodels->value);
+			y += 8;
+			break;
+
+		case MENU_LERPMODELS:
+			M_Print (16, y, "   Model Interpolation");
+			M_DrawCheckbox (220, y, r_lerpmodels->value);
+			y += 8;
+			break;
+		
+		case MENU_TRANQUALITY:
+			M_Print (16, y, "       HQ Water Lookup");
+			M_DrawCheckbox (220, y, r_tranquality->value);
+			y += 8;
+			break;
+		case MENU_MIPDETAIL:
+			M_Print (16, y, "        Texture Detail");
+			M_DrawCheckboxDetail (220, y, d_mipdetail->value);
+			y += 8;
+			break;
+		case MENU_ALPHASHIFT:
+			M_Print (16, y, "      Alpha Colorshift");
+			M_DrawCheckbox (220, y, r_alphashift->value);
+			y += 8;
+			break;
+
+#ifndef BENCH
+	case MENU_CLASSICSPAT:
+			M_Print (16, y, "       Old Attenuation");
+			M_DrawCheckbox (220, y, s_oldspatial->value);
+			y += 8;
+			break;
+#endif
+
+		case MENU_LIGHTQUALITY:
+			M_Print (16, y, "   HQ Colored Lighting");
+			M_DrawCheckbox (220, y, r_lightquality->value);
+			y += 8;
+			break;
+		case MENU_SHADEDITHER:
+			M_Print (16, y, "      Dithered Shading");
+			M_DrawCheckbox (220, y, r_shadedither->value);
+			y += 8;
+			break;
+		case MENU_SHADING:
+			M_Print (16, y, "         Model Shading");
+			M_DrawCheckboxShading (220, y, r_shading->value);
 			y += 8;
 			break;
 
@@ -1706,13 +2563,100 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			M_DrawSlider (220, y, r);
 			y += 8;
 			break;
+		case MENU_PARTICLESPRITES:
+			M_Print (16, y, "      Particle Sprites");
+			r = (r_particlesprite->value)/2;
+			M_DrawCheckboxPsprites (220, y, r_particlesprite->value);
+			y += 8;
+			break;
 
+		case MENU_FLAMEHACK:
+			M_Print (16, y, "          Modify Fires");
+			r = (r_flamehack->value)/2;
+			M_DrawCheckboxFlamehack (220, y, r_flamehack->value);
+			y += 8;
+			break;
+		case MENU_FLARES:
+			M_Print (16, y, "   Light Corona Flares");
+			r = (r_flares->value)/2;
+			M_DrawCheckboxFlares (220, y, r_flares->value);
+			y += 8;
+			break;
+		case MENU_WATERBLEND:
+			M_Print (16, y, "      Water Blend Mode");
+			r = (r_waterblend->value)/3;
+			M_DrawCheckboxWblend (220, y, r_waterblend->value);
+			y += 8;
+			break;
 		case MENU_SHOW_FPS:
 			M_Print (16, y, "              Show FPS");
 			M_DrawCheckbox (220, y, cl_showfps->value);
 			y += 8;
 			break;
-
+		case MENU_OVERBRIGHTS:
+			M_Print (16, y, "           Overbrights");
+			M_DrawCheckbox (220, y, r_overbrightBits->value);
+			y += 8;
+			break;
+		case MENU_FULLBRIGHTS:
+			M_Print (16, y, "           Fullbrights");
+			M_DrawCheckbox (220, y, r_fullbrights->value);
+			y += 8;
+			break;
+		case MENU_REVERT_COLORMAP:
+			M_Print (16, y, "	    Revert Colormap");
+			y += 8;
+			break;
+		case MENU_BOBMODEL:
+			M_Print (16, y, "     Weapon Bob Method");
+			M_DrawCheckboxBobmodel (220, y, cl_bobmodel->value);
+			y += 8;
+			break;
+		case MENU_LEANMODEL:
+			M_Print (16, y, "        Weapon Leaning");
+			M_DrawCheckbox (220, y, cl_leanmodel->value);
+			y += 8;
+			break;
+		case MENU_FOLLOWMODEL:
+			M_Print (16, y, "      Weapon Following");
+			M_DrawCheckbox (220, y, cl_followmodel->value);
+			y += 8;
+			break;
+		case MENU_GUNDRAW:
+			M_Print (16, y, "        Weapon Drawing");
+			M_DrawCheckbox (220, y, cl_gundraw->value);
+			y += 8;
+			break;
+		case MENU_GUNHOLD:
+			M_Print (16, y, "          Fall Bobbing");
+			M_DrawCheckbox (220, y, cl_bobfall->value);
+			y += 8;
+			break;
+		case MENU_UNDERWATER:
+			M_Print (16, y, "      Underwater Pitch");
+			M_DrawCheckbox (220, y, s_underwater->value);
+			y += 8;
+			break;
+		case MENU_PLAYERDEATH:
+			M_Print (16, y, "          Quiet Deaths");
+			M_DrawCheckbox (220, y, s_playerdeath->value);
+			y += 8;
+			break;
+		case MENU_GIBBURST:
+			M_Print (16, y, "       Gib sounds Gush");
+			M_DrawCheckbox (220, y, s_gibs->value);
+			y += 8;
+			break;
+		case MENU_BLOODBURST:
+			M_Print (16, y, "          Blood sounds");
+			M_DrawCheckbox (220, y, s_blood->value);
+			y += 8;
+			break;
+		case MENU_STANDSTILL:
+			M_Print (16, y, "     'standstill' mode");
+			M_DrawCheckbox (220, y, sv_standstill->value);
+			y += 8;
+			break;
 #ifdef GLQUAKE
 		case MENU_GL_MAXDEPTH:
 			M_Print (16, y, "       Max. draw depth");
@@ -1720,7 +2664,26 @@ int M_DrawFunction (menu_definition_t *menu_definition, int y)
 			y += 8;
 			break;
 #endif
-
+		case MENU_AUTOSAVER:
+			M_Print (16, y, "             Autosaver");
+			M_DrawCheckbox (220, y, autosaver->value);
+			y += 8;
+			break;
+		case MENU_LOADSCREEN:
+			M_Print (16, y, "        Loading Screen");
+			M_DrawCheckboxLoad (220, y, loadscreen->value);
+			y += 8;
+			break;
+		case MENU_DEATHCAM:
+			M_Print (16, y, "          Death Camera");
+			M_DrawCheckboxDeathcam (220, y, cl_diecam->value);
+			y += 8;
+			break;
+		case MENU_ASPECT:
+			M_Print (16, y, "         Aspect Method");
+			M_DrawCheckboxAspect (220, y, scr_aspectmode->value);
+			y += 8;
+			break;
 		default:
 			M_Print (16, y, "      Unknown function");
 			y += 8;
@@ -1782,6 +2745,7 @@ void M_Menu_DrawCheck(menu_definition_t *menu_definition)
 	}
 }
 
+
 void M_Menu_Draw (menu_definition_t *menu_definition, int *current_index)
 {
 	qpic_t	*p;
@@ -1830,9 +2794,12 @@ void M_Menu_Draw (menu_definition_t *menu_definition, int *current_index)
 		switch (menu_definition[0].type)
 		{
 			case MENU_OPTIONS:
+				if(gamemode != GAME_LASER_ARENA){
 				M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 				p = Draw_CachePic ("gfx/p_option.lmp");
+		
 				M_DrawPic ( (320-p->width)/2, 4, p);
+		}
 				break;
 		}
 	}
@@ -1855,83 +2822,6 @@ void M_Menu_Draw (menu_definition_t *menu_definition, int *current_index)
 		i++;
 	}
 }
-// 2002-01-31 New menu system by Maddes  end
-
-// 2002-01-31 New menu system by Maddes  start
-/*
-void M_Options_Key (int k)
-{
-	switch (k)
-	{
-	case K_ESCAPE:
-		M_Menu_Main_f ();
-		break;
-
-	case K_ENTER:
-		m_entersound = true;
-		switch (options_cursor)
-		{
-		case 0:
-			M_Menu_Keys_f ();
-			break;
-		case 1:
-			m_state = m_none;
-			Con_ToggleConsole_f ();
-			break;
-		case 2:
-			Cbuf_AddText ("exec default.cfg\n");
-			break;
-		case 13:	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-			M_Menu_Video_f ();
-			break;
-		default:
-			M_AdjustSliders (1);
-			break;
-		}
-		return;
-
-	case K_UPARROW:
-		S_LocalSound ("misc/menu1.wav");
-		options_cursor--;
-		if (options_cursor < 0)
-			options_cursor = OPTIONS_ITEMS-1;
-		break;
-
-	case K_DOWNARROW:
-		S_LocalSound ("misc/menu1.wav");
-		options_cursor++;
-		if (options_cursor >= OPTIONS_ITEMS)
-			options_cursor = 0;
-		break;
-
-	case K_LEFTARROW:
-		M_AdjustSliders (-1);
-		break;
-
-	case K_RIGHTARROW:
-		M_AdjustSliders (1);
-		break;
-	}
-
-	if (options_cursor == 13 && vid_menudrawfn == NULL)	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-	{
-		if (k == K_UPARROW)
-			options_cursor = 12;	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-		else
-			options_cursor = 0;
-	}
-
-#ifdef _WIN32
-	if ((options_cursor == 14) && (modestate != MS_WINDOWED))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-	{
-		if (k == K_UPARROW)
-			options_cursor = 13;	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
-		else
-			options_cursor = 0;
-	}
-#endif
-}
-*/
 
 void M_ExecFunction (menu_definition_t *menu_definition, int key)
 {
@@ -1943,9 +2833,12 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 	switch (key)
 	{
 		case K_RIGHTARROW:
+		case K_JOY1:
 		case K_ENTER:
 			dir = 1;
 			break;
+
+		
 
 		case K_LEFTARROW:
 			dir = -1;
@@ -1957,7 +2850,7 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 	switch (menu_definition->funcno)
 	{
 		case MENU_MAIN:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = NULL;
 				M_Menu_Main_f ();
@@ -1966,7 +2859,7 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 
 		// Options menu
 		case MENU_OPTIONS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_options;
 				current_cursor = &options_cursor;
@@ -1975,15 +2868,23 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			break;
 
 		case MENU_CUSTOMIZE_CONTROLS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = NULL;
 				M_Menu_Keys_f ();
 			}
 			break;
 
+		case MENU_CUSTOMIZE_CONTROLS2:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = NULL;
+				M_Menu_Keys_f2 ();
+			}
+			break;
+
 		case MENU_GO_TO_CONSOLE:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = NULL;
 				m_state = m_none;
@@ -1992,15 +2893,34 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			break;
 
 		case MENU_LOAD_DEFAULT_CFG:
-			if (key == K_ENTER)
+			if (key == K_ENTER  || key == K_JOY1 )
 			{
 				Cbuf_AddText ("exec default.cfg\n");
 				m_changesound = true;
 			}
 			break;
 
+		case MENU_PRESET_Q101:
+			if (key == K_ENTER){Preset_Q101();	m_changesound = true;}break;
+		case MENU_PRESET_Q107:
+			if (key == K_ENTER){Preset_Q107();	m_changesound = true;}break;
+		case MENU_PRESET_GLQ:
+			if (key == K_ENTER){Preset_GLQ();	m_changesound = true;}break;
+		case MENU_PRESET_Q64:
+			if (key == K_ENTER){Preset_Q64();	m_changesound = true;}break;
+		case MENU_PRESET_D:
+			if (key == K_ENTER){Preset_D();	m_changesound = true;}break;
+		case MENU_PRESET_U:
+			if (key == K_ENTER){Preset_U();	m_changesound = true;}break;
+		case MENU_PRESET_XTREEM:
+			if (key == K_ENTER){Preset_Xtreem();	m_changesound = true;}break;
+		case MENU_PRESET_LEI:
+			if (key == K_ENTER){Preset_Lei();	m_changesound = true;}break;
+		case MENU_PRESET_CRAP:
+			if (key == K_ENTER){Preset_Crap();	m_changesound = true;}break;
+
 		case MENU_VIDEO_RESOLUTION:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1|| key == K_ESCAPE)
 			{
 				current_menu = NULL;
 				M_Menu_Video_f ();
@@ -2009,7 +2929,7 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 
 		// Control options menu
 		case MENU_CONTROL_OPTIONS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_control_options;
 				current_cursor = &control_options_cursor;
@@ -2091,9 +3011,26 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 
 		// Sound options menu
 		case MENU_SOUND_OPTIONS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_sound_options;
+				current_cursor = &sound_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_BROKEN_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = m_menu_broken_options;
+				current_cursor = &sound_options_cursor;
+				m_entersound = true;
+			}
+			break;
+		case MENU_COLORMAP_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = m_menu_colormap_options;
 				current_cursor = &sound_options_cursor;
 				m_entersound = true;
 			}
@@ -2115,6 +3052,23 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 				m_changesound = true;
 			}
 			break;
+		case MENU_MIDI_VOLUME:
+			if (dir != 0)
+			{
+				midivolume->value += dir * 0.1;
+				if (midivolume->value < 0)
+					midivolume->value = 0;
+				if (midivolume->value > 1)
+					midivolume->value = 1;
+				Cvar_SetValue (midivolume, midivolume->value);
+#ifndef BENCH
+				MIDI_Update();
+#endif
+				m_changesound = true;
+				
+			}
+			break;
+
 
 		case MENU_SOUND_VOLUME:
 			if (dir != 0)
@@ -2128,10 +3082,23 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 				m_changesound = true;
 			}
 			break;
-
+#ifndef BENCH
+		case MENU_SOUND_PITCH:
+			if (dir != 0)
+			{
+				s_pitchin->value += dir * 0.1;
+				if (s_pitchin->value < 0)
+					s_pitchin->value = 0;
+				if (s_pitchin->value > 2)
+					s_pitchin->value = 2;
+				Cvar_SetValue (s_pitchin, s_pitchin->value);
+				m_changesound = true;
+			}
+			break;
+#endif
 		// External data menu
 		case MENU_EXTERNAL_DATA:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_external_data;
 				current_cursor = &external_data_cursor;
@@ -2155,7 +3122,7 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			}
 			break;
 
-#ifdef GLQUAKE
+
 		case MENU_EXTERNAL_LIT:
 			if (dir != 0)
 			{
@@ -2163,11 +3130,11 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 				m_changesound = true;
 			}
 			break;
-#endif
+
 
 		// Client options menu
 		case MENU_CLIENT_OPTIONS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_client_options;
 				current_cursor = &client_options_cursor;
@@ -2209,7 +3176,7 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 
 		// Server options menu
 		case MENU_SERVER_OPTIONS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_server_options;
 				current_cursor = &server_options_cursor;
@@ -2242,7 +3209,7 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			break;
 
 		case MENU_SV_ENTITIES_COPY_TO_CL:
-			if (key == K_ENTER)
+			if (key == K_ENTER || key == K_JOY1)
 			{
 				Cvar_SetValue (cl_entities_min, sv_entities->value);
 				Cvar_SetValue (cl_entities_min_temp, sv_entities_temp->value);
@@ -2283,12 +3250,70 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			}
 			break;
 
+		case MENU_INTERNAL_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = m_menu_internal_options;
+				current_cursor = &internal_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+
+
 		// Video options menu
 		case MENU_VIDEO_OPTIONS:
-			if (key == K_ENTER || key == K_ESCAPE)
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
 			{
 				current_menu = m_menu_video_options;
 				current_cursor = &video_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+			// Quality options menu
+		case MENU_QUALITY_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1  || key == K_ESCAPE)
+			{
+				current_menu = m_menu_quality_options;
+				current_cursor = &quality_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_PRESET_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1  || key == K_ESCAPE)
+			{
+				current_menu = m_menu_preset_options;
+				current_cursor = &preset_options_cursor;
+				m_entersound = true;
+			}
+			break;
+		case MENU_HUD_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = m_menu_hud_options;
+				current_cursor = &hud_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+
+		case MENU_CONTENT_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = m_menu_content_options;
+				current_cursor = &content_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+			// View options menu
+		case MENU_VIEW_OPTIONS:
+			if (key == K_ENTER || key == K_JOY1 || key == K_ESCAPE)
+			{
+				current_menu = m_menu_view_options;
+				current_cursor = &view_options_cursor;
 				m_entersound = true;
 			}
 			break;
@@ -2319,6 +3344,59 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			}
 			break;
 
+		case MENU_CONTRAST:
+			if (dir != 0)
+			{
+				v_contrast->value += dir * 0.2;
+				if (v_contrast->value < 1)
+					v_contrast->value = 1;
+				if (v_contrast->value > 3)
+					v_contrast->value = 3;
+				Cvar_SetValue (v_contrast, v_contrast->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SATURATION:
+			if (dir != 0)
+			{
+				v_saturation->value += dir * 0.2;
+				if (v_saturation->value < 0)
+					v_saturation->value = 0;
+				if (v_saturation->value > 3)
+					v_saturation->value = 3;
+				Cvar_SetValue (v_saturation, v_saturation->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_BLOODLEVEL:
+			if (dir != 0)
+			{
+				r_particleblood->value += dir * 4;
+				if (r_particleblood->value < -4)
+					r_particleblood->value = -4;
+				if (r_particleblood->value > 16)
+					r_particleblood->value = 16;
+				Cvar_SetValue (r_particleblood, r_particleblood->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_WATERQUALITY:
+			if (dir != 0)
+			{
+				r_waterquality->value += dir * 1;
+				if (r_waterquality->value < 0)
+					r_waterquality->value = 0;
+				if (r_waterquality->value > 2)
+					r_waterquality->value = 2;
+				Cvar_SetValue (r_waterquality, r_waterquality->value);
+				m_changesound = true;
+			}
+			break;
+
+
 		case MENU_CON_ALPHA:
 			if (dir != 0)
 			{
@@ -2327,6 +3405,467 @@ void M_ExecFunction (menu_definition_t *menu_definition, int key)
 			}
 			break;
 
+		case MENU_WATERALPHA:
+			if (dir != 0)
+			{
+					r_wateralpha->value += dir * 0.05;
+				if (r_wateralpha->value < 0)
+					r_wateralpha->value = 0;
+				if (r_wateralpha->value > 1)
+					r_wateralpha->value = 1;
+				Cvar_SetValue (r_wateralpha, r_wateralpha->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_REVERT_COLORMAP:
+			if (key == K_ENTER || key == K_JOY1)
+			{
+				ColormapForceLoad();
+				m_changesound = true;
+			}
+			break;
+		case MENU_COLOR:
+			if (dir != 0)
+			{
+					r_menucolor->value += dir * 1;
+				if (r_menucolor->value < 0)
+					r_menucolor->value = 0;
+				if (r_menucolor->value > 15)
+					r_menucolor->value = 15;
+				Cvar_SetValue (r_menucolor, r_menucolor->value);
+				m_changesound = true;
+			}
+			break;
+
+
+		case MENU_WATERBLEND:
+			if (dir != 0)
+			{
+					r_waterblend->value += dir * 1;
+				if (r_waterblend->value < 0)
+					r_waterblend->value = 3;
+				if (r_waterblend->value > 3)
+					r_waterblend->value = 0;
+				Cvar_SetValue (r_waterblend, r_waterblend->value);
+				m_changesound = true;
+			}
+			break;
+#ifdef _WIN32
+		case MENU_STRETCHMODE:
+			if (dir != 0)
+			{
+					vid_stretch_by_2->value += dir * 1;
+				if (vid_stretch_by_2->value < 0)
+					vid_stretch_by_2->value = 3;
+				if (vid_stretch_by_2->value > 3)
+					vid_stretch_by_2->value = 0;
+				Cvar_SetValue (vid_stretch_by_2, vid_stretch_by_2->value);
+				m_changesound = true;
+			}
+			break;
+#endif
+
+		case MENU_COLORED:
+			if (dir != 0)
+			{
+					r_coloredlights->value += dir * 1;
+				if (r_coloredlights->value < 0)
+					r_coloredlights->value = 3;
+				if (r_coloredlights->value > 3)
+					r_coloredlights->value = 0;
+				Cvar_SetValue (r_coloredlights, r_coloredlights->value);
+				m_changesound = true;
+			}
+			break;
+#ifndef GLQUAKE
+		case MENU_OVERBRIGHT:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_overbrightmdl, !r_overbrightmdl->value);
+				m_changesound = true;
+			}
+			break;
+					case MENU_MIPDETAIL:
+			if (dir != 0)
+			{
+					d_mipdetail->value += dir * 1;
+				if (d_mipdetail->value < 0)
+					d_mipdetail->value = 3;
+				if (d_mipdetail->value > 3)
+					d_mipdetail->value = 0;
+				Cvar_SetValue (d_mipdetail, d_mipdetail->value);
+				m_changesound = true;
+			}
+			break;
+	case MENU_SCREENSCALE:
+			if (dir != 0)
+			{
+					scr_scale->value += dir * 1;
+				if (scr_scale->value < 1)
+					scr_scale->value = 1;
+				if (scr_scale->value > 4)
+					scr_scale->value = 4;
+				Cvar_SetValue (scr_scale, scr_scale->value);
+				m_changesound = true;
+			}
+			break;
+	case MENU_RETROSCALE:
+			if (dir != 0)
+			{
+				Cvar_SetValue (scr_retroscale, !scr_retroscale->value);
+				m_changesound = true;
+			}
+			break;
+	
+#endif
+		case MENU_SPRAY:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_particlespray, !r_particlespray->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_BLOODHACK:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_particleblood, !r_particleblood->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_PARTICLESET:
+			if (dir != 0)
+			{
+					r_particleset->value += dir * 1;
+				if (r_particleset->value < 0)
+					r_particleset->value = 3;
+				if (r_particleset->value > 3)
+					r_particleset->value = 0;
+				Cvar_SetValue (r_particleset, r_particleset->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_FLAMEHACK:
+			if (dir != 0)
+			{
+					r_flamehack->value += dir * 1;
+				if (r_flamehack->value < 0)
+					r_flamehack->value = 3;
+				if (r_flamehack->value > 3)
+					r_flamehack->value = 0;
+				Cvar_SetValue (r_flamehack, r_flamehack->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_FLARES:
+			if (dir != 0)
+			{
+					r_flares->value += dir * 1;
+				if (r_flares->value < 0)
+					r_flares->value = 2;
+				if (r_flares->value > 2)
+					r_flares->value = 0;
+				Cvar_SetValue (r_flares, r_flares->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_PARTICLESPRITES:
+			if (dir != 0)
+			{
+					r_particlesprite->value += dir * 1;
+				if (r_particlesprite->value < 0)
+					r_particlesprite->value = 2;
+				if (r_particlesprite->value > 2)
+					r_particlesprite->value = 0;
+				Cvar_SetValue (r_particlesprite, r_particlesprite->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_LOADSCREEN:
+			if (dir != 0)
+			{
+					loadscreen->value += dir * 1;
+				if (loadscreen->value < 0)
+					loadscreen->value = 2;
+				if (loadscreen->value > 2)
+					loadscreen->value = 0;
+				Cvar_SetValue (loadscreen, loadscreen->value);
+				m_changesound = true;
+			}
+			break;
+
+	case MENU_DEATHCAM:
+			if (dir != 0)
+			{
+					cl_diecam->value += dir * 1;
+				if (cl_diecam->value < 0)
+					cl_diecam->value = 4;
+				if (cl_diecam->value > 4)
+					cl_diecam->value = 0;
+				Cvar_SetValue (cl_diecam, cl_diecam->value);
+				m_changesound = true;
+			}
+			break;
+
+	case MENU_ASPECT:
+			if (dir != 0)
+			{
+					scr_aspectmode->value += dir * 1;
+					vid.recalc_refdef = 1;
+				if (scr_aspectmode->value < 0)
+					scr_aspectmode->value = 2;
+				if (scr_aspectmode->value > 2)
+					scr_aspectmode->value = 0;
+				Cvar_SetValue (scr_aspectmode, scr_aspectmode->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_BOBMODEL:
+			if (dir != 0)
+			{
+					cl_bobmodel->value += dir * 1;
+				if (cl_bobmodel->value < 0)
+					cl_bobmodel->value = 4;
+				if (cl_bobmodel->value > 4)
+					cl_bobmodel->value = 0;
+				Cvar_SetValue (cl_bobmodel, cl_bobmodel->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_LEANMODEL:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_leanmodel, !cl_leanmodel->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_FOLLOWMODEL:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_followmodel, !cl_followmodel->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_GUNDRAW:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_gundraw, !cl_gundraw->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_GUNHOLD:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_bobfall, !cl_bobfall->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_COLOREDDYNS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_coloreddyns, !r_coloreddyns->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_OVERBRIGHTS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_overbrightBits, !r_overbrightBits->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_FULLBRIGHTS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_fullbrights, !r_fullbrights->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_UNDERWATER:
+			if (dir != 0)
+			{
+				Cvar_SetValue (s_underwater, !s_underwater->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_GIBBURST:
+			if (dir != 0)
+			{
+				Cvar_SetValue (s_gibs, !s_gibs->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_BLOODBURST:
+			if (dir != 0)
+			{
+				Cvar_SetValue (s_blood, !s_blood->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_PLAYERDEATH:
+			if (dir != 0)
+			{
+				Cvar_SetValue (s_playerdeath, !s_playerdeath->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_STANDSTILL:
+			if (dir != 0)
+			{
+				Cvar_SetValue (sv_standstill, !sv_standstill->value);
+				m_changesound = true;
+			}
+			break;
+#ifndef GLQUAKE
+		case MENU_LOWDETAIL:
+			if (dir != 0)
+			{
+					r_virtualmode->value += dir * 1;
+				if (r_virtualmode->value < 0)
+					r_virtualmode->value = 2;
+				if (r_virtualmode->value > 2)
+					r_virtualmode->value = 0;
+				Cvar_SetValue (r_virtualmode, r_virtualmode->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_SHADING:
+			if (dir != 0)
+			{
+					r_shading->value += dir * 1;
+				if (r_shading->value < 0)
+					r_shading->value = 2;
+				if (r_shading->value > 2)
+					r_shading->value = 0;
+				Cvar_SetValue (r_shading, r_shading->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_LOWWORLD:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_lowworld, !r_lowworld->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_FILTERING:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_filter, !r_filter->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_DITHERING:		// obsolete
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_dither, !r_dither->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_SHADOWHACK:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_shadowhack, !r_shadowhack->value);
+				shadowhack = r_shadowhack->value;
+				m_changesound = true;
+			}
+			break;
+			case MENU_DYNAMIC:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_dynamic, !r_dynamic->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_MUZZLEBLEND:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_muzzlehack, !r_muzzlehack->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_SHINYGRAYS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_shinygrays, !r_shinygrays->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_LOWMODELS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_lowmodels, !r_lowmodels->value);
+				m_changesound = true;
+			}
+			break;
+			case MENU_LIGHTQUALITY:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_lightquality, !r_lightquality->value);
+				m_changesound = true;
+			}
+				break;
+		case MENU_SHADEDITHER:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_shadedither, !r_shadedither->value);
+				m_changesound = true;
+			}
+				break;
+		case MENU_TRANQUALITY:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_tranquality, !r_tranquality->value);
+				m_changesound = true;
+			}
+				break;
+		case MENU_AUTOSAVER:
+			if (dir != 0)
+			{
+				Cvar_SetValue (autosaver, !autosaver->value);
+				m_changesound = true;
+			}
+				break;
+		case MENU_ALPHASHIFT:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_alphashift, !r_alphashift->value);
+				m_changesound = true;
+			}
+				break;
+#endif
+		case MENU_HUDSWAP:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_hudswap, !cl_hudswap->value);
+				m_changesound = true;
+			}
+			break;
+		case MENU_OLDSTATBAR:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_sbar, !cl_sbar->value);
+				m_changesound = true;
+			}
+			break;
+
+		
+		case MENU_LERPMODELS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (r_lerpmodels, !r_lerpmodels->value);
+				m_changesound = true;
+			}
+			break;
+#ifndef BENCH		
+		case MENU_CLASSICSPAT:
+			if (dir != 0)
+			{
+				Cvar_SetValue (s_oldspatial, !s_oldspatial->value);
+				m_changesound = true;
+			}
+				break;
+#endif		
 		case MENU_CON_HEIGHT:
 			if (dir != 0)
 			{
@@ -2432,6 +3971,7 @@ char *bindnames[][2] =
 {
 {"+attack", 		"attack"},
 {"impulse 10", 		"change weapon"},
+{"impulse 12", 		"reverse cycle"},
 {"+jump", 			"jump / swim up"},
 {"+forward", 		"walk forward"},
 {"+back", 			"backpedal"},
@@ -2447,11 +3987,95 @@ char *bindnames[][2] =
 {"+mlook", 			"mouse look"},
 {"+klook", 			"keyboard look"},
 {"+moveup",			"swim up"},
-{"+movedown",		"swim down"}
+{"+movedown",		"swim down"},
+/*{"+moveup",			"swim up"},
+{"+movedown",		"swim down"},		// testing lists that exceed screen size
+{"+moveup",			"swim up"},
+{"+movedown",		"swim down"},
+{"+moveup",			"swim up"},
+{"+movedown",		"swim down"},
+{"+moveup",			"swim up"},
+{"+movedown",		"swim down"},
+{"+moveup",			"swim up"},
+{"+movedown",		"swim down"},
+{"+moveup",			"swim up"},
+{"+movedown",		"swim down"},  */
 };
 
-#define	NUMCOMMANDS	(sizeof(bindnames)/sizeof(bindnames[0]))
 
+
+
+
+char *extrabinds[][2] =
+{
+{"+use", 		"eat"},
+{"impulse 9", 		"poop"},
+{"disconnect",		"fart down"}
+};
+
+
+
+void InitCustomKeyList (void)
+{
+	loadedfile_t	*fileinfo;	// leilei - custom key bind thing lists
+
+	fileinfo = COM_LoadHunkFile ("keys.lst");
+
+	if (!fileinfo)
+	{
+		Con_Printf ("couldn't load keys.lst! Custom binds not available.");
+		return;
+	}
+	
+	//extrabinds = fileinfo->data;
+	//	else
+//	extrabinds = fileinfo->data;
+
+
+
+
+}
+
+/*
+===============
+Cmd_Exec_f
+===============
+
+void Cmd_Exec_f (void)
+{
+	char	*f;
+	int		mark;
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
+
+	if (Cmd_Argc () != 2)
+	{
+		Con_Printf ("exec <filename> : execute a script file\n");
+		return;
+	}
+
+	mark = Hunk_LowMark ();
+// 2001-09-12 Returning information about loaded file by Maddes  start
+
+	f = (char *)COM_LoadHunkFile (Cmd_Argv(1));
+	if (!f)
+
+	fileinfo = COM_LoadHunkFile (Cmd_Argv(1));
+	if (!fileinfo)
+// 2001-09-12 Returning information about loaded file by Maddes  end
+	{
+		Con_Printf ("couldn't exec %s\n",Cmd_Argv(1));
+		return;
+	}
+	f = (char *)fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
+	Con_Printf ("execing %s\n",Cmd_Argv(1));
+
+	Cbuf_InsertText (f);
+	Hunk_FreeToLowMark (mark);
+}
+*/
+
+#define	NUMCOMMANDS	(sizeof(bindnames)/sizeof(bindnames[0]))
+int NUMCOMMANDS2;
 int		keys_cursor;
 int		bind_grab;
 
@@ -2459,6 +4083,13 @@ void M_Menu_Keys_f (void)
 {
 	key_dest = key_menu;
 	m_state = m_keys;
+	m_entersound = true;
+}
+
+void M_Menu_Keys_f2 (void)
+{
+	key_dest = key_menu;
+	m_state = m_keys2;
 	m_entersound = true;
 }
 
@@ -2559,6 +4190,59 @@ void M_Keys_Draw (void)
 }
 
 
+
+// For mods
+
+void M_Keys_Draw2 (void)
+{
+	int		i;	
+	int		keys[2];
+	char	*name;
+	int		x, y;
+	
+	qpic_t	*p;
+
+	NUMCOMMANDS2 = (sizeof(extrabinds)/sizeof(extrabinds[0]));
+	p = Draw_CachePic ("gfx/ttl_cstm.lmp");
+	M_DrawPic ( (320-p->width)/2, 4, p);
+
+	if (bind_grab)
+		M_Print (12, 32, "Press a key or button for this action");
+	else
+		M_Print (18, 32, "Enter to change, backspace to clear");
+
+// search for known bindings
+	for (i=0 ; i<NUMCOMMANDS2 ; i++)
+	{
+		y = 48 + 8*i;
+
+		M_Print (16, y, extrabinds[i][1]);
+
+		M_FindKeysForCommand (extrabinds[i][0], keys);
+
+		if (keys[0] == -1)
+		{
+			M_Print (140, y, "???");
+		}
+		else
+		{
+			name = Key_KeynumToString (keys[0]);
+			M_Print (140, y, name);
+			x = strlen(name) * 8;
+			if (keys[1] != -1)
+			{
+				M_Print (140 + x + 8, y, "or");
+				M_Print (140 + x + 32, y, Key_KeynumToString (keys[1]));
+			}
+		}
+	}
+
+	if (bind_grab)
+		M_DrawCharacter (130, 48 + keys_cursor*8, '=');
+	else
+		M_DrawCharacter (130, 48 + keys_cursor*8, 12+((int)(realtime*4)&1));
+}
+
 void M_Keys_Key (int k)
 {
 	char	cmd[80];
@@ -2602,7 +4286,7 @@ void M_Keys_Key (int k)
 		if (keys_cursor >= NUMCOMMANDS)
 			keys_cursor = 0;
 		break;
-
+	case K_JOY1:
 	case K_ENTER:		// go into bind mode
 		M_FindKeysForCommand (bindnames[keys_cursor][0], keys);
 		S_LocalSound ("misc/menu2.wav");
@@ -2615,6 +4299,67 @@ void M_Keys_Key (int k)
 	case K_DEL:				// delete bindings
 		S_LocalSound ("misc/menu2.wav");
 		M_UnbindCommand (bindnames[keys_cursor][0]);
+		break;
+	}
+}
+
+
+void M_Keys_Key2 (int k)
+{
+	char	cmd[80];
+	int		keys[2];
+
+	if (bind_grab)
+	{	// defining a key
+		S_LocalSound ("misc/menu1.wav");
+		if (k == K_ESCAPE)
+		{
+			bind_grab = false;
+		}
+		else if (k != '`')
+		{
+			sprintf (cmd, "bind \"%s\" \"%s\"\n", Key_KeynumToString (k), extrabinds[keys_cursor][0]);
+			Cbuf_InsertText (cmd);
+		}
+
+		bind_grab = false;
+		return;
+	}
+
+	switch (k)
+	{
+	case K_ESCAPE:
+		M_Menu_Options_f ();
+		break;
+
+	case K_LEFTARROW:
+	case K_UPARROW:
+		S_LocalSound ("misc/menu1.wav");
+		keys_cursor--;
+		if (keys_cursor < 0)
+			keys_cursor = NUMCOMMANDS2-1;
+		break;
+
+	case K_DOWNARROW:
+	case K_RIGHTARROW:
+		S_LocalSound ("misc/menu1.wav");
+		keys_cursor++;
+		if (keys_cursor >= NUMCOMMANDS2)
+			keys_cursor = 0;
+		break;
+
+	case K_ENTER:		// go into bind mode
+		M_FindKeysForCommand (extrabinds[keys_cursor][0], keys);
+		S_LocalSound ("misc/menu2.wav");
+		if (keys[1] != -1)
+			M_UnbindCommand (extrabinds[keys_cursor][0]);
+		bind_grab = true;
+		break;
+
+	case K_BACKSPACE:		// delete bindings
+	case K_DEL:				// delete bindings
+		S_LocalSound ("misc/menu2.wav");
+		M_UnbindCommand (extrabinds[keys_cursor][0]);
 		break;
 	}
 }
@@ -2634,6 +4379,7 @@ void M_Video_Draw (void)
 {
 	(*vid_menudrawfn) ();
 }
+
 
 
 void M_Video_Key (int key)
@@ -2696,7 +4442,8 @@ int		msgNumber;
 int		m_quit_prevstate;
 qboolean	wasInMenus;
 
-#ifndef	_WIN32
+//#ifndef	_WIN32
+#ifndef PROTO
 char *quitMessage [] =
 {
 /* .........1.........2.... */
@@ -2740,7 +4487,52 @@ char *quitMessage [] =
   "   for you next time!   ",
   "                        "
 };
+#else
+char *quitMessage [] =
+{
+/* .........1.........2.... */
+  " Why are you leaving me ",
+  "  for that cruddy OS    ",
+  "    you live with??     ",
+  "                        ",
+
+  " Ok why don't you just  ",
+  "   get the heck out of  ",
+  " this game you loser.   ",
+  "                        ",
+
+  " Is this game too coool ",
+  "  for your face trying  ",
+  "        to quit?        ",
+  "                        ",
+
+  " Man, I oughta poke  you",
+  "   for trying to quit!  ",
+  "     Press Y to get     ",
+  "        poked out.      ",
+
+  " Press Y to quit like a ",
+  "   addicted cig smoker. ",
+  "  Press N to quit like  ",
+  "    a big loser in life ",
+
+  "   If you press Y to    ",
+  "  quit, I will          ",
+  "  format ntfs on your   ",
+  "      ext3 partition!   ",
+
+  " IF YOU PRESS y YOU LOS ",
+  " YOUR CHANCES IN WINNING",
+  " A NEW CAR!!!!!!!!!!!!!!",
+  "   so prease press N..  ",
+
+  "                        ",
+  "    GET OUT OF HERE     ",
+  "                        ",
+  "                        "
+};
 #endif
+//#endif
 
 void M_Menu_Quit_f (void)
 {
@@ -2797,7 +4589,8 @@ void M_Quit_Draw (void)
 		m_state = m_quit;
 	}
 
-#ifdef _WIN32
+	if (menu_quitscreen->value == 1){
+	
 	M_DrawTextBox (0, 0, 38, 23);
 	M_PrintWhite (16, 12,  "  Quake version 1.09 by id Software\n\n");
 	M_PrintWhite (16, 28,  "Programming        Art \n");
@@ -2820,15 +4613,62 @@ void M_Quit_Draw (void)
 	M_PrintWhite (16, 164, "registered trademark licensed to\n");
 	M_PrintWhite (16, 172, "Nothing Interactive, Inc. All rights\n");
 	M_PrintWhite (16, 180, "reserved. Press y to exit\n");
-#else
+
+	}
+
+	else if (menu_quitscreen->value == 2){
+	
+	M_DrawTextBox (0, 0, 38, 23);
+	M_PrintWhite (16, 12,  "   ENGOO version 2.70              \n\n");
+	M_PrintWhite (16, 28,  "                                   \n");
+	M_Print (16, 36,	   " Based on QIP Engine by Maddes and \n");
+	M_Print (16, 44,       "                               \n");
+	M_Print (16, 52,       "                                   \n");
+	M_PrintWhite (16, 60,       "  Programming by                   \n");
+	M_Print (16, 68,	   "                  leilei           \n");
+	M_Print (16, 76,       "                    \n");
+	M_PrintWhite (16, 84,  " LOTS of HELP from             \n");
+	M_Print (16, 92,       " LordHavoc       - Lighting\n");
+	M_Print (16, 100,      " Spike           - Memory\n");
+	M_Print (16, 108,	   " Fitz            - Fog\n");
+	M_Print (16, 116,      " Qbism           - Optimizations\n");
+	M_Print (16, 124,      " Mankrip         - Optimizations\n");
+	M_Print (16, 132,      " Andrewj         - Dithering\n");
+	M_Print (16, 140,      " Tomaz           - Snow/Rain and Bots\n");
+	M_Print (16, 148,      " MH              - Vid code /interpol\n");
+	M_Print (16, 156, " Siggi           - 2D Scaling\n");
+	M_Print (16, 164, " Taniwha         - Aspect\n");
+	M_PrintWhite (16, 172, " This engine is licensed under the\n");
+	M_PrintWhite (16, 180, " GNU GPL v2. Read COPYING for more.\n");
+	
+	}
+	else	// old classic dos version threats
+	{
 	M_DrawTextBox (56, 76, 24, 4);
 	M_Print (64, 84,  quitMessage[msgNumber*4+0]);
 	M_Print (64, 92,  quitMessage[msgNumber*4+1]);
 	M_Print (64, 100, quitMessage[msgNumber*4+2]);
 	M_Print (64, 108, quitMessage[msgNumber*4+3]);
-#endif
+
+	}
 }
 
+
+
+void M_Quit_Draw_Credits (void)
+{
+	if (wasInMenus)
+	{
+		m_state = m_quit_prevstate;
+		m_recursiveDraw = true;
+		M_Draw ();
+		m_state = m_quit;
+	}
+
+//#ifdef _WIN32
+	
+//ndif
+}
 //=============================================================================
 
 /* SERIAL CONFIG MENU */
@@ -2893,9 +4733,10 @@ void M_SerialConfig_Draw (void)
 	int		basex;
 	char	*startJoin;
 	char	*directModem;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
+	}
 	basex = (320-p->width)/2;
 	M_DrawPic (basex, 4, p);
 
@@ -3147,9 +4988,10 @@ void M_ModemConfig_Draw (void)
 {
 	qpic_t	*p;
 	int		basex;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
+	}
 	basex = (320-p->width)/2;
 	M_DrawPic (basex, 4, p);
 	basex += 8;
@@ -3333,9 +5175,10 @@ void M_LanConfig_Draw (void)
 	int		basex;
 	char	*startJoin;
 	char	*protocol;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
+	}
 	basex = (320-p->width)/2;
 	M_DrawPic (basex, 4, p);
 
@@ -3555,6 +5398,7 @@ level_t	levels[] =
 	{"dm6", "The Dark Zone"}
 };
 
+
 //MED 01/06/97 added hipnotic levels
 level_t	hipnoticlevels[] =
 {
@@ -3624,6 +5468,7 @@ episode_t	episodes[] =
 	{"Deathmatch Arena", 32, 6}
 };
 
+
 //MED 01/06/97  added hipnotic episodes
 episode_t   hipnoticepisodes[] =
 {
@@ -3674,9 +5519,10 @@ void M_GameOptions_Draw (void)
 {
 	qpic_t	*p;
 	int		x;
-
+	if(gamemode != GAME_LASER_ARENA){
 	M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
 	p = Draw_CachePic ("gfx/p_multi.lmp");
+	}
 	M_DrawPic ( (320-p->width)/2, 4, p);
 
 	M_DrawTextBox (152, 32, 10, 1);
@@ -3897,7 +5743,6 @@ void M_NetStart_Change (int dir)
 			count = rogueepisodes[startepisode].levels;
 		else
 			count = episodes[startepisode].levels;
-
 		if (startlevel < 0)
 			startlevel = count - 1;
 
@@ -3951,6 +5796,7 @@ void M_GameOptions_Key (int key)
 				Cbuf_AddText ("disconnect\n");
 			Cbuf_AddText ("listen 0\n");	// so host_netport will be re-examined
 			Cbuf_AddText ( va ("maxplayers %u\n", maxplayers) );
+		if (loadscreen->value)
 			SCR_BeginLoadingPlaque ();
 
 			if (hipnotic)
@@ -3959,7 +5805,6 @@ void M_GameOptions_Key (int key)
 				Cbuf_AddText ( va ("map %s\n", roguelevels[rogueepisodes[startepisode].firstLevel + startlevel].name) );
 			else
 				Cbuf_AddText ( va ("map %s\n", levels[episodes[startepisode].firstLevel + startlevel].name) );
-
 			return;
 		}
 
@@ -4131,6 +5976,314 @@ void M_ServerList_Key (int k)
 
 }
 
+// preset functions here, because we declared lots of cvars already.
+extern cvar_t *r_particletrans;
+extern cvar_t *r_depthoffield;
+extern cvar_t *s_underwater;
+
+extern cvar_t *cl_bobmodel_side;
+extern cvar_t *cl_bobmodel_up;
+extern cvar_t *cl_bobmodel_speed;
+extern cvar_t *cl_bob;
+
+
+
+void Preset_Q101 (void) // Quake 1.01
+{
+	Cvar_Set(cl_bobmodel,		"0");	// thrust
+	Cvar_Set(cl_bobmodel_side,	"0.3");
+	Cvar_Set(cl_bobmodel_up,	"0.15");
+	Cvar_Set(cl_bob,		"0.02");
+	Cvar_Set(cl_bobmodel_speed,	"7");
+	Cvar_Set(cl_leanmodel,		"0");
+	Cvar_Set(cl_followmodel,	"0");
+	Cvar_Set(cl_bobfall,		"0");
+	Cvar_Set(cl_gundraw,		"0");
+	Cvar_Set(r_shading,			"1");	// uniform normal shading
+	Cvar_Set(r_menucolor,		"1");	// brown menu
+	Cvar_Set(s_pitchin,			"0");	// normal sound pitch
+	Cvar_Set(s_oldspatial,		"1");	// long distance spatial
+	Cvar_Set(r_flares,			"0");	// don't flares
+	Cvar_Set(r_particleset,		"0");	// normal particles
+	Cvar_Set(r_particletrans,	"0");	// don't have blend particles
+	Cvar_Set(r_particleblood,	"0");	// don't use new blood
+	Cvar_Set(r_coloredlights,	"0");	// don't have colored lightin
+	Cvar_Set(r_filter,			"0");	// don't filter textures
+	Cvar_Set(r_muzzlehack,		"0");	// don't hack the muzzleflash
+	Cvar_Set(r_lerpmodels,		"0");	// don't interpolate
+	Cvar_Set(r_particlespray,	"0");	// don't spray particles
+	Cvar_Set(r_shadowhack,		"0");	// don't model shadows
+	Cvar_Set(r_shadedither,		"0");	// don't dither
+	Cvar_Set(cl_sbar,			"1");	// use old status bar
+	Cvar_Set(d_mipdetail,		"0");	// normal detail
+	Cvar_Set(s_underwater,		"0");	// don't sound pitch in water
+	Cvar_Set(r_wateralpha,		"1");	// don't blend water
+	Cvar_Set(r_waterquality,	"0");	// don't do water fx
+	Cvar_Set(r_depthoffield,	"0");	// and the depth of field	
+	Cvar_Set(r_lowworld,		"0");
+	Cvar_Set(r_dynamic,			"1");	
+	Cvar_Set(r_shinygrays,		"0");	// don't shine
+	Cvar_Set(cl_diecam,			"0");	
+	Cvar_Set(s_gibs,			"0");	
+	Cvar_Set(s_playerdeath,		"0");	
+	Cvar_Set(s_blood,			"0");	
+	fullbrights = 32;	// use the standard colormap fullbrights
+	overbrights = 1;	// normal overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+
+void Preset_Q107 (void) // Quake 1.07
+{
+	Preset_Q101();	// old preset, but...
+	Cvar_Set(r_menucolor,		"15");	// dotty menu
+	Cvar_Set(s_oldspatial,		"0");	// short distance spatial
+}
+
+void Preset_GLQ (void) // GLQuake
+{
+	Preset_Q101();	// old preset, but...
+	Cvar_Set(r_filter,			"1");	// filter textures
+	Cvar_Set(r_particleset,		"1");	// glquake particleset (if available)
+	Cvar_Set(r_menucolor,		"16");	// alpha blend black menu
+	Cvar_Set(r_dynamic,			"0");	// we don't have flashblend yet :(
+	Cvar_Set(v_gamma,				"1");	// glquake doesn't do gamma lol
+//	Cvar_Set(v_intensity,			"0");	
+//	Cvar_Set(contrast,			"0");	
+	fullbrights = 0;	// no fullbrights
+	overbrights = 0;	// no overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+void Preset_Q64 (void) 
+{
+	Preset_Q101();	// old preset, but...
+	Cvar_Set(r_filter,			"2");	// filter textures slantedly
+	Cvar_Set(r_particleset,		"1");	// glquake particleset (if available)
+	Cvar_Set(r_menucolor,		"16");	// alpha blend black menu
+	Cvar_Set(d_mipdetail,		"64");	// low detail because n64 sucks
+	Cvar_Set(r_coloredlights,	"1");	
+	Cvar_Set(r_dynamic,			"0");	// we don't have flashblend yet :(
+	Cvar_Set(r_shading,			"0");	// simple shading	
+	fullbrights = 0;	// no fullbrights
+	overbrights = 0;	// no overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+
+void Preset_U (void) // U
+{
+	Cvar_Set(cl_bobmodel,		"3");	// fig 8
+	Cvar_Set(cl_leanmodel,		"0");
+	Cvar_Set(cl_followmodel,	"0");
+	Cvar_Set(cl_bobmodel_side,	"0.3");
+	Cvar_Set(cl_bobmodel_up,	"0.15");
+	Cvar_Set(cl_bobmodel_speed,	"7");
+	Cvar_Set(r_lowworld,		"0");
+	Cvar_Set(r_depthoffield,	"0");	// and the depth of field
+	Cvar_Set(r_shading,			"2");	// point shading
+	Cvar_Set(r_menucolor,		"16");	
+	Cvar_Set(s_pitchin,			"1.4");	// normal sound pitch
+	Cvar_Set(s_oldspatial,		"1");	// long distance spatial
+	Cvar_Set(r_flares,			"2");	// don't flares
+	Cvar_Set(r_particleset,		"2");	// normal particles
+	Cvar_Set(r_particletrans,	"1");	// don't have blend particles
+	Cvar_Set(r_particleblood,	"0");	// don't use new blood
+	Cvar_Set(r_coloredlights,	"2");	// don't have colored lightin
+	Cvar_Set(r_filter,			"1");	// don't filter textures
+	Cvar_Set(r_muzzlehack,		"1");	// don't hack the muzzleflash
+	Cvar_Set(r_lerpmodels,		"1");	// don't interpolate
+	Cvar_Set(r_particlespray,	"0");	// don't spray particles
+	Cvar_Set(r_shadowhack,		"0");	// don't model shadows
+	Cvar_Set(r_shadedither,		"1");	// don't dither
+	Cvar_Set(cl_sbar,			"0");	// use old status bar
+	Cvar_Set(d_mipdetail,		"0");	// normal detail
+	Cvar_Set(s_underwater,		"0");	// don't sound pitch in water
+	Cvar_Set(r_wateralpha,		"0.6");	// don't blend water
+	Cvar_Set(r_waterquality,	"0");	// don't do water fx
+	Cvar_Set(r_dynamic,			"1");	
+	Cvar_Set(cl_diecam,			"3");	
+	Cvar_Set(s_gibs,			"0");	
+	Cvar_Set(s_playerdeath,		"1");	
+	Cvar_Set(s_blood,			"0");	
+	fullbrights = 32;	// use the standard colormap fullbrights
+	overbrights = 1;	// normal overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+
+void Preset_Lei (void) // leilei - The kind of settings I prefer myself
+{
+	Cvar_Set(cl_bobmodel,		"3");	// fig 8
+	Cvar_Set(cl_leanmodel,		"1");
+	Cvar_Set(cl_followmodel,	"1");
+	Cvar_Set(cl_bobfall,		"1");
+	Cvar_Set(cl_gundraw,		"1");
+	Cvar_Set(cl_bobmodel_side,	"0.3");
+	Cvar_Set(cl_bobmodel_up,	"0.15");
+	Cvar_Set(cl_bobmodel_speed,	"7");
+	Cvar_Set(r_depthoffield,	"0");	// and the depth of field
+	Cvar_Set(r_shading,			"2");	// point shading
+	Cvar_Set(r_menucolor,		"0");	
+	Cvar_Set(s_pitchin,			"2");	// normal sound pitch
+	Cvar_Set(s_oldspatial,		"1");	// long distance spatial
+	Cvar_Set(r_flares,			"2");	// don't flares
+	Cvar_Set(r_particleset,		"2");	// normal particles
+	Cvar_Set(r_particletrans,	"1");	// don't have blend particles
+	Cvar_Set(r_particleblood,	"9");	// don't use new blood
+	Cvar_Set(r_coloredlights,	"2");	// don't have colored lightin
+	Cvar_Set(r_filter,			"0");	// don't filter textures
+	Cvar_Set(r_muzzlehack,		"1");	// don't hack the muzzleflash
+	Cvar_Set(r_lerpmodels,		"1");	// interpolate
+	Cvar_Set(r_particlespray,	"0");	// don't spray particles
+	Cvar_Set(r_shadowhack,		"1");	// don't model shadows
+	Cvar_Set(r_shadedither,		"1");	// don't dither
+	Cvar_Set(cl_sbar,			"1");	// use old status bar
+	Cvar_Set(d_mipdetail,		"0");	// normal detail
+	Cvar_Set(s_underwater,		"1");	// don't sound pitch in water
+	Cvar_Set(r_wateralpha,		"0.3");	// don't blend water
+	Cvar_Set(r_waterquality,	"1");	// don't do water fx
+	Cvar_Set(r_lowworld,		"0");
+	Cvar_Set(r_dynamic,			"1");	
+	Cvar_Set(cl_diecam,			"3");	
+	Cvar_Set(s_gibs,			"1");	
+	Cvar_Set(s_playerdeath,		"1");	
+	Cvar_Set(s_blood,			"1");
+	Cvar_Set(r_shinygrays,		"1");	// do shine
+	fullbrights = 32;	// use the standard colormap fullbrights
+	overbrights = 1;	// normal overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+
+
+void Preset_D (void) 
+{
+	Cvar_Set(cl_bobmodel,		"1");	// Arc
+	Cvar_Set(cl_bob,		"0.07");
+	Cvar_Set(cl_leanmodel,		"0");
+	Cvar_Set(cl_followmodel,	"0");
+	Cvar_Set(cl_bobmodel_side,	"0.6");
+	Cvar_Set(cl_bobmodel_up,	"-0.5");
+	Cvar_Set(cl_bobmodel_speed,	"2");
+	Cvar_Set(r_lowworld,		"0");
+	Cvar_Set(r_shading,			"0");	// uniform normal shading
+	Cvar_Set(r_menucolor,		"17");	// brown menu
+	Cvar_Set(s_pitchin,			"1");	// normal sound pitch
+	Cvar_Set(s_oldspatial,		"1");	// long distance spatial
+	Cvar_Set(r_flares,			"0");	// don't flares
+	Cvar_Set(r_particleset,		"0");	// normal particles
+	Cvar_Set(r_particletrans,	"0");	// don't have blend particles
+	Cvar_Set(r_particleblood,	"0");	// don't use new blood
+	Cvar_Set(r_coloredlights,	"0");	// don't have colored lightin
+	Cvar_Set(r_filter,			"0");	// don't filter textures
+	Cvar_Set(r_muzzlehack,		"0");	// don't hack the muzzleflash
+	Cvar_Set(r_lerpmodels,		"0");	// don't interpolate
+	Cvar_Set(r_particlespray,	"0");	// don't spray particles
+	Cvar_Set(r_shadowhack,		"0");	// don't model shadows
+	Cvar_Set(r_shadedither,		"0");	// don't dither
+	Cvar_Set(r_shinygrays,		"0");	// don't shine
+	Cvar_Set(cl_sbar,			"1");	// use old status bar
+	Cvar_Set(d_mipdetail,		"0");	// normal detail
+	Cvar_Set(s_underwater,		"0");	// don't sound pitch in water
+	Cvar_Set(r_wateralpha,		"1");	// don't blend water
+	Cvar_Set(r_waterquality,	"0");	// don't do water fx
+	Cvar_Set(r_depthoffield,	"0");	// and the depth of field	
+	Cvar_Set(r_dynamic,			"1");	
+	Cvar_Set(cl_diecam,			"0");	
+	Cvar_Set(s_gibs,			"0");	
+	Cvar_Set(s_playerdeath,		"1");	
+	Cvar_Set(s_blood,			"0");	
+	fullbrights = 32;	// use the standard colormap fullbrights
+	overbrights = 0;	// no overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+void Preset_Xtreem (void) // Everything set high
+{
+	Cvar_Set(cl_bobmodel,		"3");	// thrust
+	Cvar_Set(cl_bobmodel_side,	"0.3");
+	Cvar_Set(cl_bobmodel_up,	"0.15");
+	Cvar_Set(cl_bob,		"0.02");
+	Cvar_Set(cl_bobmodel_speed,	"7");
+	Cvar_Set(cl_leanmodel,		"1");
+	Cvar_Set(cl_followmodel,	"1");
+	Cvar_Set(r_shading,			"2");	// dithered shading
+	Cvar_Set(r_menucolor,		"1");	// brown menu
+	Cvar_Set(s_pitchin,			"2");	// normal sound pitch
+	Cvar_Set(s_oldspatial,		"1");	// long distance spatial
+	Cvar_Set(r_flares,			"2");	// don't flares
+	Cvar_Set(r_particleset,		"2");	// normal particles
+	Cvar_Set(r_particletrans,	"1");	// don't have blend particles
+	Cvar_Set(r_particleblood,	"8");	// don't use new blood
+	Cvar_Set(r_coloredlights,	"3");	// don't have colored lightin
+	Cvar_Set(r_filter,			"1");	// don't filter textures
+	Cvar_Set(r_muzzlehack,		"1");	// don't hack the muzzleflash
+	Cvar_Set(r_lerpmodels,		"1");	// don't interpolate
+	Cvar_Set(r_particlespray,	"0");	// don't spray particles
+	Cvar_Set(r_shadowhack,		"1");	// don't model shadows
+	Cvar_Set(r_shadedither,		"1");	// don't dither
+	Cvar_Set(cl_sbar,			"1");	// use old status bar
+	Cvar_Set(d_mipdetail,		"-1");	// normal detail
+	Cvar_Set(s_underwater,		"1");	// don't sound pitch in water
+	Cvar_Set(r_wateralpha,		"0.3");	// don't blend water
+	Cvar_Set(r_waterquality,	"2");	// don't do water fx
+	Cvar_Set(r_depthoffield,	"1");	// and the depth of field
+	Cvar_Set(r_lowworld,		"0");
+	Cvar_Set(r_dynamic,			"1");	
+	Cvar_Set(s_gibs,			"1");	
+	Cvar_Set(s_blood,			"1");		
+	
+
+	fullbrights = 32;	// use the standard colormap fullbrights
+	overbrights = 1;	// normal overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+
+void Preset_Crap (void) // Everything set low or possibly beyond low
+{
+	Cvar_Set(cl_bobmodel,		"0");	// thrust
+	Cvar_Set(cl_bobmodel_side,	"0.3");
+	Cvar_Set(cl_bobmodel_up,	"0.15");
+	Cvar_Set(cl_bob,		"0.02");
+	Cvar_Set(cl_bobmodel_speed,	"7");
+	Cvar_Set(cl_leanmodel,		"0");
+	Cvar_Set(cl_followmodel,	"0");
+	Cvar_Set(r_lowworld,		"1");
+	Cvar_Set(r_shading,			"0");	// dithered shading
+	Cvar_Set(r_menucolor,		"15");	// brown menu
+	Cvar_Set(s_pitchin,			"0");	// normal sound pitch
+	Cvar_Set(s_oldspatial,		"0");	// long distance spatial
+	Cvar_Set(r_flares,			"0");	// don't flares
+	Cvar_Set(r_particleset,		"0");	// normal particles
+	Cvar_Set(r_particletrans,	"0");	// don't have blend particles
+	Cvar_Set(r_particleblood,	"0");	// don't use new blood
+	Cvar_Set(r_coloredlights,	"0");	// don't have colored lightin
+	Cvar_Set(r_filter,			"0");	// don't filter textures
+	Cvar_Set(r_muzzlehack,		"0");	// don't hack the muzzleflash
+	Cvar_Set(r_lerpmodels,		"0");	// don't interpolate
+	Cvar_Set(r_particlespray,	"0");	// don't spray particles
+	Cvar_Set(r_shadowhack,		"0");	// don't model shadows
+	Cvar_Set(r_shadedither,		"0");	// don't dither
+	Cvar_Set(cl_sbar,			"1");	// use old status bar
+	Cvar_Set(d_mipdetail,		"9");	// normal detail
+	Cvar_Set(s_underwater,		"0");	// don't sound pitch in water
+	Cvar_Set(r_wateralpha,		"1");	// don't blend water
+	Cvar_Set(r_waterquality,	"0");	// don't do water fx
+	Cvar_Set(r_depthoffield,	"0");	// and the depth of field
+	Cvar_Set(r_dynamic,			"0");	
+	Cvar_Set(cl_diecam,			"0");	
+	Cvar_Set(s_gibs,			"0");	
+	Cvar_Set(s_blood,			"0");	
+	
+
+	fullbrights = 32;	// use the standard colormap fullbrights
+	overbrights = 1;	// normal overbrights
+	GrabColorMap();		// regenerate colormap
+}
+
+
 //=============================================================================
 /* Menu Subsystem */
 
@@ -4147,10 +6300,19 @@ void M_Init (void)
 	Cmd_AddCommand ("menu_setup", M_Menu_Setup_f);
 	Cmd_AddCommand ("menu_options", M_Menu_Options_f);
 	Cmd_AddCommand ("menu_keys", M_Menu_Keys_f);
+	Cmd_AddCommand ("menu_keys2", M_Menu_Keys_f2);
 	Cmd_AddCommand ("menu_video", M_Menu_Video_f);
 	Cmd_AddCommand ("help", M_Menu_Help_f);
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f);
 
+	Cmd_AddCommand ("preset_q101",	Preset_Q101);
+	Cmd_AddCommand ("preset_q107",	Preset_Q107);
+	Cmd_AddCommand ("preset_glq",	Preset_GLQ);
+	Cmd_AddCommand ("preset_d",	Preset_D);
+	Cmd_AddCommand ("preset_u",	Preset_U);
+	Cmd_AddCommand ("preset_q64",	Preset_Q64);
+
+	menu_quitscreen = Cvar_Get ("menu_quitscreen", "0", CVAR_ARCHIVE |CVAR_ORIGINAL);
 // 2002-01-31 New menu system by Maddes
 	current_cursor = NULL;
 	current_menu = NULL;
@@ -4186,6 +6348,8 @@ void M_Draw (void)
 	{
 		m_recursiveDraw = false;
 	}
+
+
 
 	switch (m_state)
 	{
@@ -4231,6 +6395,15 @@ void M_Draw (void)
 	case m_keys:
 		M_Keys_Draw ();
 		break;
+
+	case m_keys2:
+		M_Keys_Draw2 ();
+		break;
+
+//	case m_broken:
+//		M_Broken_Draw ();
+//		break;
+
 
 	case m_video:
 		M_Video_Draw ();
@@ -4334,6 +6507,10 @@ void M_Keydown (int key)
 		M_Keys_Key (key);
 		return;
 
+	case m_keys2:
+		M_Keys_Key2 (key);
+		return;
+
 	case m_video:
 		M_Video_Key (key);
 		return;
@@ -4392,3 +6569,5 @@ void M_ConfigureNetSubsystem(void)
 	if (IPXConfig || TCPIPConfig)
 		net_hostport = lanConfig_port;
 }
+
+
