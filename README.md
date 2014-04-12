@@ -5,8 +5,8 @@ Engoo
 
 * Colored lighting in 8-bit color by 15bpp or 18bpp lookup tables, supports lits
 * Translucent liquids with variable-adjusted alphas, supports vis
-* Fog, support for the standard FitzQuake fog command syntax and values
-* Widescreen display support, with hotizontal area expansion; support for 16:9, 16:10, and many more aspects 
+* Fog; support for the standard FitzQuake fog command syntax and values
+* Widescreen display support, with horizontal area expansion; support for 16:9, 16:10, and many more aspects 
 * Enhanced particle system including textured additive, modulated and alpha blended particles
 * Enhanced blood effects, as well as an option to disable blood and gibs
 * Coronas that occlude behind walls, sprites and models smoothly
@@ -46,3 +46,19 @@ Some of the terrible bugs you should be aware of:
 * Multiplayer is completely untested.  It may not work.
 * Sometimes, resizing the window will cause it to become 1x1 instantly.
 * It's a bit sluggish because the new colored lighting code is not written in assembly.
+
+
+Some of the things that I want:
+
+* Skyboxes
+* MD2s
+* MD3s including multiple surfaces and tag extension support
+* IQMs
+* External TGA loading including 24-bit support
+* SPR32 including alpha channel support
+* MDO playback via DUMB or some other Free module player that doesn't suck (no Mikmod)
+* OGG playback also via DUMB via dumb_ogg
+* Model texture filtering
+* The DOS version working again
+* More versatile DirectDraw support, including support for 4bpp, 8bpp, and 16bpp surfaces in Windows 95
+* CPU speed detection so the extensive lookup table generation is disabled by default on anything less than 500mhz
