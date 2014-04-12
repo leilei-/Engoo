@@ -32,6 +32,7 @@ What I'd like to get it to working on
 * DOS (regressed, will need to fix)
 * Linux
 * MacOS 
+* RetroArch
     
 What it currently compiles with:
 
@@ -56,7 +57,7 @@ Some of the things that I want:
 * IQMs
 * External TGA loading including 24-bit support
 * SPR32 including alpha channel support
-* MDO playback via DUMB or some other Free module player that doesn't suck (no Mikmod)
+* MOD playback via DUMB or some other Free module player that doesn't suck (no Mikmod)
 * OGG playback also via DUMB via dumb_ogg
 * Model texture filtering
 * The DOS version working again
