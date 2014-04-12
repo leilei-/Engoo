@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -73,6 +73,8 @@ typedef struct mplane_s
 	byte	pad[2];
 } mplane_t;
 
+#define	FLAG_HAS_GLOWMAP		0x0001	// 1999-12-28 OpenGL fullbright fix by Neal White III
+
 typedef struct texture_s
 {
 	char		name[16];
@@ -84,6 +86,11 @@ typedef struct texture_s
 	struct texture_s *anim_next;		// in the animation sequence
 	struct texture_s *alternate_anims;	// bmodels in frmae 1 use these
 	unsigned	offsets[MIPLEVELS];		// four mip maps stored
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+	int		gl_glowtexnum;
+	unsigned	flags;			// FLAG_HAS_GLOWMAP
+	unsigned	glowoffsets[MIPLEVELS];	// four mip maps stored
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
 } texture_t;
 
 
@@ -130,7 +137,7 @@ typedef struct msurface_s
 
 	int			firstedge;	// look up in model->surfedges[], negative numbers
 	int			numedges;	// are backwards edges
-	
+
 	short		texturemins[2];
 	short		extents[2];
 
@@ -140,7 +147,7 @@ typedef struct msurface_s
 	struct	msurface_s	*texturechain;
 
 	mtexinfo_t	*texinfo;
-	
+
 // lighting info
 	int			dlightframe;
 	int			dlightbits;
@@ -157,14 +164,14 @@ typedef struct mnode_s
 // common with leaf
 	int			contents;		// 0, to differentiate from leafs
 	int			visframe;		// node needs to be traversed if current
-	
+
 	float		minmaxs[6];		// for bounding box culling
 
 	struct mnode_s	*parent;
 
 // node specific
 	mplane_t	*plane;
-	struct mnode_s	*children[2];	
+	struct mnode_s	*children[2];
 
 	unsigned short		firstsurface;
 	unsigned short		numsurfaces;
@@ -347,17 +354,17 @@ typedef struct model_s
 	modtype_t	type;
 	int			numframes;
 	synctype_t	synctype;
-	
+
 	int			flags;
 
 //
 // volume occupied by the model graphics
-//		
+//
 	vec3_t		mins, maxs;
 	float		radius;
 
 //
-// solid volume for clipping 
+// solid volume for clipping
 //
 	qboolean	clipbox;
 	vec3_t		clipmins, clipmaxs;
@@ -418,13 +425,20 @@ typedef struct model_s
 
 //============================================================================
 
-void	Mod_Init (void);
 void	Mod_ClearAll (void);
-model_t *Mod_ForName (char *name, qboolean crash);
-void	*Mod_Extradata (model_t *mod);	// handles caching
+
 void	Mod_TouchModel (char *name);
 
-mleaf_t *Mod_PointInLeaf (float *p, model_t *model);
-byte	*Mod_LeafPVS (mleaf_t *leaf, model_t *model);
+// 2001-12-28 Merged model functions by Maddes  start
+model_t *Mod_LoadModel (model_t *mod, qboolean crash);
+model_t *Mod_FindName (char *name);
 
+void Mod_LoadSpriteModel (model_t *mod, void *buffer);
+void Mod_LoadAliasModel (model_t *mod, void *buffer);
+model_t *Mod_LoadModel (model_t *mod, qboolean crash);
+
+void Mod_LoadTextures (lump_t *l);
+void Mod_LoadLighting (lump_t *l);
+void Mod_LoadFaces (lump_t *l);
+// 2001-12-28 Merged model functions by Maddes  end
 #endif	// __MODEL__

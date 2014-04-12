@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -31,7 +31,7 @@ float	speedscale;		// for top sky and bottom sky
 
 msurface_t	*warpface;
 
-extern cvar_t gl_subdivide_size;
+extern cvar_t	*gl_subdivide_size;
 
 void BoundPoly (int numverts, float *verts, vec3_t mins, vec3_t maxs)
 {
@@ -72,7 +72,7 @@ void SubdividePolygon (int numverts, float *verts)
 	for (i=0 ; i<3 ; i++)
 	{
 		m = (mins[i] + maxs[i]) * 0.5;
-		m = gl_subdivide_size.value * floor (m/gl_subdivide_size.value + 0.5);
+		m = gl_subdivide_size->value * floor (m/gl_subdivide_size->value + 0.5);
 		if (maxs[i] - m < 8)
 			continue;
 		if (m - mins[i] < 8)
@@ -351,19 +351,19 @@ void R_DrawSkyChain (msurface_t *s)
 
 typedef struct
 {
-    char	manufacturer;
-    char	version;
-    char	encoding;
-    char	bits_per_pixel;
-    unsigned short	xmin,ymin,xmax,ymax;
-    unsigned short	hres,vres;
-    unsigned char	palette[48];
-    char	reserved;
-    char	color_planes;
-    unsigned short	bytes_per_line;
-    unsigned short	palette_type;
-    char	filler[58];
-    unsigned 	data;			// unbounded
+	char	manufacturer;
+	char	version;
+	char	encoding;
+	char	bits_per_pixel;
+	unsigned short	xmin,ymin,xmax,ymax;
+	unsigned short	hres,vres;
+	unsigned char	palette[48];
+	char	reserved;
+	char	color_planes;
+	unsigned short	bytes_per_line;
+	unsigned short	palette_type;
+	char	filler[58];
+	unsigned 	data;	// unbounded
 } pcx_t;
 
 byte	*pcx_rgb;
@@ -494,7 +494,7 @@ void LoadTGA (FILE *fin)
 	targa_header.id_length = fgetc(fin);
 	targa_header.colormap_type = fgetc(fin);
 	targa_header.image_type = fgetc(fin);
-	
+
 	targa_header.colormap_index = fgetLittleShort(fin);
 	targa_header.colormap_length = fgetLittleShort(fin);
 	targa_header.colormap_size = fgetc(fin);
@@ -505,11 +505,11 @@ void LoadTGA (FILE *fin)
 	targa_header.pixel_size = fgetc(fin);
 	targa_header.attributes = fgetc(fin);
 
-	if (targa_header.image_type!=2 
-		&& targa_header.image_type!=10) 
+	if (targa_header.image_type!=2
+		&& targa_header.image_type!=10)
 		Sys_Error ("LoadTGA: Only type 2 and 10 targa RGB images supported\n");
 
-	if (targa_header.colormap_type !=0 
+	if (targa_header.colormap_type !=0
 		|| (targa_header.pixel_size!=32 && targa_header.pixel_size!=24))
 		Sys_Error ("Texture_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n");
 
@@ -518,10 +518,10 @@ void LoadTGA (FILE *fin)
 	numPixels = columns * rows;
 
 	targa_rgba = malloc (numPixels*4);
-	
+
 	if (targa_header.id_length != 0)
 		fseek(fin, targa_header.id_length, SEEK_CUR);  // skip TARGA image comment
-	
+
 	if (targa_header.image_type==2) {  // Uncompressed, RGB images
 		for(row=rows-1; row>=0; row--) {
 			pixbuf = targa_rgba + row*columns*4;
@@ -529,7 +529,7 @@ void LoadTGA (FILE *fin)
 				unsigned char red,green,blue,alphabyte;
 				switch (targa_header.pixel_size) {
 					case 24:
-							
+
 							blue = getc(fin);
 							green = getc(fin);
 							red = getc(fin);
@@ -559,7 +559,7 @@ void LoadTGA (FILE *fin)
 			for(column=0; column<columns; ) {
 				packetHeader=getc(fin);
 				packetSize = 1 + (packetHeader & 0x7f);
-				if (packetHeader & 0x80) {        // run-length packet
+				if (packetHeader & 0x80) {	// run-length packet
 					switch (targa_header.pixel_size) {
 						case 24:
 								blue = getc(fin);
@@ -574,7 +574,7 @@ void LoadTGA (FILE *fin)
 								alphabyte = getc(fin);
 								break;
 					}
-	
+
 					for(j=0;j<packetSize;j++) {
 						*pixbuf++=red;
 						*pixbuf++=green;
@@ -591,7 +591,7 @@ void LoadTGA (FILE *fin)
 						}
 					}
 				}
-				else {                            // non run-length packet
+				else {	// non run-length packet
 					for(j=0;j<packetSize;j++) {
 						switch (targa_header.pixel_size) {
 							case 24:
@@ -622,14 +622,14 @@ void LoadTGA (FILE *fin)
 							else
 								goto breakOut;
 							pixbuf = targa_rgba + row*columns*4;
-						}						
+						}
 					}
 				}
 			}
 			breakOut:;
 		}
 	}
-	
+
 	fclose(fin);
 }
 
@@ -649,7 +649,7 @@ void R_LoadSkys (void)
 	{
 		GL_Bind (SKY_TEX + i);
 		sprintf (name, "gfx/env/bkgtst%s.tga", suf[i]);
-		COM_FOpenFile (name, &f);
+		COM_FOpenFile (name, &f, NULL);	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 		if (!f)
 		{
 			Con_Printf ("Couldn't load %s\n", name);
@@ -676,7 +676,7 @@ vec3_t	skyclip[6] = {
 	{0,-1,1},
 	{0,1,1},
 	{1,0,1},
-	{-1,0,1} 
+	{-1,0,1}
 };
 int	c_sky;
 

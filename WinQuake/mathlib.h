@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -70,8 +70,6 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up);
 int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct mplane_s *plane);
 float	anglemod(float a);
 
-
-
 #define BOX_ON_PLANE_SIDE(emins, emaxs, p)	\
 	(((p)->type < 3)?						\
 	(										\
@@ -87,3 +85,16 @@ float	anglemod(float a);
 	)										\
 	:										\
 		BoxOnPlaneSide( (emins), (emaxs), (p)))
+
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  start
+#define bound(min,num,max) (num >= min ? (num < max ? num : max) : min)
+
+#ifndef _WIN32
+#define min(val1,val2) (val2 < val1 ? val2 : val1)
+#define max(val1,val2) (val2 > val1 ? val2 : val1)
+#endif
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+
+void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );	// 2001-12-10 Reduced compiler warnings by Jeff Ford
+
+#define VectorScalarMult(a,b,c) {c[0]=a[0]*b;c[1]=a[1]*b;c[2]=a[2]*b;}	// 2001-12-15 Oriented sprites fix by Atomizer

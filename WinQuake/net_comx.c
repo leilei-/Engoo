@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -43,14 +43,14 @@ typedef struct
 #define ENQUEUE(q,b)	(q.data[q.head] = b, q.head = (q.head + 1) & QUEUEMASK)
 #define DEQUEUE(q,b)	(b = q.data[q.tail], q.tail = (q.tail + 1) & QUEUEMASK)
 
-extern cvar_t	config_com_port;
-extern cvar_t	config_com_irq;
-extern cvar_t	config_com_baud;
-extern cvar_t	config_com_modem;
-extern cvar_t	config_modem_dialtype;
-extern cvar_t	config_modem_clear;
-extern cvar_t	config_modem_init;
-extern cvar_t	config_modem_hangup;
+extern cvar_t	*config_com_port;
+extern cvar_t	*config_com_irq;
+extern cvar_t	*config_com_baud;
+extern cvar_t	*config_com_modem;
+extern cvar_t	*config_modem_dialtype;
+extern cvar_t	*config_modem_clear;
+extern cvar_t	*config_modem_init;
+extern cvar_t	*config_modem_hangup;
 
 extern int m_return_state;
 extern int m_state;
@@ -352,10 +352,10 @@ void TTY_SetComPortConfig (int portNumber, int port, int irq, int baud, qboolean
 	else
 		temp = 0.0;
 
-	Cvar_SetValue ("_config_com_port", (float)port);
-	Cvar_SetValue ("_config_com_irq", (float)irq);
-	Cvar_SetValue ("_config_com_baud", (float)baud);
-	Cvar_SetValue ("_config_com_modem", temp);
+	Cvar_SetValue (config_com_port, (float)port);
+	Cvar_SetValue (config_com_irq, (float)irq);
+	Cvar_SetValue (config_com_baud, (float)baud);
+	Cvar_SetValue (config_com_modem, temp);
 }
 
 void TTY_GetModemConfig (int portNumber, char *dialType, char *clear, char *init, char *hangup)
@@ -364,9 +364,9 @@ void TTY_GetModemConfig (int portNumber, char *dialType, char *clear, char *init
 
 	p = handleToPort[portNumber];
 	*dialType = p->dialType;
-	Q_strcpy(clear, p->clear);
-	Q_strcpy(init, p->startup);
-	Q_strcpy(hangup, p->shutdown);
+	strcpy(clear, p->clear);
+	strcpy(init, p->startup);
+	strcpy(hangup, p->shutdown);
 }
 
 void TTY_SetModemConfig (int portNumber, char *dialType, char *clear, char *init, char *hangup)
@@ -375,16 +375,16 @@ void TTY_SetModemConfig (int portNumber, char *dialType, char *clear, char *init
 
 	p = handleToPort[portNumber];
 	p->dialType = dialType[0];
-	Q_strcpy(p->clear, clear);
-	Q_strcpy(p->startup, init);
-	Q_strcpy(p->shutdown, hangup);
+	strcpy(p->clear, clear);
+	strcpy(p->startup, init);
+	strcpy(p->shutdown, hangup);
 
 	p->modemInitialized = false;
 
-	Cvar_Set ("_config_modem_dialtype", dialType);
-	Cvar_Set ("_config_modem_clear", clear);
-	Cvar_Set ("_config_modem_init", init);
-	Cvar_Set ("_config_modem_hangup", hangup);
+	Cvar_Set (config_modem_dialtype, dialType);
+	Cvar_Set (config_modem_clear, clear);
+	Cvar_Set (config_modem_init, init);
+	Cvar_Set (config_modem_hangup, hangup);
 }
 
 
@@ -397,9 +397,9 @@ static void ResetComPortConfig (ComPort *p)
 	p->modemStatusIgnore = MSR_CD | MSR_CTS | MSR_DSR;
 	p->baudBits = 115200 / 57600;
 	p->lineControl = LCR_DATA_BITS_8 | LCR_STOP_BITS_1 | LCR_PARITY_NONE;
-	Q_strcpy(p->clear, "ATZ");
-	Q_strcpy(p->startup, "");
-	Q_strcpy(p->shutdown, "AT H");
+	strcpy(p->clear, "ATZ");
+	strcpy(p->startup, "");
+	strcpy(p->shutdown, "AT H");
 	p->modemRang = false;
 	p->modemConnected = false;
 	p->statusUpdated = false;
@@ -607,9 +607,9 @@ static void Modem_Init(ComPort *p)
 			response = Modem_Response(p);
 			if (!response)
 				continue;
-			if (Q_strncmp(response, "OK", 2) == 0)
+			if (strncmp(response, "OK", 2) == 0)
 				break;
-			if (Q_strncmp(response, "ERROR", 5) == 0)
+			if (strncmp(response, "ERROR", 5) == 0)
 			{
 				p->enabled = false;
 				goto failed;
@@ -632,9 +632,9 @@ static void Modem_Init(ComPort *p)
 			response = Modem_Response(p);
 			if (!response)
 				continue;
-			if (Q_strncmp(response, "OK", 2) == 0)
+			if (strncmp(response, "OK", 2) == 0)
 				break;
-			if (Q_strncmp(response, "ERROR", 5) == 0)
+			if (strncmp(response, "ERROR", 5) == 0)
 			{
 				p->enabled = false;
 				goto failed;
@@ -651,7 +651,7 @@ failed:
 		key_dest = key_menu;
 		m_state = m_return_state;
 		m_return_onerror = false;
-		Q_strcpy(m_return_reason, "Initialization Failed");
+		strcpy(m_return_reason, "Initialization Failed");
 	}
 	return;
 }
@@ -707,7 +707,7 @@ int TTY_ReadByte(int handle)
 
 	if ((ret = CheckStatus (p)) != 0)
 		return ret;
-	
+
 	if (EMPTY (p->inputQueue))
 		return ERR_TTY_NODATA;
 
@@ -819,7 +819,7 @@ int TTY_Connect(int handle, char *host)
 			response = Modem_Response(p);
 			if (!response)
 				continue;
-			if (Q_strncmp(response, "CONNECT", 7) == 0)
+			if (strncmp(response, "CONNECT", 7) == 0)
 			{
 				disable();
 				p->modemRang = true;
@@ -832,17 +832,17 @@ int TTY_Connect(int handle, char *host)
 				m_return_onerror = false;
 				return 0;
 			}
-			if (Q_strncmp(response, "NO CARRIER", 10) == 0)
+			if (strncmp(response, "NO CARRIER", 10) == 0)
 				break;
-			if (Q_strncmp(response, "NO DIALTONE", 11) == 0)
+			if (strncmp(response, "NO DIALTONE", 11) == 0)
 				break;
-			if (Q_strncmp(response, "NO DIAL TONE", 12) == 0)
+			if (strncmp(response, "NO DIAL TONE", 12) == 0)
 				break;
-			if (Q_strncmp(response, "NO ANSWER", 9) == 0)
+			if (strncmp(response, "NO ANSWER", 9) == 0)
 				break;
-			if (Q_strncmp(response, "BUSY", 4) == 0)
+			if (strncmp(response, "BUSY", 4) == 0)
 				break;
-			if (Q_strncmp(response, "ERROR", 5) == 0)
+			if (strncmp(response, "ERROR", 5) == 0)
 				break;
 		}
 		key_dest = save_key_dest;
@@ -852,7 +852,7 @@ int TTY_Connect(int handle, char *host)
 			key_dest = key_menu;
 			m_state = m_return_state;
 			m_return_onerror = false;
-			Q_strncpy(m_return_reason, response, 31);
+			strncpy(m_return_reason, response, 31);
 		}
 		return -1;
 	}
@@ -887,7 +887,7 @@ qboolean TTY_CheckForConnection(int handle)
 			if (!Modem_Response(p))
 				return false;
 
-			if (Q_strncmp(p->buffer, "RING", 4) == 0)
+			if (strncmp(p->buffer, "RING", 4) == 0)
 			{
 				Modem_Command (p, "ATA");
 				p->modemRang = true;
@@ -907,7 +907,7 @@ qboolean TTY_CheckForConnection(int handle)
 			if (!Modem_Response(p))
 				return false;
 
-			if (Q_strncmp (p->buffer, "CONNECT", 7) != 0)
+			if (strncmp (p->buffer, "CONNECT", 7) != 0)
 				return false;
 
 			disable();
@@ -972,7 +972,7 @@ void Com_f (void)
 			Con_Printf("16550\n");
 		Con_Printf("port:      %x\n", p->uart);
 		Con_Printf("irq:       %i\n", p->irq);
-		Con_Printf("baud:      %i\n", 115200 / p->baudBits);	
+		Con_Printf("baud:      %i\n", 115200 / p->baudBits);
 		Con_Printf("CTS:       %s\n", (p->modemStatusIgnore & MSR_CTS) ? "ignored" : "honored");
 		Con_Printf("DSR:       %s\n", (p->modemStatusIgnore & MSR_DSR) ? "ignored" : "honored");
 		Con_Printf("CD:        %s\n", (p->modemStatusIgnore & MSR_CD) ? "ignored" : "honored");
@@ -1079,18 +1079,18 @@ void Com_f (void)
 
 	if ((i = Cmd_CheckParm ("clear")) != 0)
 	{
-		Q_strncpy (p->clear, Cmd_Argv (i+1), 16);
+		strncpy (p->clear, Cmd_Argv (i+1), 16);
 	}
 
 	if ((i = Cmd_CheckParm ("startup")) != 0)
 	{
-		Q_strncpy (p->startup, Cmd_Argv (i+1), 32);
+		strncpy (p->startup, Cmd_Argv (i+1), 32);
 		p->modemInitialized = false;
 	}
 
 	if ((i = Cmd_CheckParm ("shutdown")) != 0)
 	{
-		Q_strncpy (p->shutdown, Cmd_Argv (i+1), 16);
+		strncpy (p->shutdown, Cmd_Argv (i+1), 16);
 	}
 
 	if (Cmd_CheckParm ("-cts"))

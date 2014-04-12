@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 qboolean	dibonly;
 
-extern int		Minimized;
+//extern int		Minimized;	//wrong, and correct in winquake.h	// 2001-12-10 Compilable with LCC-Win32 by Jeff Ford
 
 HWND		mainwindow;
 
@@ -62,23 +62,23 @@ viddef_t	vid;				// global video state
 #define MODE_FULLSCREEN_DEFAULT	(MODE_WINDOWED + 3)
 
 // Note that 0 is MODE_WINDOWED
-cvar_t		vid_mode = {"vid_mode","0", false};
+cvar_t	*vid_mode;
 // Note that 0 is MODE_WINDOWED
-cvar_t		_vid_default_mode = {"_vid_default_mode","0", true};
+cvar_t	*_vid_default_mode;
 // Note that 3 is MODE_FULLSCREEN_DEFAULT
-cvar_t		_vid_default_mode_win = {"_vid_default_mode_win","3", true};
-cvar_t		vid_wait = {"vid_wait","0"};
-cvar_t		vid_nopageflip = {"vid_nopageflip","0", true};
-cvar_t		_vid_wait_override = {"_vid_wait_override", "0", true};
-cvar_t		vid_config_x = {"vid_config_x","800", true};
-cvar_t		vid_config_y = {"vid_config_y","600", true};
-cvar_t		vid_stretch_by_2 = {"vid_stretch_by_2","1", true};
-cvar_t		_windowed_mouse = {"_windowed_mouse","0", true};
-cvar_t		vid_fullscreen_mode = {"vid_fullscreen_mode","3", true};
-cvar_t		vid_windowed_mode = {"vid_windowed_mode","0", true};
-cvar_t		block_switch = {"block_switch","0", true};
-cvar_t		vid_window_x = {"vid_window_x", "0", true};
-cvar_t		vid_window_y = {"vid_window_y", "0", true};
+cvar_t	*_vid_default_mode_win;
+cvar_t	*vid_wait;
+cvar_t	*vid_nopageflip;
+cvar_t	*_vid_wait_override;
+cvar_t	*vid_config_x;
+cvar_t	*vid_config_y;
+cvar_t	*vid_stretch_by_2;
+cvar_t	*_windowed_mouse;
+cvar_t	*vid_fullscreen_mode;
+cvar_t	*vid_windowed_mode;
+cvar_t	*block_switch;
+cvar_t	*vid_window_x;
+cvar_t	*vid_window_y;
 
 typedef struct {
 	int		width;
@@ -109,8 +109,8 @@ unsigned char	vid_curpal[256*3];
 unsigned short	d_8to16table[256];
 unsigned	d_8to24table[256];
 
-int     driver = grDETECT,mode;
-bool    useWinDirect = true, useDirectDraw = true;
+int		driver = grDETECT,mode;
+bool	useWinDirect = true, useDirectDraw = true;
 MGLDC	*mgldc = NULL,*memdc = NULL,*dibdc = NULL,*windc = NULL;
 
 typedef struct {
@@ -162,8 +162,8 @@ void VID_RememberWindowPos (void)
 			(rect.right > 0)                             &&
 			(rect.bottom > 0))
 		{
-			Cvar_SetValue ("vid_window_x", (float)rect.left);
-			Cvar_SetValue ("vid_window_y", (float)rect.top);
+			Cvar_SetValue (vid_window_x, (float)rect.left);
+			Cvar_SetValue (vid_window_y, (float)rect.top);
 		}
 	}
 }
@@ -177,13 +177,13 @@ VID_CheckWindowXY
 void VID_CheckWindowXY (void)
 {
 
-	if (((int)vid_window_x.value > (GetSystemMetrics (SM_CXSCREEN) - 160)) ||
-		((int)vid_window_y.value > (GetSystemMetrics (SM_CYSCREEN) - 120)) ||
-		((int)vid_window_x.value < 0)									   ||
-		((int)vid_window_y.value < 0))
+	if (((int)vid_window_x->value > (GetSystemMetrics (SM_CXSCREEN) - 160)) ||
+		((int)vid_window_y->value > (GetSystemMetrics (SM_CYSCREEN) - 120)) ||
+		((int)vid_window_x->value < 0)									   ||
+		((int)vid_window_y->value < 0))
 	{
-		Cvar_SetValue ("vid_window_x", 0.0);
-		Cvar_SetValue ("vid_window_y", 0.0 );
+		Cvar_Set (vid_window_x, "0");
+		Cvar_Set (vid_window_y, "0" );
 	}
 }
 
@@ -215,7 +215,7 @@ ClearAllStates
 void ClearAllStates (void)
 {
 	int		i;
-	
+
 // send an up event for each key, to make sure the server clears them all
 	for (i=0 ; i<256 ; i++)
 	{
@@ -291,7 +291,7 @@ qboolean VID_AllocBuffers (int width, int height)
 
 	vid_surfcache = (byte *)d_pzbuffer +
 			width * height * sizeof (*d_pzbuffer);
-	
+
 	return true;
 }
 
@@ -310,7 +310,7 @@ int VID_Suspend (MGLDC *dc,m_int flags)
 	if (flags & MGL_DEACTIVATE)
 	{
 	// FIXME: this doesn't currently work on NT
-		if (block_switch.value && !WinNT)
+		if (block_switch->value && !WinNT)
 		{
 			return MGL_NO_DEACTIVATE;
 		}
@@ -326,7 +326,7 @@ int VID_Suspend (MGLDC *dc,m_int flags)
 
 		block_drawing = true;	// so we don't try to draw while switched away
 
-		return MGL_NO_SUSPEND_APP;
+//		return MGL_NO_SUSPEND_APP;	// 2000-01-31 Valid result correction by Maddes
 	}
 	else if (flags & MGL_REACTIVATE)
 	{
@@ -342,9 +342,11 @@ int VID_Suspend (MGLDC *dc,m_int flags)
 
 		block_drawing = false;
 
-		return MGL_NO_SUSPEND_APP;
+//		return MGL_NO_SUSPEND_APP;	// 2000-01-31 Valid result correction by Maddes
 	}
 
+	return MGL_NO_SUSPEND_APP;		// 2000-01-31 Valid result correction by Maddes
+						// changed like bounce.c example from SciTech
 }
 
 
@@ -386,7 +388,7 @@ void VID_InitMGLFull (HINSTANCE hInstance)
 {
 	int			i, xRes, yRes, bits, vMode, lowres, curmode, temp;
 	int			lowstretchedres, stretchedmode, lowstretched;
-    uchar		*m;
+	uchar		*m;
 
 // FIXME: NT is checked for because MGL currently has a bug that causes it
 // to try to use WinDirect modes even on NT
@@ -550,13 +552,13 @@ MGLDC *createDisplayDC(int forcemem)
 *
 ****************************************************************************/
 {
-    MGLDC			*dc;
+	MGLDC			*dc;
 	pixel_format_t	pf;
 	int				npages;
 
 	// Start the specified video mode
 	if (!MGL_changeDisplayMode(mode))
-        initFatalError();
+		initFatalError();
 
 	npages = MGL_availablePages(mode);
 
@@ -621,21 +623,21 @@ void VID_InitMGLDIB (HINSTANCE hInstance)
 	HDC				hdc;
 	int				i;
 
-	hIcon = LoadIcon (hInstance, MAKEINTRESOURCE (IDI_ICON2));
+	hIcon = LoadIcon (hInstance, MAKEINTRESOURCE (IDI_ICON1));
 
 	/* Register the frame class */
-    wc.style         = 0;
-    wc.lpfnWndProc   = (WNDPROC)MainWndProc;
-    wc.cbClsExtra    = 0;
-    wc.cbWndExtra    = 0;
-    wc.hInstance     = hInstance;
-    wc.hIcon         = 0;
-    wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
+	wc.style         = 0;
+	wc.lpfnWndProc   = (WNDPROC)MainWndProc;
+	wc.cbClsExtra    = 0;
+	wc.cbWndExtra    = 0;
+	wc.hInstance     = hInstance;
+	wc.hIcon         = 0;
+	wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
 	wc.hbrBackground = NULL;
-    wc.lpszMenuName  = 0;
-    wc.lpszClassName = "WinQuake";
+	wc.lpszMenuName  = 0;
+	wc.lpszClassName = "WinQuake";
 
-    if (!RegisterClass (&wc) )
+	if (!RegisterClass (&wc) )
 		Sys_Error ("Couldn't register window class");
 
 	/* Find the size for the DIB window */
@@ -1003,7 +1005,7 @@ int VID_NumModes (void)
 	return nummodes;
 }
 
-	
+
 /*
 =================
 VID_GetModePtr
@@ -1030,17 +1032,17 @@ void VID_CheckModedescFixup (int mode)
 
 	if (mode == MODE_SETTABLE_WINDOW)
 	{
-		modelist[mode].stretched = (int)vid_stretch_by_2.value;
+		modelist[mode].stretched = (int)vid_stretch_by_2->value;
 		stretch = modelist[mode].stretched;
 
-		if (vid_config_x.value < (320 << stretch))
-			vid_config_x.value = 320 << stretch;
+		if (vid_config_x->value < (320 << stretch))
+			vid_config_x->value = 320 << stretch;
 
-		if (vid_config_y.value < (200 << stretch))
-			vid_config_y.value = 200 << stretch;
+		if (vid_config_y->value < (200 << stretch))
+			vid_config_y->value = 200 << stretch;
 
-		x = (int)vid_config_x.value;
-		y = (int)vid_config_y.value;
+		x = (int)vid_config_x->value;
+		y = (int)vid_config_y->value;
 		sprintf (modelist[mode].modedesc, "%dx%d", x, y);
 		modelist[mode].width = x;
 		modelist[mode].height = y;
@@ -1217,24 +1219,24 @@ qboolean VID_SetWindowedMode (int modenum)
 	HDC				hdc;
 	pixel_format_t	pf;
 	qboolean		stretched;
-	int				lastmodestate;
+//	int				lastmodestate;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	LONG			wlong;
 
 	if (!windowed_mode_set)
 	{
 		if (COM_CheckParm ("-resetwinpos"))
 		{
-			Cvar_SetValue ("vid_window_x", 0.0);
-			Cvar_SetValue ("vid_window_y", 0.0);
+			Cvar_Set (vid_window_x, "0");
+			Cvar_Set (vid_window_y, "0");
 		}
 
-		windowed_mode_set;
+//		windowed_mode_set;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	}
 
 	VID_CheckModedescFixup (modenum);
 
 	DDActive = 0;
-	lastmodestate = modestate;
+//	lastmodestate = modestate;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	DestroyFullscreenWindow ();
 	DestroyFullDIBWindow ();
@@ -1317,8 +1319,8 @@ qboolean VID_SetWindowedMode (int modenum)
 
 // position and show the DIB window
 	VID_CheckWindowXY ();
-	SetWindowPos (mainwindow, NULL, (int)vid_window_x.value,
-				  (int)vid_window_y.value, 0, 0,
+	SetWindowPos (mainwindow, NULL, (int)vid_window_x->value,
+				  (int)vid_window_y->value, 0, 0,
 				  SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW | SWP_DRAWFRAME);
 
 	if (force_minimized)
@@ -1385,7 +1387,7 @@ qboolean VID_SetFullscreenMode (int modenum)
 	mgldc = memdc = NULL;
 
 	if ((mgldc = createDisplayDC (modelist[modenum].stretched ||
-		 (int)vid_nopageflip.value)) == NULL)
+		 (int)vid_nopageflip->value)) == NULL)
 	{
 		return false;
 	}
@@ -1423,7 +1425,7 @@ qboolean VID_SetFullDIBMode (int modenum)
 {
 	HDC				hdc;
 	pixel_format_t	pf;
-	int				lastmodestate;
+//	int				lastmodestate;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	DDActive = 0;
 
@@ -1450,7 +1452,7 @@ qboolean VID_SetFullDIBMode (int modenum)
 	if (ChangeDisplaySettings (&gdevmode, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 		Sys_Error ("Couldn't set fullscreen DIB mode");
 
-	lastmodestate = modestate;
+//	lastmodestate = modestate;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	modestate = MS_FULLDIB;
 	vid_fulldib_on_focus_mode = modenum;
 
@@ -1563,10 +1565,10 @@ void VID_SetDefaultMode (void)
 
 int VID_SetMode (int modenum, unsigned char *palette)
 {
-	int				original_mode, temp, dummy;
-	qboolean		stat;
-    MSG				msg;
-	HDC				hdc;
+	int			original_mode, temp, dummy;
+	qboolean	stat;
+	MSG			msg;
+	HDC			hdc;
 
 	while ((modenum >= nummodes) || (modenum < 0))
 	{
@@ -1581,11 +1583,11 @@ int VID_SetMode (int modenum, unsigned char *palette)
 				modenum = vid_default;
 			}
 
-			Cvar_SetValue ("vid_mode", (float)modenum);
+			Cvar_SetValue (vid_mode, (float)modenum);
 		}
 		else
 		{
-			Cvar_SetValue ("vid_mode", (float)vid_modenum);
+			Cvar_SetValue (vid_mode, (float)vid_modenum);
 			return 0;
 		}
 	}
@@ -1609,7 +1611,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	// Set either the fullscreen or windowed mode
 	if (modelist[modenum].type == MS_WINDOWED)
 	{
-		if (_windowed_mouse.value)
+		if (_windowed_mouse->value)
 		{
 			stat = VID_SetWindowedMode(modenum);
 			IN_ActivateMouse ();
@@ -1672,7 +1674,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	ReleaseDC(NULL,hdc);
 
 	vid_modenum = modenum;
-	Cvar_SetValue ("vid_mode", (float)vid_modenum);
+	Cvar_SetValue (vid_mode, (float)vid_modenum);
 
 	if (!VID_AllocBuffers (vid.width, vid.height))
 	{
@@ -1685,8 +1687,8 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
 	{
-      	TranslateMessage (&msg);
-      	DispatchMessage (&msg);
+		TranslateMessage (&msg);
+		DispatchMessage (&msg);
 	}
 
 	Sleep (100);
@@ -1750,11 +1752,11 @@ void VID_LockBuffer (void)
 	else
 		screenwidth = vid.rowbytes;
 
-	if (lcd_x.value)
+	if (lcd_x->value)
 		screenwidth <<= 1;
 }
-		
-		
+
+
 void VID_UnlockBuffer (void)
 {
 	if (dibdc)
@@ -1816,7 +1818,7 @@ void	VID_SetPalette (unsigned char *palette)
 {
 	INT			i;
 	palette_t	pal[256];
-    HDC			hdc;
+	HDC			hdc;
 
 	if (!Minimized)
 	{
@@ -1922,7 +1924,7 @@ VID_DescribeMode_f
 void VID_DescribeMode_f (void)
 {
 	int		modenum;
-	
+
 	modenum = Q_atoi (Cmd_Argv(1));
 
 	Con_Printf ("%s\n", VID_GetExtModeDescription (modenum));
@@ -2002,7 +2004,7 @@ VID_Windowed_f
 void VID_Windowed_f (void)
 {
 
-	VID_SetMode ((int)vid_windowed_mode.value, vid_curpal);
+	VID_SetMode ((int)vid_windowed_mode->value, vid_curpal);
 }
 
 
@@ -2014,7 +2016,7 @@ VID_Fullscreen_f
 void VID_Fullscreen_f (void)
 {
 
-	VID_SetMode ((int)vid_fullscreen_mode.value, vid_curpal);
+	VID_SetMode ((int)vid_fullscreen_mode->value, vid_curpal);
 }
 
 
@@ -2054,6 +2056,26 @@ void VID_ForceMode_f (void)
 	}
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+void VID_Init_Cvars (void)
+{
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
+	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_fullscreen_mode = Cvar_Get ("vid_fullscreen_mode", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_windowed_mode = Cvar_Get ("vid_windowed_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	block_switch = Cvar_Get ("block_switch", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_window_x = Cvar_Get ("vid_window_x", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_window_y = Cvar_Get ("vid_window_y", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 void	VID_Init (unsigned char *palette)
 {
@@ -2061,21 +2083,25 @@ void	VID_Init (unsigned char *palette)
 	int		basenummodes;
 	byte	*ptmp;
 
-	Cvar_RegisterVariable (&vid_mode);
-	Cvar_RegisterVariable (&vid_wait);
-	Cvar_RegisterVariable (&vid_nopageflip);
-	Cvar_RegisterVariable (&_vid_wait_override);
-	Cvar_RegisterVariable (&_vid_default_mode);
-	Cvar_RegisterVariable (&_vid_default_mode_win);
-	Cvar_RegisterVariable (&vid_config_x);
-	Cvar_RegisterVariable (&vid_config_y);
-	Cvar_RegisterVariable (&vid_stretch_by_2);
-	Cvar_RegisterVariable (&_windowed_mouse);
-	Cvar_RegisterVariable (&vid_fullscreen_mode);
-	Cvar_RegisterVariable (&vid_windowed_mode);
-	Cvar_RegisterVariable (&block_switch);
-	Cvar_RegisterVariable (&vid_window_x);
-	Cvar_RegisterVariable (&vid_window_y);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
+	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_fullscreen_mode = Cvar_Get ("vid_fullscreen_mode", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_windowed_mode = Cvar_Get ("vid_windowed_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	block_switch = Cvar_Get ("block_switch", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_window_x = Cvar_Get ("vid_window_x", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_window_y = Cvar_Get ("vid_window_y", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("vid_testmode", VID_TestMode_f);
 	Cmd_AddCommand ("vid_nummodes", VID_NumModes_f);
@@ -2324,40 +2350,40 @@ void	VID_Update (vrect_t *rects)
 		{
 			GetWindowRect (mainwindow, &trect);
 
-			if ((trect.left != (int)vid_window_x.value) ||
-				(trect.top  != (int)vid_window_y.value))
+			if ((trect.left != (int)vid_window_x->value) ||
+				(trect.top  != (int)vid_window_y->value))
 			{
 				if (COM_CheckParm ("-resetwinpos"))
 				{
-					Cvar_SetValue ("vid_window_x", 0.0);
-					Cvar_SetValue ("vid_window_y", 0.0);
+					Cvar_Set (vid_window_x, "0");
+					Cvar_Set (vid_window_y, "0");
 				}
 
 				VID_CheckWindowXY ();
-				SetWindowPos (mainwindow, NULL, (int)vid_window_x.value,
-				  (int)vid_window_y.value, 0, 0,
+				SetWindowPos (mainwindow, NULL, (int)vid_window_x->value,
+				  (int)vid_window_y->value, 0, 0,
 				  SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW | SWP_DRAWFRAME);
 			}
 		}
 
-		if ((_vid_default_mode_win.value != vid_default) &&
-			(!startwindowed || (_vid_default_mode_win.value < MODE_FULLSCREEN_DEFAULT)))
+		if ((_vid_default_mode_win->value != vid_default) &&
+			(!startwindowed || (_vid_default_mode_win->value < MODE_FULLSCREEN_DEFAULT)))
 		{
 			firstupdate = 0;
 
 			if (COM_CheckParm ("-resetwinpos"))
 			{
-				Cvar_SetValue ("vid_window_x", 0.0);
-				Cvar_SetValue ("vid_window_y", 0.0);
+				Cvar_Set (vid_window_x, "0");
+				Cvar_Set (vid_window_y, "0");
 			}
 
-			if ((_vid_default_mode_win.value < 0) ||
-				(_vid_default_mode_win.value >= nummodes))
+			if ((_vid_default_mode_win->value < 0) ||
+				(_vid_default_mode_win->value >= nummodes))
 			{
-				Cvar_SetValue ("_vid_default_mode_win", windowed_default);
+				Cvar_SetValue (_vid_default_mode_win, windowed_default);
 			}
 
-			Cvar_SetValue ("vid_mode", _vid_default_mode_win.value);
+			Cvar_SetValue (vid_mode, _vid_default_mode_win->value);
 		}
 	}
 
@@ -2374,10 +2400,10 @@ void	VID_Update (vrect_t *rects)
 	}
 	else
 	{
-		if ((int)vid_mode.value != vid_realmode)
+		if ((int)vid_mode->value != vid_realmode)
 		{
-			VID_SetMode ((int)vid_mode.value, vid_curpal);
-			Cvar_SetValue ("vid_mode", (float)vid_modenum);
+			VID_SetMode ((int)vid_mode->value, vid_curpal);
+			Cvar_SetValue (vid_mode, (float)vid_modenum);
 								// so if mode set fails, we don't keep on
 								//  trying to set that mode
 			vid_realmode = vid_modenum;
@@ -2387,9 +2413,9 @@ void	VID_Update (vrect_t *rects)
 // handle the mouse state when windowed if that's changed
 	if (modestate == MS_WINDOWED)
 	{
-		if ((int)_windowed_mouse.value != windowed_mouse)
+		if ((int)_windowed_mouse->value != windowed_mouse)
 		{
-			if (_windowed_mouse.value)
+			if (_windowed_mouse->value)
 			{
 				IN_ActivateMouse ();
 				IN_HideMouse ();
@@ -2400,7 +2426,7 @@ void	VID_Update (vrect_t *rects)
 				IN_ShowMouse ();
 			}
 
-			windowed_mouse = (int)_windowed_mouse.value;
+			windowed_mouse = (int)_windowed_mouse->value;
 		}
 	}
 }
@@ -2591,27 +2617,27 @@ void D_EndDirectRect (int x, int y, int width, int height)
 
 //==========================================================================
 
-byte        scantokey[128] = 
-					{ 
-//  0           1       2       3       4       5       6       7 
-//  8           9       A       B       C       D       E       F 
-	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6', 
-	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0 
-	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i', 
-	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1 
-	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';', 
-	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2 
-	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*', 
-	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3 
-	K_F6, K_F7, K_F8, K_F9, K_F10,  K_PAUSE,    0  , K_HOME, 
-	K_UPARROW,K_PGUP,'-',K_LEFTARROW,'5',K_RIGHTARROW,'+',K_END, //4 
-	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11, 
+byte	scantokey[128] =
+{
+//  0           1       2       3       4       5       6       7
+//  8           9       A       B       C       D       E       F
+	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6',
+	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0
+	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i',
+	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1
+	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';',
+	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2
+	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*',
+	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3
+	K_F6, K_F7, K_F8, K_F9, K_F10,  K_PAUSE,    0  , K_HOME,
+	K_UPARROW,K_PGUP,'-',K_LEFTARROW,'5',K_RIGHTARROW,'+',K_END, //4
+	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11,
 	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7 
-}; 
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7
+};
 
 /*
 =======
@@ -2641,8 +2667,8 @@ void AppActivate(BOOL fActive, BOOL minimize)
 *
 ****************************************************************************/
 {
-    HDC			hdc;
-    int			i, t;
+	HDC		hdc;
+	int		i, t;
 	static BOOL	sound_active;
 
 	ActiveApp = fActive;
@@ -2735,7 +2761,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 				IN_ActivateMouse ();
 				IN_HideMouse ();
 			}
-			else if ((modestate == MS_WINDOWED) && _windowed_mouse.value)
+			else if ((modestate == MS_WINDOWED) && _windowed_mouse->value)
 			{
 				IN_ActivateMouse ();
 				IN_HideMouse ();
@@ -2767,7 +2793,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 				IN_DeactivateMouse ();
 				IN_ShowMouse ();
 			}
-			else if ((modestate == MS_WINDOWED) && _windowed_mouse.value)
+			else if ((modestate == MS_WINDOWED) && _windowed_mouse->value)
 			{
 				IN_DeactivateMouse ();
 				IN_ShowMouse ();
@@ -2785,7 +2811,7 @@ VID_HandlePause
 void VID_HandlePause (qboolean pause)
 {
 
-	if ((modestate == MS_WINDOWED) && _windowed_mouse.value)
+	if ((modestate == MS_WINDOWED) && _windowed_mouse->value)
 	{
 		if (pause)
 		{
@@ -2809,20 +2835,20 @@ MAIN WINDOW
 ===================================================================
 */
 
-LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+//LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 /* main window procedure */
 LONG WINAPI MainWndProc (
-    HWND    hWnd,
-    UINT    uMsg,
-    WPARAM  wParam,
-    LPARAM  lParam)
+	HWND	hWnd,
+	UINT	uMsg,
+	WPARAM	wParam,
+	LPARAM	lParam)
 {
 	LONG			lRet = 0;
 	int				fwKeys, xPos, yPos, fActive, fMinimized, temp;
 	HDC				hdc;
 	PAINTSTRUCT		ps;
-	static int		recursiveflag;
+//	static int		recursiveflag;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	switch (uMsg)
 	{
@@ -2844,11 +2870,11 @@ LONG WINAPI MainWndProc (
 						force_mode_set = false;
 					}
 
-					VID_SetMode ((int)vid_fullscreen_mode.value, vid_curpal);
+					VID_SetMode ((int)vid_fullscreen_mode->value, vid_curpal);
 					break;
 
-                case SC_SCREENSAVE:
-                case SC_MONITORPOWER:
+				case SC_SCREENSAVE:
+				case SC_MONITORPOWER:
 					if (modestate != MS_WINDOWED)
 					{
 					// don't call DefWindowProc() because we don't want to start
@@ -2886,7 +2912,7 @@ LONG WINAPI MainWndProc (
 
 		case WM_SIZE:
 			Minimized = false;
-			
+
 			if (!(wParam & SIZE_RESTORED))
 			{
 				if (wParam & SIZE_MINIMIZED)
@@ -2966,7 +2992,7 @@ LONG WINAPI MainWndProc (
 		// JACK: This is the mouse wheel with the Intellimouse
 		// Its delta is either positive or neg, and we generate the proper
 		// Event.
-		case WM_MOUSEWHEEL: 
+		case WM_MOUSEWHEEL:
 			if ((short) HIWORD(wParam) > 0) {
 				Key_Event(K_MWHEELUP, true);
 				Key_Event(K_MWHEELUP, false);
@@ -3011,7 +3037,7 @@ LONG WINAPI MainWndProc (
 			}
 			break;
 
-   	    case WM_CLOSE:
+		case WM_CLOSE:
 		// this causes Close in the right-click task bar menu not to work, but right
 		// now bad things happen if Close is handled in that case (garbage and a
 		// crash on Win95)
@@ -3026,17 +3052,17 @@ LONG WINAPI MainWndProc (
 			break;
 
 		case MM_MCINOTIFY:
-            lRet = CDAudio_MessageHandler (hWnd, uMsg, wParam, lParam);
+			lRet = CDAudio_MessageHandler (hWnd, uMsg, wParam, lParam);
 			break;
 
 		default:
-            /* pass all unhandled messages to DefWindowProc */
-            lRet = DefWindowProc (hWnd, uMsg, wParam, lParam);
-	        break;
-    }
+			/* pass all unhandled messages to DefWindowProc */
+			lRet = DefWindowProc (hWnd, uMsg, wParam, lParam);
+			break;
+	}
 
-    /* return 0 if handled message, 1 if not */
-    return lRet;
+	/* return 0 if handled message, 1 if not */
+	return lRet;
 }
 
 
@@ -3095,7 +3121,7 @@ void VID_MenuDraw (void)
 
 	vid_wmodes = 3;
 	lnummodes = VID_NumModes ();
-	
+
 	for (i=3 ; i<lnummodes ; i++)
 	{
 		ptr = VID_GetModeDescriptionMemCheck (i);
@@ -3118,7 +3144,7 @@ void VID_MenuDraw (void)
 				}
 			}
 
-			if (dup || (vid_wmodes < MAX_MODEDESCS))       
+			if (dup || (vid_wmodes < MAX_MODEDESCS))
 			{
 				if (!dup || !modedescs[dupmode].ismode13 || COM_CheckParm("-noforcevga"))
 				{
@@ -3225,7 +3251,7 @@ void VID_MenuDraw (void)
 			M_Print (2*8, 36 + MODE_AREA_HEIGHT * 8 + 8*5, temp);
 		}
 
-		ptr = VID_GetModeDescription2 ((int)_vid_default_mode_win.value);
+		ptr = VID_GetModeDescription2 ((int)_vid_default_mode_win->value);
 
 		if (ptr)
 		{
@@ -3334,7 +3360,7 @@ void VID_MenuKey (int key)
 	case 'd':
 		S_LocalSound ("misc/menu1.wav");
 		firstupdate = 0;
-		Cvar_SetValue ("_vid_default_mode_win", vid_modenum);
+		Cvar_SetValue (_vid_default_mode_win, vid_modenum);
 		break;
 
 	default:

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,6 +22,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // vid buffer
 
 #include "quakedef.h"
+
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  start
+extern cvar_t	*con_alpha;
+
+byte fademask[] =
+{
+	0x00,	// invisible
+	0x14,	// 25%
+	0x5a,	// 50%
+	0xeb,	// 75%
+	0xff,	// solid
+};
+
+#define CON_ALPHASTATES (sizeof(fademask) / sizeof(fademask[0]))
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  end
 
 typedef struct {
 	vrect_t	rect;
@@ -66,7 +81,7 @@ qpic_t	*Draw_CachePic (char *path)
 	cachepic_t	*pic;
 	int			i;
 	qpic_t		*dat;
-	
+
 	for (pic=menu_cachepics, i=0 ; i<menu_numcachepics ; pic++, i++)
 		if (!strcmp (path, pic->name))
 			break;
@@ -88,7 +103,7 @@ qpic_t	*Draw_CachePic (char *path)
 // load the pic from disk
 //
 	COM_LoadCacheFile (path, &pic->cache);
-	
+
 	dat = (qpic_t *)pic->cache.data;
 	if (!dat)
 	{
@@ -101,6 +116,16 @@ qpic_t	*Draw_CachePic (char *path)
 }
 
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===============
+Draw_Init_Cvars
+===============
+*/
+void Draw_Init_Cvars (void)
+{
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 ===============
@@ -109,7 +134,7 @@ Draw_Init
 */
 void Draw_Init (void)
 {
-	int		i;
+//	int		i;	// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa
 
 	draw_chars = W_GetLumpName ("conchars");
 	draw_disc = W_GetLumpName ("disc");
@@ -137,11 +162,11 @@ void Draw_Character (int x, int y, int num)
 	byte			*dest;
 	byte			*source;
 	unsigned short	*pusdest;
-	int				drawline;	
+	int				drawline;
 	int				row, col;
 
 	num &= 255;
-	
+
 	if (y <= -8)
 		return;			// totally off screen
 
@@ -169,7 +194,7 @@ void Draw_Character (int x, int y, int num)
 	if (r_pixbytes == 1)
 	{
 		dest = vid.conbuffer + y*vid.conrowbytes + x;
-	
+
 		while (drawline--)
 		{
 			if (source[0])
@@ -251,7 +276,7 @@ void Draw_DebugChar (char num)
 {
 	byte			*dest;
 	byte			*source;
-	int				drawline;	
+	int				drawline;
 	extern byte		*draw_chars;
 	int				row, col;
 
@@ -348,7 +373,7 @@ void Draw_TransPic (int x, int y, qpic_t *pic)
 	{
 		Sys_Error ("Draw_TransPic: bad coordinates");
 	}
-		
+
 	source = pic->data;
 
 	if (r_pixbytes == 1)
@@ -362,7 +387,7 @@ void Draw_TransPic (int x, int y, qpic_t *pic)
 				for (u=0 ; u<pic->width ; u++)
 					if ( (tbyte=source[u]) != TRANSPARENT_COLOR)
 						dest[u] = tbyte;
-	
+
 				dest += vid.rowbytes;
 				source += pic->width;
 			}
@@ -435,7 +460,7 @@ void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 	{
 		Sys_Error ("Draw_TransPic: bad coordinates");
 	}
-		
+
 	source = pic->data;
 
 	if (r_pixbytes == 1)
@@ -549,22 +574,23 @@ void Draw_ConsoleBackground (int lines)
 
 // hack the version number directly into the pic
 #ifdef _WIN32
-	sprintf (ver, "(WinQuake) %4.2f", (float)VERSION);
-	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);
+	sprintf (ver, "(%s, WinQuake) %4.2f", QIP_VERSION, (float)VERSION);	// 2001-10-25 QIP version in the console background by Maddes
+//	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);	// 2001-10-25 Version printing fix by Maddes
 #elif defined(X11)
-	sprintf (ver, "(X11 Quake %2.2f) %4.2f", (float)X11_VERSION, (float)VERSION);
-	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);
+	sprintf (ver, "(%s, X11 Quake %2.2f) %4.2f", QIP_VERSION, (float)X11_VERSION, (float)VERSION);	// 2001-10-25 QIP version in the console background by Maddes
+//	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);	// 2001-10-25 Version printing fix by Maddes
 #elif defined(__linux__)
-	sprintf (ver, "(Linux Quake %2.2f) %4.2f", (float)LINUX_VERSION, (float)VERSION);
-	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);
+	sprintf (ver, "(%s, Linux Quake %2.2f) %4.2f", QIP_VERSION, (float)LINUX_VERSION, (float)VERSION);	// 2001-10-25 QIP version in the console background by Maddes
+//	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);	// 2001-10-25 Version printing fix by Maddes
 #else
-	dest = conback->data + 320 - 43 + 320*186;
-	sprintf (ver, "%4.2f", VERSION);
+	sprintf (ver, "(%s) %4.2f", QIP_VERSION, VERSION);	// 2001-10-25 QIP version in the console background by Maddes
+//	dest = conback->data + 320 - 43 + 320*186;	// 2001-10-25 Version printing fix by Maddes
 #endif
+	dest = conback->data + 320*186 + 320 - 11 - 8*strlen(ver);	// 2001-10-25 Version printing fix by Maddes
 
 	for (x=0 ; x<strlen(ver) ; x++)
 		Draw_CharToConback (ver[x], dest+(x<<3));
-	
+
 // draw the pic
 	if (r_pixbytes == 1)
 	{
@@ -574,14 +600,37 @@ void Draw_ConsoleBackground (int lines)
 		{
 			v = (vid.conheight - lines + y)*200/vid.conheight;
 			src = conback->data + v*320;
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  start
+/*
 			if (vid.conwidth == 320)
 				memcpy (dest, src, vid.conwidth);
 			else
 			{
+*/
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  end
 				f = 0;
 				fstep = 320*0x10000/vid.conwidth;
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  start
+			if (con_forcedup)
+			{
+				for (x = 0; x < vid.conwidth; x++, f+=fstep )
+					dest[x] = src[f >> 16];
+			}
+			else
+			{
+				int	t;
+
+				t = con_alpha->value * (float)CON_ALPHASTATES;
+				if (t >= CON_ALPHASTATES)
+				{
+					t = CON_ALPHASTATES - 1;
+				}
+				t = fademask[t]>>((y&1)<<2);
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  end
 				for (x=0 ; x<vid.conwidth ; x+=4)
 				{
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  start
+/*
 					dest[x] = src[f>>16];
 					f += fstep;
 					dest[x+1] = src[f>>16];
@@ -590,6 +639,12 @@ void Draw_ConsoleBackground (int lines)
 					f += fstep;
 					dest[x+3] = src[f>>16];
 					f += fstep;
+*/
+					if (t&1) dest[x]   = src[f>>16]; f+=fstep;
+					if (t&2) dest[x+1] = src[f>>16]; f+=fstep;
+					if (t&4) dest[x+2] = src[f>>16]; f+=fstep;
+					if (t&8) dest[x+3] = src[f>>16]; f+=fstep;
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  end
 				}
 			}
 		}

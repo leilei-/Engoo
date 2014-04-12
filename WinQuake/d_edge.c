@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -85,7 +85,7 @@ void D_DrawSolidSurface (surf_t *surf, int color)
 	espan_t	*span;
 	byte	*pdest;
 	int		u, u2, pix;
-	
+
 	pix = (color<<24) | (color<<16) | (color<<8) | color;
 	for (span=surf->spans ; span ; span=span->pnext)
 	{
@@ -122,13 +122,13 @@ D_CalcGradients
 */
 void D_CalcGradients (msurface_t *pface)
 {
-	mplane_t	*pplane;
+//	mplane_t	*pplane;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	float		mipscale;
 	vec3_t		p_temp1;
 	vec3_t		p_saxis, p_taxis;
 	float		t;
 
-	pplane = pface->plane;
+//	pplane = pface->plane;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	mipscale = 1.0 / (float)(1 << miplevel);
 
@@ -184,7 +184,7 @@ void D_DrawSurfaces (void)
 	VectorCopy (transformed_modelorg, world_transformed_modelorg);
 
 // TODO: could preset a lot of this at mode set time
-	if (r_drawflat.value)
+	if (r_drawflat->value)
 	{
 		for (s = &surfaces[1] ; s<surface_p ; s++)
 		{
@@ -230,7 +230,7 @@ void D_DrawSurfaces (void)
 				d_zistepv = 0;
 				d_ziorigin = -0.9;
 
-				D_DrawSolidSurface (s, (int)r_clearcolor.value & 0xFF);
+				D_DrawSolidSurface (s, (int)r_clearcolor->value & 0xFF);
 				D_DrawZSpans (s->spans);
 			}
 			else if (s->flags & SURF_DRAWTURB)

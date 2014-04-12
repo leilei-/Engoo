@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -31,38 +31,38 @@ when crossing a water boudnary.
 
 */
 
-cvar_t		lcd_x = {"lcd_x","0"};
-cvar_t		lcd_yaw = {"lcd_yaw","0"};
+cvar_t	*lcd_x;
+cvar_t	*lcd_yaw;
 
-cvar_t	scr_ofsx = {"scr_ofsx","0", false};
-cvar_t	scr_ofsy = {"scr_ofsy","0", false};
-cvar_t	scr_ofsz = {"scr_ofsz","0", false};
+cvar_t	*scr_ofsx;
+cvar_t	*scr_ofsy;
+cvar_t	*scr_ofsz;
 
-cvar_t	cl_rollspeed = {"cl_rollspeed", "200"};
-cvar_t	cl_rollangle = {"cl_rollangle", "2.0"};
+cvar_t	*cl_rollspeed;
+cvar_t	*cl_rollangle;
 
-cvar_t	cl_bob = {"cl_bob","0.02", false};
-cvar_t	cl_bobcycle = {"cl_bobcycle","0.6", false};
-cvar_t	cl_bobup = {"cl_bobup","0.5", false};
+cvar_t	*cl_bob;
+cvar_t	*cl_bobcycle;
+cvar_t	*cl_bobup;
 
-cvar_t	v_kicktime = {"v_kicktime", "0.5", false};
-cvar_t	v_kickroll = {"v_kickroll", "0.6", false};
-cvar_t	v_kickpitch = {"v_kickpitch", "0.6", false};
+cvar_t	*v_kicktime;
+cvar_t	*v_kickroll;
+cvar_t	*v_kickpitch;
 
-cvar_t	v_iyaw_cycle = {"v_iyaw_cycle", "2", false};
-cvar_t	v_iroll_cycle = {"v_iroll_cycle", "0.5", false};
-cvar_t	v_ipitch_cycle = {"v_ipitch_cycle", "1", false};
-cvar_t	v_iyaw_level = {"v_iyaw_level", "0.3", false};
-cvar_t	v_iroll_level = {"v_iroll_level", "0.1", false};
-cvar_t	v_ipitch_level = {"v_ipitch_level", "0.3", false};
+cvar_t	*v_iyaw_cycle;
+cvar_t	*v_iroll_cycle;
+cvar_t	*v_ipitch_cycle;
+cvar_t	*v_iyaw_level;
+cvar_t	*v_iroll_level;
+cvar_t	*v_ipitch_level;
 
-cvar_t	v_idlescale = {"v_idlescale", "0", false};
+cvar_t	*v_idlescale;
 
-cvar_t	crosshair = {"crosshair", "0", true};
-cvar_t	cl_crossx = {"cl_crossx", "0", false};
-cvar_t	cl_crossy = {"cl_crossy", "0", false};
+cvar_t	*crosshair;
+cvar_t	*cl_crossx;
+cvar_t	*cl_crossy;
 
-cvar_t	gl_cshiftpercent = {"gl_cshiftpercent", "100", false};
+cvar_t	*gl_cshiftpercent;
 
 float	v_dmg_time, v_dmg_roll, v_dmg_pitch;
 
@@ -83,23 +83,23 @@ float V_CalcRoll (vec3_t angles, vec3_t velocity)
 	float	sign;
 	float	side;
 	float	value;
-	
+
 	AngleVectors (angles, forward, right, up);
 	side = DotProduct (velocity, right);
 	sign = side < 0 ? -1 : 1;
 	side = fabs(side);
-	
-	value = cl_rollangle.value;
+
+	value = cl_rollangle->value;
 //	if (cl.inwater)
 //		value *= 6;
 
-	if (side < cl_rollspeed.value)
-		side = side * value / cl_rollspeed.value;
+	if (side < cl_rollspeed->value)
+		side = side * value / cl_rollspeed->value;
 	else
 		side = value;
-	
+
 	return side*sign;
-	
+
 }
 
 
@@ -113,18 +113,18 @@ float V_CalcBob (void)
 {
 	float	bob;
 	float	cycle;
-	
-	cycle = cl.time - (int)(cl.time/cl_bobcycle.value)*cl_bobcycle.value;
-	cycle /= cl_bobcycle.value;
-	if (cycle < cl_bobup.value)
-		cycle = M_PI * cycle / cl_bobup.value;
+
+	cycle = cl.time - (int)(cl.time/cl_bobcycle->value)*cl_bobcycle->value;
+	cycle /= cl_bobcycle->value;
+	if (cycle < cl_bobup->value)
+		cycle = M_PI * cycle / cl_bobup->value;
 	else
-		cycle = M_PI + M_PI*(cycle-cl_bobup.value)/(1.0 - cl_bobup.value);
+		cycle = M_PI + M_PI*(cycle-cl_bobup->value)/(1.0 - cl_bobup->value);
 
 // bob is proportional to velocity in the xy plane
 // (don't count Z, or jumping messes it up)
 
-	bob = sqrt(cl.velocity[0]*cl.velocity[0] + cl.velocity[1]*cl.velocity[1]) * cl_bob.value;
+	bob = sqrt(cl.velocity[0]*cl.velocity[0] + cl.velocity[1]*cl.velocity[1]) * cl_bob->value;
 //Con_Printf ("speed: %5.1f\n", Length(cl.velocity));
 	bob = bob*0.3 + bob*0.7*sin(cycle);
 	if (bob > 4)
@@ -132,15 +132,15 @@ float V_CalcBob (void)
 	else if (bob < -7)
 		bob = -7;
 	return bob;
-	
+
 }
 
 
 //=============================================================================
 
 
-cvar_t	v_centermove = {"v_centermove", "0.15", false};
-cvar_t	v_centerspeed = {"v_centerspeed","500"};
+cvar_t	*v_centermove;
+cvar_t	*v_centerspeed;
 
 
 void V_StartPitchDrift (void)
@@ -153,7 +153,7 @@ void V_StartPitchDrift (void)
 #endif
 	if (cl.nodrift || !cl.pitchvel)
 	{
-		cl.pitchvel = v_centerspeed.value;
+		cl.pitchvel = v_centerspeed->value;
 		cl.nodrift = false;
 		cl.driftmove = 0;
 	}
@@ -176,7 +176,7 @@ If the user is adjusting pitch manually, either with lookup/lookdown,
 mlook and mouse, or klook and keyboard, pitch drifting is constantly stopped.
 
 Drifting is enabled when the center view key is hit, mlook is released and
-lookspring is non 0, or when 
+lookspring is non 0, or when
 ===============
 */
 void V_DriftPitch (void)
@@ -193,18 +193,18 @@ void V_DriftPitch (void)
 // don't count small mouse motion
 	if (cl.nodrift)
 	{
-		if ( fabs(cl.cmd.forwardmove) < cl_forwardspeed.value)
+		if ( fabs(cl.cmd.forwardmove) < cl_forwardspeed->value)
 			cl.driftmove = 0;
 		else
 			cl.driftmove += host_frametime;
-	
-		if ( cl.driftmove > v_centermove.value)
+
+		if ( cl.driftmove > v_centermove->value)
 		{
 			V_StartPitchDrift ();
 		}
 		return;
 	}
-	
+
 	delta = cl.idealpitch - cl.viewangles[PITCH];
 
 	if (!delta)
@@ -214,8 +214,8 @@ void V_DriftPitch (void)
 	}
 
 	move = host_frametime * cl.pitchvel;
-	cl.pitchvel += host_frametime * v_centerspeed.value;
-	
+	cl.pitchvel += host_frametime * v_centerspeed->value;
+
 //Con_Printf ("move: %f (%f)\n", move, host_frametime);
 
 	if (delta > 0)
@@ -243,20 +243,20 @@ void V_DriftPitch (void)
 
 
 /*
-============================================================================== 
- 
-						PALETTE FLASHES 
- 
-============================================================================== 
-*/ 
- 
- 
+==============================================================================
+
+						PALETTE FLASHES
+
+==============================================================================
+*/
+
+
 cshift_t	cshift_empty = { {130,80,50}, 0 };
 cshift_t	cshift_water = { {130,80,50}, 128 };
 cshift_t	cshift_slime = { {0,25,5}, 150 };
 cshift_t	cshift_lava = { {255,80,0}, 150 };
 
-cvar_t		v_gamma = {"gamma", "1", true};
+cvar_t	*v_gamma;
 
 byte		gammatable[256];	// palette is sent through this
 
@@ -268,14 +268,14 @@ float		v_blend[4];		// rgba 0.0 - 1.0
 void BuildGammaTable (float g)
 {
 	int		i, inf;
-	
+
 	if (g == 1.0)
 	{
 		for (i=0 ; i<256 ; i++)
 			gammatable[i] = i;
 		return;
 	}
-	
+
 	for (i=0 ; i<256 ; i++)
 	{
 		inf = 255 * pow ( (i+0.5)/255.5 , g ) + 0.5;
@@ -295,14 +295,14 @@ V_CheckGamma
 qboolean V_CheckGamma (void)
 {
 	static float oldgammavalue;
-	
-	if (v_gamma.value == oldgammavalue)
+
+	if (v_gamma->value == oldgammavalue)
 		return false;
-	oldgammavalue = v_gamma.value;
-	
-	BuildGammaTable (v_gamma.value);
+	oldgammavalue = v_gamma->value;
+
+	BuildGammaTable (v_gamma->value);
 	vid.recalc_refdef = 1;				// force a surface cache flush
-	
+
 	return true;
 }
 
@@ -322,7 +322,7 @@ void V_ParseDamage (void)
 	entity_t	*ent;
 	float	side;
 	float	count;
-	
+
 	armor = MSG_ReadByte ();
 	blood = MSG_ReadByte ();
 	for (i=0 ; i<3 ; i++)
@@ -340,7 +340,7 @@ void V_ParseDamage (void)
 	if (cl.cshifts[CSHIFT_DAMAGE].percent > 150)
 		cl.cshifts[CSHIFT_DAMAGE].percent = 150;
 
-	if (armor > blood)		
+	if (armor > blood)
 	{
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[0] = 200;
 		cl.cshifts[CSHIFT_DAMAGE].destcolor[1] = 100;
@@ -363,19 +363,19 @@ void V_ParseDamage (void)
 // calculate view angle kicks
 //
 	ent = &cl_entities[cl.viewentity];
-	
+
 	VectorSubtract (from, ent->origin, from);
 	VectorNormalize (from);
-	
+
 	AngleVectors (ent->angles, forward, right, up);
 
 	side = DotProduct (from, right);
-	v_dmg_roll = count*side*v_kickroll.value;
-	
-	side = DotProduct (from, forward);
-	v_dmg_pitch = count*side*v_kickpitch.value;
+	v_dmg_roll = count*side*v_kickroll->value;
 
-	v_dmg_time = v_kicktime.value;
+	side = DotProduct (from, forward);
+	v_dmg_pitch = count*side*v_kickpitch->value;
+
+	v_dmg_time = v_kicktime->value;
 }
 
 
@@ -489,12 +489,12 @@ void V_CalcBlend (void)
 	b = 0;
 	a = 0;
 
-	for (j=0 ; j<NUM_CSHIFTS ; j++)	
+	for (j=0 ; j<NUM_CSHIFTS ; j++)
 	{
-		if (!gl_cshiftpercent.value)
+		if (!gl_cshiftpercent->value)
 			continue;
 
-		a2 = ((cl.cshifts[j].percent * gl_cshiftpercent.value) / 100.0) / 255.0;
+		a2 = ((cl.cshifts[j].percent * gl_cshiftpercent->value) / 100.0) / 255.0;
 
 //		a2 = cl.cshifts[j].percent/255.0;
 		if (!a2)
@@ -535,9 +535,9 @@ void V_UpdatePalette (void)
 	qboolean force;
 
 	V_CalcPowerupCshift ();
-	
+
 	new = false;
-	
+
 	for (i=0 ; i<NUM_CSHIFTS ; i++)
 	{
 		if (cl.cshifts[i].percent != cl.prev_cshifts[i].percent)
@@ -552,7 +552,7 @@ void V_UpdatePalette (void)
 				cl.prev_cshifts[i].destcolor[j] = cl.cshifts[i].destcolor[j];
 			}
 	}
-	
+
 // drop the damage value
 	cl.cshifts[CSHIFT_DAMAGE].percent -= host_frametime*150;
 	if (cl.cshifts[CSHIFT_DAMAGE].percent <= 0)
@@ -594,21 +594,21 @@ void V_UpdatePalette (void)
 
 	basepal = host_basepal;
 	newpal = pal;
-	
+
 	for (i=0 ; i<256 ; i++)
 	{
 		ir = basepal[0];
 		ig = basepal[1];
 		ib = basepal[2];
 		basepal += 3;
-		
+
 		newpal[0] = ramps[0][ir];
 		newpal[1] = ramps[1][ig];
 		newpal[2] = ramps[2][ib];
 		newpal += 3;
 	}
 
-	VID_ShiftPalette (pal);	
+	VID_ShiftPalette (pal);
 }
 #else	// !GLQUAKE
 void V_UpdatePalette (void)
@@ -621,9 +621,9 @@ void V_UpdatePalette (void)
 	qboolean force;
 
 	V_CalcPowerupCshift ();
-	
+
 	new = false;
-	
+
 	for (i=0 ; i<NUM_CSHIFTS ; i++)
 	{
 		if (cl.cshifts[i].percent != cl.prev_cshifts[i].percent)
@@ -638,7 +638,7 @@ void V_UpdatePalette (void)
 				cl.prev_cshifts[i].destcolor[j] = cl.cshifts[i].destcolor[j];
 			}
 	}
-	
+
 // drop the damage value
 	cl.cshifts[CSHIFT_DAMAGE].percent -= host_frametime*150;
 	if (cl.cshifts[CSHIFT_DAMAGE].percent <= 0)
@@ -652,42 +652,42 @@ void V_UpdatePalette (void)
 	force = V_CheckGamma ();
 	if (!new && !force)
 		return;
-			
+
 	basepal = host_basepal;
 	newpal = pal;
-	
+
 	for (i=0 ; i<256 ; i++)
 	{
 		r = basepal[0];
 		g = basepal[1];
 		b = basepal[2];
 		basepal += 3;
-	
-		for (j=0 ; j<NUM_CSHIFTS ; j++)	
+
+		for (j=0 ; j<NUM_CSHIFTS ; j++)
 		{
 			r += (cl.cshifts[j].percent*(cl.cshifts[j].destcolor[0]-r))>>8;
 			g += (cl.cshifts[j].percent*(cl.cshifts[j].destcolor[1]-g))>>8;
 			b += (cl.cshifts[j].percent*(cl.cshifts[j].destcolor[2]-b))>>8;
 		}
-		
+
 		newpal[0] = gammatable[r];
 		newpal[1] = gammatable[g];
 		newpal[2] = gammatable[b];
 		newpal += 3;
 	}
 
-	VID_ShiftPalette (pal);	
+	VID_ShiftPalette (pal);
 }
 #endif	// !GLQUAKE
 
 
-/* 
-============================================================================== 
- 
-						VIEW RENDERING 
- 
-============================================================================== 
-*/ 
+/*
+==============================================================================
+
+						VIEW RENDERING
+
+==============================================================================
+*/
 
 float angledelta (float a)
 {
@@ -703,11 +703,11 @@ CalcGunAngle
 ==================
 */
 void CalcGunAngle (void)
-{	
+{
 	float	yaw, pitch, move;
 	static float oldyaw = 0;
 	static float oldpitch = 0;
-	
+
 	yaw = r_refdef.viewangles[YAW];
 	pitch = -r_refdef.viewangles[PITCH];
 
@@ -732,7 +732,7 @@ void CalcGunAngle (void)
 		if (oldyaw - move > yaw)
 			yaw = oldyaw - move;
 	}
-	
+
 	if (pitch > oldpitch)
 	{
 		if (oldpitch + move < pitch)
@@ -743,16 +743,16 @@ void CalcGunAngle (void)
 		if (oldpitch - move > pitch)
 			pitch = oldpitch - move;
 	}
-	
+
 	oldyaw = yaw;
 	oldpitch = pitch;
 
 	cl.viewent.angles[YAW] = r_refdef.viewangles[YAW] + yaw;
 	cl.viewent.angles[PITCH] = - (r_refdef.viewangles[PITCH] + pitch);
 
-	cl.viewent.angles[ROLL] -= v_idlescale.value * sin(cl.time*v_iroll_cycle.value) * v_iroll_level.value;
-	cl.viewent.angles[PITCH] -= v_idlescale.value * sin(cl.time*v_ipitch_cycle.value) * v_ipitch_level.value;
-	cl.viewent.angles[YAW] -= v_idlescale.value * sin(cl.time*v_iyaw_cycle.value) * v_iyaw_level.value;
+	cl.viewent.angles[ROLL] -= v_idlescale->value * sin(cl.time*v_iroll_cycle->value) * v_iroll_level->value;
+	cl.viewent.angles[PITCH] -= v_idlescale->value * sin(cl.time*v_ipitch_cycle->value) * v_ipitch_level->value;
+	cl.viewent.angles[YAW] -= v_idlescale->value * sin(cl.time*v_iyaw_cycle->value) * v_iyaw_level->value;
 }
 
 /*
@@ -763,7 +763,7 @@ V_BoundOffsets
 void V_BoundOffsets (void)
 {
 	entity_t	*ent;
-	
+
 	ent = &cl_entities[cl.viewentity];
 
 // absolutely bound refresh reletive to entity clipping hull
@@ -792,9 +792,9 @@ Idle swaying
 */
 void V_AddIdle (void)
 {
-	r_refdef.viewangles[ROLL] += v_idlescale.value * sin(cl.time*v_iroll_cycle.value) * v_iroll_level.value;
-	r_refdef.viewangles[PITCH] += v_idlescale.value * sin(cl.time*v_ipitch_cycle.value) * v_ipitch_level.value;
-	r_refdef.viewangles[YAW] += v_idlescale.value * sin(cl.time*v_iyaw_cycle.value) * v_iyaw_level.value;
+	r_refdef.viewangles[ROLL] += v_idlescale->value * sin(cl.time*v_iroll_cycle->value) * v_iroll_level->value;
+	r_refdef.viewangles[PITCH] += v_idlescale->value * sin(cl.time*v_ipitch_cycle->value) * v_ipitch_level->value;
+	r_refdef.viewangles[YAW] += v_idlescale->value * sin(cl.time*v_iyaw_cycle->value) * v_iyaw_level->value;
 }
 
 
@@ -807,15 +807,15 @@ Roll is induced by movement and damage
 */
 void V_CalcViewRoll (void)
 {
-	float		side;
-		
+	float	side;
+
 	side = V_CalcRoll (cl_entities[cl.viewentity].angles, cl.velocity);
 	r_refdef.viewangles[ROLL] += side;
 
 	if (v_dmg_time > 0)
 	{
-		r_refdef.viewangles[ROLL] += v_dmg_time/v_kicktime.value*v_dmg_roll;
-		r_refdef.viewangles[PITCH] += v_dmg_time/v_kicktime.value*v_dmg_pitch;
+		r_refdef.viewangles[ROLL] += v_dmg_time/v_kicktime->value*v_dmg_roll;
+		r_refdef.viewangles[PITCH] += v_dmg_time/v_kicktime->value*v_dmg_pitch;
 		v_dmg_time -= host_frametime;
 	}
 
@@ -848,11 +848,11 @@ void V_CalcIntermissionRefdef (void)
 	VectorCopy (ent->angles, r_refdef.viewangles);
 	view->model = NULL;
 
-// allways idle in intermission
-	old = v_idlescale.value;
-	v_idlescale.value = 1;
+// always idle in intermission
+	old = v_idlescale->value;
+	v_idlescale->value = 1;
 	V_AddIdle ();
-	v_idlescale.value = old;
+	v_idlescale->value = old;
 }
 
 /*
@@ -876,7 +876,7 @@ void V_CalcRefdef (void)
 	ent = &cl_entities[cl.viewentity];
 // view is the weapon model (only visible from inside body)
 	view = &cl.viewent;
-	
+
 
 // transform the view offset by the model's matrix to get the offset from
 // model origin for the view
@@ -884,10 +884,10 @@ void V_CalcRefdef (void)
 										// the view dir
 	ent->angles[PITCH] = -cl.viewangles[PITCH];	// the model should face
 										// the view dir
-										
-	
+
+
 	bob = V_CalcBob ();
-	
+
 // refresh position
 	VectorCopy (ent->origin, r_refdef.vieworg);
 	r_refdef.vieworg[2] += cl.viewheight + bob;
@@ -912,16 +912,16 @@ void V_CalcRefdef (void)
 	AngleVectors (angles, forward, right, up);
 
 	for (i=0 ; i<3 ; i++)
-		r_refdef.vieworg[i] += scr_ofsx.value*forward[i]
-			+ scr_ofsy.value*right[i]
-			+ scr_ofsz.value*up[i];
-	
-	
+		r_refdef.vieworg[i] += scr_ofsx->value*forward[i]
+			+ scr_ofsy->value*right[i]
+			+ scr_ofsz->value*up[i];
+
+
 	V_BoundOffsets ();
-		
+
 // set up gun position
 	VectorCopy (cl.viewangles, view->angles);
-	
+
 	CalcGunAngle ();
 
 	VectorCopy (ent->origin, view->origin);
@@ -941,13 +941,13 @@ void V_CalcRefdef (void)
 #if 0
 	if (cl.model_precache[cl.stats[STAT_WEAPON]] && strcmp (cl.model_precache[cl.stats[STAT_WEAPON]]->name,  "progs/v_shot2.mdl"))
 #endif
-	if (scr_viewsize.value == 110)
+	if (scr_viewsize->value == 110)
 		view->origin[2] += 1;
-	else if (scr_viewsize.value == 100)
+	else if (scr_viewsize->value == 100)
 		view->origin[2] += 2;
-	else if (scr_viewsize.value == 90)
+	else if (scr_viewsize->value == 90)
 		view->origin[2] += 1;
-	else if (scr_viewsize.value == 80)
+	else if (scr_viewsize->value == 80)
 		view->origin[2] += 0.5;
 
 	view->model = cl.model_precache[cl.stats[STAT_WEAPON]];
@@ -961,7 +961,7 @@ void V_CalcRefdef (void)
 if (cl.onground && ent->origin[2] - oldz > 0)
 {
 	float steptime;
-	
+
 	steptime = cl.time - cl.oldtime;
 	if (steptime < 0)
 //FIXME		I_Error ("steptime < 0");
@@ -978,7 +978,7 @@ if (cl.onground && ent->origin[2] - oldz > 0)
 else
 	oldz = ent->origin[2];
 
-	if (chase_active.value)
+	if (chase_active->value)
 		Chase_Update ();
 }
 
@@ -1000,14 +1000,14 @@ void V_RenderView (void)
 // don't allow cheats in multiplayer
 	if (cl.maxclients > 1)
 	{
-		Cvar_Set ("scr_ofsx", "0");
-		Cvar_Set ("scr_ofsy", "0");
-		Cvar_Set ("scr_ofsz", "0");
+		Cvar_Set (scr_ofsx, "0");
+		Cvar_Set (scr_ofsy, "0");
+		Cvar_Set (scr_ofsz, "0");
 	}
 
 	if (cl.intermission)
 	{	// intermission / finale rendering
-		V_CalcIntermissionRefdef ();	
+		V_CalcIntermissionRefdef ();
 	}
 	else
 	{
@@ -1017,7 +1017,7 @@ void V_RenderView (void)
 
 	R_PushDlights ();
 
-	if (lcd_x.value)
+	if (lcd_x->value)
 	{
 		//
 		// render two interleaved views
@@ -1027,18 +1027,18 @@ void V_RenderView (void)
 		vid.rowbytes <<= 1;
 		vid.aspect *= 0.5;
 
-		r_refdef.viewangles[YAW] -= lcd_yaw.value;
+		r_refdef.viewangles[YAW] -= lcd_yaw->value;
 		for (i=0 ; i<3 ; i++)
-			r_refdef.vieworg[i] -= right[i]*lcd_x.value;
+			r_refdef.vieworg[i] -= right[i]*lcd_x->value;
 		R_RenderView ();
 
 		vid.buffer += vid.rowbytes>>1;
 
 		R_PushDlights ();
 
-		r_refdef.viewangles[YAW] += lcd_yaw.value*2;
+		r_refdef.viewangles[YAW] += lcd_yaw->value*2;
 		for (i=0 ; i<3 ; i++)
-			r_refdef.vieworg[i] += 2*right[i]*lcd_x.value;
+			r_refdef.vieworg[i] += 2*right[i]*lcd_x->value;
 		R_RenderView ();
 
 		vid.buffer -= vid.rowbytes>>1;
@@ -1054,14 +1054,59 @@ void V_RenderView (void)
 	}
 
 #ifndef GLQUAKE
-	if (crosshair.value)
-		Draw_Character (scr_vrect.x + scr_vrect.width/2 + cl_crossx.value, 
-			scr_vrect.y + scr_vrect.height/2 + cl_crossy.value, '+');
+	if (crosshair->value)
+		Draw_Character (scr_vrect.x + scr_vrect.width/2 + cl_crossx->value,
+			scr_vrect.y + scr_vrect.height/2 + cl_crossy->value, '+');
 #endif
-		
+
 }
 
 //============================================================================
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+=============
+V_Init_Cvars
+=============
+*/
+void V_Init_Cvars (void)
+{
+	lcd_x = Cvar_Get ("lcd_x", "0", CVAR_ORIGINAL);
+	lcd_yaw = Cvar_Get ("lcd_yaw", "0", CVAR_ORIGINAL);
+
+	v_centermove = Cvar_Get ("v_centermove", "0.15", CVAR_ORIGINAL);
+	v_centerspeed = Cvar_Get ("v_centerspeed", "500", CVAR_ORIGINAL);
+
+	v_iyaw_cycle = Cvar_Get ("v_iyaw_cycle", "2", CVAR_ORIGINAL);
+	v_iroll_cycle = Cvar_Get ("v_iroll_cycle", "0.5", CVAR_ORIGINAL);
+	v_ipitch_cycle = Cvar_Get ("v_ipitch_cycle", "1", CVAR_ORIGINAL);
+	v_iyaw_level = Cvar_Get ("v_iyaw_level", "0.3", CVAR_ORIGINAL);
+	v_iroll_level = Cvar_Get ("v_iroll_level", "0.1", CVAR_ORIGINAL);
+	v_ipitch_level = Cvar_Get ("v_ipitch_level", "0.3", CVAR_ORIGINAL);
+
+	v_idlescale = Cvar_Get ("v_idlescale", "0", CVAR_ORIGINAL);
+	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	cl_crossx = Cvar_Get ("cl_crossx", "0", CVAR_ORIGINAL);
+	cl_crossy = Cvar_Get ("cl_crossy", "0", CVAR_ORIGINAL);
+	gl_cshiftpercent = Cvar_Get ("gl_cshiftpercent", "100", CVAR_ORIGINAL);
+
+	scr_ofsx = Cvar_Get ("scr_ofsx", "0", CVAR_ORIGINAL);
+	scr_ofsy = Cvar_Get ("scr_ofsy", "0", CVAR_ORIGINAL);
+	scr_ofsz = Cvar_Get ("scr_ofsz", "0", CVAR_ORIGINAL);
+	cl_rollspeed = Cvar_Get ("cl_rollspeed", "200", CVAR_ORIGINAL);
+	cl_rollangle = Cvar_Get ("cl_rollangle", "2.0", CVAR_ORIGINAL);
+	cl_bob = Cvar_Get ("cl_bob", "0.02", CVAR_ORIGINAL);
+	cl_bobcycle = Cvar_Get ("cl_bobcycle", "0.6", CVAR_ORIGINAL);
+	cl_bobup = Cvar_Get ("cl_bobup", "0.5", CVAR_ORIGINAL);
+
+	v_kicktime = Cvar_Get ("v_kicktime", "0.5", CVAR_ORIGINAL);
+	v_kickroll = Cvar_Get ("v_kickroll", "0.6", CVAR_ORIGINAL);
+	v_kickpitch = Cvar_Get ("v_kickpitch", "0.6", CVAR_ORIGINAL);
+
+	BuildGammaTable (1.0);	// no gamma yet
+	v_gamma = Cvar_Get ("gamma", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 =============
@@ -1070,44 +1115,46 @@ V_Init
 */
 void V_Init (void)
 {
-	Cmd_AddCommand ("v_cshift", V_cshift_f);	
+	Cmd_AddCommand ("v_cshift", V_cshift_f);
 	Cmd_AddCommand ("bf", V_BonusFlash_f);
 	Cmd_AddCommand ("centerview", V_StartPitchDrift);
 
-	Cvar_RegisterVariable (&lcd_x);
-	Cvar_RegisterVariable (&lcd_yaw);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	lcd_x = Cvar_Get ("lcd_x", "0", CVAR_ORIGINAL);
+	lcd_yaw = Cvar_Get ("lcd_yaw", "0", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&v_centermove);
-	Cvar_RegisterVariable (&v_centerspeed);
+	v_centermove = Cvar_Get ("v_centermove", "0.15", CVAR_ORIGINAL);
+	v_centerspeed = Cvar_Get ("v_centerspeed", "500", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&v_iyaw_cycle);
-	Cvar_RegisterVariable (&v_iroll_cycle);
-	Cvar_RegisterVariable (&v_ipitch_cycle);
-	Cvar_RegisterVariable (&v_iyaw_level);
-	Cvar_RegisterVariable (&v_iroll_level);
-	Cvar_RegisterVariable (&v_ipitch_level);
+	v_iyaw_cycle = Cvar_Get ("v_iyaw_cycle", "2", CVAR_ORIGINAL);
+	v_iroll_cycle = Cvar_Get ("v_iroll_cycle", "0.5", CVAR_ORIGINAL);
+	v_ipitch_cycle = Cvar_Get ("v_ipitch_cycle", "1", CVAR_ORIGINAL);
+	v_iyaw_level = Cvar_Get ("v_iyaw_level", "0.3", CVAR_ORIGINAL);
+	v_iroll_level = Cvar_Get ("v_iroll_level", "0.1", CVAR_ORIGINAL);
+	v_ipitch_level = Cvar_Get ("v_ipitch_level", "0.3", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&v_idlescale);
-	Cvar_RegisterVariable (&crosshair);
-	Cvar_RegisterVariable (&cl_crossx);
-	Cvar_RegisterVariable (&cl_crossy);
-	Cvar_RegisterVariable (&gl_cshiftpercent);
+	v_idlescale = Cvar_Get ("v_idlescale", "0", CVAR_ORIGINAL);
+	crosshair = Cvar_Get ("crosshair", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	cl_crossx = Cvar_Get ("cl_crossx", "0", CVAR_ORIGINAL);
+	cl_crossy = Cvar_Get ("cl_crossy", "0", CVAR_ORIGINAL);
+	gl_cshiftpercent = Cvar_Get ("gl_cshiftpercent", "100", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&scr_ofsx);
-	Cvar_RegisterVariable (&scr_ofsy);
-	Cvar_RegisterVariable (&scr_ofsz);
-	Cvar_RegisterVariable (&cl_rollspeed);
-	Cvar_RegisterVariable (&cl_rollangle);
-	Cvar_RegisterVariable (&cl_bob);
-	Cvar_RegisterVariable (&cl_bobcycle);
-	Cvar_RegisterVariable (&cl_bobup);
+	scr_ofsx = Cvar_Get ("scr_ofsx", "0", CVAR_ORIGINAL);
+	scr_ofsy = Cvar_Get ("scr_ofsy", "0", CVAR_ORIGINAL);
+	scr_ofsz = Cvar_Get ("scr_ofsz", "0", CVAR_ORIGINAL);
+	cl_rollspeed = Cvar_Get ("cl_rollspeed", "200", CVAR_ORIGINAL);
+	cl_rollangle = Cvar_Get ("cl_rollangle", "2.0", CVAR_ORIGINAL);
+	cl_bob = Cvar_Get ("cl_bob", "0.02", CVAR_ORIGINAL);
+	cl_bobcycle = Cvar_Get ("cl_bobcycle", "0.6", CVAR_ORIGINAL);
+	cl_bobup = Cvar_Get ("cl_bobup", "0.5", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&v_kicktime);
-	Cvar_RegisterVariable (&v_kickroll);
-	Cvar_RegisterVariable (&v_kickpitch);	
-	
+	v_kicktime = Cvar_Get ("v_kicktime", "0.5", CVAR_ORIGINAL);
+	v_kickroll = Cvar_Get ("v_kickroll", "0.6", CVAR_ORIGINAL);
+	v_kickpitch = Cvar_Get ("v_kickpitch", "0.6", CVAR_ORIGINAL);
+
 	BuildGammaTable (1.0);	// no gamma yet
-	Cvar_RegisterVariable (&v_gamma);
+	v_gamma = Cvar_Get ("gamma", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  start
 }
-
-

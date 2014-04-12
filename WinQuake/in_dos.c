@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -26,18 +26,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 typedef struct
 {
-	long    interruptVector;
-	char    deviceName[16];
-	long    numAxes;
+	long	interruptVector;
+	char	deviceName[16];
+	long	numAxes;
 	long	numButtons;
 	long	flags;
-	
-	vec3_t  viewangles;
+
+	vec3_t	viewangles;
 
 // intended velocities
-	float   forwardmove;
-	float   sidemove;
-	float   upmove;
+	float	forwardmove;
+	float	sidemove;
+	float	upmove;
 
 	long	buttons;
 } externControl_t;
@@ -59,12 +59,12 @@ typedef struct
 
 typedef struct
 {
-	long    interruptVector;
+	long	interruptVector;
 	// r/o
-	char    deviceName[16];
+	char	deviceName[16];
 	// r/o
-	long    numAxes;
-			// r/o	1-6
+	long	numAxes;
+	// r/o	1-6
 	long	numButtons;			// r/o	0-32
 	long	flags;				// see above
 	byte	axisMapping[6];		// w/o	default = p,y,r,f,s,u
@@ -75,7 +75,7 @@ typedef struct
 } externControl_t;
 */
 
-cvar_t	m_filter = {"m_filter","1"};
+cvar_t	*m_filter;
 
 qboolean	mouse_avail;
 int		mouse_buttons;
@@ -85,14 +85,14 @@ float	mouse_x, mouse_y;
 float	old_mouse_x, old_mouse_y;
 
 
-cvar_t	in_joystick = {"joystick","1"};
-cvar_t	joy_numbuttons = {"joybuttons","4", true};
+cvar_t	*in_joystick;
+cvar_t	*joy_numbuttons;
 
 qboolean	joy_avail;
 int		joy_oldbuttonstate;
 int		joy_buttonstate;
 
-int     joyxl, joyxh, joyyl, joyyh; 
+int		joyxl, joyxh, joyyl, joyyh;
 int		joystickx, joysticky;
 
 qboolean		need_center;
@@ -101,7 +101,7 @@ qboolean		extern_avail;
 int				extern_buttons;
 int				extern_oldbuttonstate;
 int				extern_buttonstate;
-cvar_t	aux_look = {"auxlook","1", true};
+cvar_t	*aux_look;
 externControl_t	*extern_control;
 void IN_StartupExternal (void);
 void IN_ExternalMove (usercmd_t *cmd);
@@ -112,10 +112,10 @@ qboolean IN_ReadJoystick (void);
 
 void Toggle_AuxLook_f (void)
 {
-	if (aux_look.value)
-		Cvar_Set ("auxlook","0");
+	if (aux_look->value)
+		Cvar_Set (aux_look,"0");
 	else
-		Cvar_Set ("auxlook","1");
+		Cvar_Set (aux_look,"1");
 }
 
 
@@ -132,9 +132,9 @@ IN_StartupMouse
 */
 void IN_StartupMouse (void)
 {
-	if ( COM_CheckParm ("-nomouse") ) 
-		return; 
- 
+	if ( COM_CheckParm ("-nomouse") )
+		return;
+
 // check for mouse
 	regs.x.ax = 0;
 	dos_int86(0x33);
@@ -144,12 +144,30 @@ void IN_StartupMouse (void)
 		Con_Printf ("No mouse found\n");
 		return;
 	}
-	
+
 	mouse_buttons = regs.x.bx;
 	if (mouse_buttons > 3)
 		mouse_buttons = 3;
 	Con_Printf("%d-button mouse available\n", mouse_buttons);
 }
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===========
+IN_Init_Cvars
+===========
+*/
+void IN_Init_Cvars (void)
+{
+	// mouse variables
+	m_filter = Cvar_Get ("m_filter", "1", CVAR_ORIGINAL);
+
+	// joystick variables
+	in_joystick = Cvar_Get ("joystick", "1", CVAR_ORIGINAL);
+	joy_numbuttons = Cvar_Get ("joybuttons", "4", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	aux_look = Cvar_Get ("auxlook", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 ===========
@@ -160,10 +178,14 @@ void IN_Init (void)
 {
 	int i;
 
-	Cvar_RegisterVariable (&m_filter);
-	Cvar_RegisterVariable (&in_joystick);
-	Cvar_RegisterVariable (&joy_numbuttons);
-	Cvar_RegisterVariable (&aux_look);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	m_filter = Cvar_Get ("m_filter", "1", CVAR_ORIGINAL);
+	in_joystick = Cvar_Get ("joystick", "1", CVAR_ORIGINAL);
+	joy_numbuttons = Cvar_Get ("joybuttons", "4", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	aux_look = Cvar_Get ("auxlook", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 	Cmd_AddCommand ("toggle_auxlook", Toggle_AuxLook_f);
 	Cmd_AddCommand ("force_centerview", Force_CenterView_f);
 
@@ -203,7 +225,7 @@ void IN_Commands (void)
 		regs.x.ax = 3;		// read buttons
 		dos_int86(0x33);
 		mouse_buttonstate = regs.x.bx;
-	
+
 	// perform button actions
 		for (i=0 ; i<mouse_buttons ; i++)
 		{
@@ -217,16 +239,16 @@ void IN_Commands (void)
 			{
 				Key_Event (K_MOUSE1 + i, false);
 			}
-		}	
-		
+		}
+
 		mouse_oldbuttonstate = mouse_buttonstate;
 	}
-	
+
 	if (joy_avail)
 	{
 		joy_buttonstate = ((dos_inportb(0x201) >> 4)&15)^15;
 	// perform button actions
-		for (i=0 ; i<joy_numbuttons.value ; i++)
+		for (i=0 ; i<joy_numbuttons->value ; i++)
 		{
 			if ( (joy_buttonstate & (1<<i)) &&
 			!(joy_oldbuttonstate & (1<<i)) )
@@ -239,14 +261,14 @@ void IN_Commands (void)
 				Key_Event (K_JOY1 + i, false);
 			}
 		}
-		
+
 		joy_oldbuttonstate = joy_buttonstate;
 	}
 
 	if (extern_avail)
 	{
 		extern_buttonstate = extern_control->buttons;
-	
+
 	// perform button actions
 		for (i=0 ; i<extern_buttons ; i++)
 		{
@@ -260,11 +282,11 @@ void IN_Commands (void)
 			{
 				Key_Event (K_AUX1 + i, false);
 			}
-		}	
-		
+		}
+
 		extern_oldbuttonstate = extern_buttonstate;
 	}
-	
+
 }
 
 
@@ -284,8 +306,8 @@ void IN_MouseMove (usercmd_t *cmd)
 	dos_int86(0x33);
 	mx = (short)regs.x.cx;
 	my = (short)regs.x.dx;
-	
-	if (m_filter.value)
+
+	if (m_filter->value)
 	{
 		mouse_x = (mx + old_mouse_x) * 0.5;
 		mouse_y = (my + old_mouse_y) * 0.5;
@@ -298,21 +320,21 @@ void IN_MouseMove (usercmd_t *cmd)
 	old_mouse_x = mx;
 	old_mouse_y = my;
 
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
+	mouse_x *= sensitivity->value;
+	mouse_y *= sensitivity->value;
 
 // add mouse X/Y movement to cmd
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-		
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
@@ -321,9 +343,9 @@ void IN_MouseMove (usercmd_t *cmd)
 	else
 	{
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
+			cmd->upmove -= m_forward->value * mouse_y;
 		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
+			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 }
 
@@ -336,52 +358,55 @@ void IN_JoyMove (usercmd_t *cmd)
 {
 	float	speed, aspeed;
 
-	if (!joy_avail || !in_joystick.value) 
-		return; 
- 
-	IN_ReadJoystick (); 
+	if (!joy_avail || !in_joystick->value)
+		return;
+
+	IN_ReadJoystick ();
 	if (joysticky > joyyh*2 || joystickx > joyxh*2)
 		return;		// assume something jumped in and messed up the joystick
 					// reading time (win 95)
 
 	if (in_speed.state & 1)
-		speed = cl_movespeedkey.value;
+		speed = cl_movespeedkey->value;
 	else
 		speed = 1;
-	aspeed = speed*host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	aspeed = speed*host_frametime;
+	aspeed = speed*host_org_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 	if (in_strafe.state & 1)
 	{
 		if (joystickx < joyxl)
-			cmd->sidemove -= speed*cl_sidespeed.value; 
-		else if (joystickx > joyxh) 
-			cmd->sidemove += speed*cl_sidespeed.value; 
+			cmd->sidemove -= speed*cl_sidespeed->value;
+		else if (joystickx > joyxh)
+			cmd->sidemove += speed*cl_sidespeed->value;
 	}
 	else
 	{
 		if (joystickx < joyxl)
-			cl.viewangles[YAW] += aspeed*cl_yawspeed.value;
-		else if (joystickx > joyxh) 
-			cl.viewangles[YAW] -= aspeed*cl_yawspeed.value;
+			cl.viewangles[YAW] += aspeed*cl_yawspeed->value;
+		else if (joystickx > joyxh)
+			cl.viewangles[YAW] -= aspeed*cl_yawspeed->value;
 		cl.viewangles[YAW] = anglemod(cl.viewangles[YAW]);
 	}
 
-	if (in_mlook.state & 1)
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
-		if (m_pitch.value < 0)
+		if (m_pitch->value < 0)
 			speed *= -1;
-		
-		if (joysticky < joyyl) 
-			cl.viewangles[PITCH] += aspeed*cl_pitchspeed.value;
-		else if (joysticky > joyyh) 
-			cl.viewangles[PITCH] -= aspeed*cl_pitchspeed.value;
+
+		if (joysticky < joyyl)
+			cl.viewangles[PITCH] += aspeed*cl_pitchspeed->value;
+		else if (joysticky > joyyh)
+			cl.viewangles[PITCH] -= aspeed*cl_pitchspeed->value;
 	}
 	else
 	{
-		if (joysticky < joyyl) 
-			cmd->forwardmove += speed*cl_forwardspeed.value; 
-		else if (joysticky > joyyh) 
-			cmd->forwardmove -= speed*cl_backspeed.value;  
+		if (joysticky < joyyl)
+			cmd->forwardmove += speed*cl_forwardspeed->value;
+		else if (joysticky > joyyh)
+			cmd->forwardmove -= speed*cl_backspeed->value;
 	}
 }
 
@@ -397,12 +422,12 @@ void IN_Move (usercmd_t *cmd)
 	IN_ExternalMove (cmd);
 }
 
-/* 
-============================================================================ 
- 
-					JOYSTICK 
- 
-============================================================================ 
+/*
+============================================================================
+
+					JOYSTICK
+
+============================================================================
 */
 
 
@@ -430,7 +455,7 @@ qboolean IN_ReadJoystick (void)
 		if ( !(b&3) )
 			return true;
 	}
-	
+
 	Con_Printf ("IN_ReadJoystick: no response\n");
 	joy_avail = false;
 	return false;
@@ -441,12 +466,12 @@ qboolean IN_ReadJoystick (void)
 WaitJoyButton
 =============
 */
-qboolean WaitJoyButton (void) 
-{ 
-	int             oldbuttons, buttons; 
- 
-	oldbuttons = 0; 
-	do 
+qboolean WaitJoyButton (void)
+{
+	int	oldbuttons, buttons;
+
+	oldbuttons = 0;
+	do
 	{
 		key_count = -1;
 		Sys_SendKeyEvents ();
@@ -458,16 +483,16 @@ qboolean WaitJoyButton (void)
 		}
 		key_lastpress = 0;
 		SCR_UpdateScreen ();
-		buttons =  ((dos_inportb(0x201) >> 4)&1)^1; 
-		if (buttons != oldbuttons) 
-		{ 
-			oldbuttons = buttons; 
-			continue; 
+		buttons =  ((dos_inportb(0x201) >> 4)&1)^1;
+		if (buttons != oldbuttons)
+		{
+			oldbuttons = buttons;
+			continue;
 		}
-	} while ( !buttons); 
- 
-	do 
-	{ 
+	} while ( !buttons);
+
+	do
+	{
 		key_count = -1;
 		Sys_SendKeyEvents ();
 		key_count = 0;
@@ -478,87 +503,87 @@ qboolean WaitJoyButton (void)
 		}
 		key_lastpress = 0;
 		SCR_UpdateScreen ();
-		buttons =  ((dos_inportb(0x201) >> 4)&1)^1; 
-		if (buttons != oldbuttons) 
-		{ 
-			oldbuttons = buttons; 
-			continue; 
-		} 
-	} while ( buttons); 
- 
-	return true; 
-} 
- 
- 
- 
-/* 
-=============== 
-IN_StartupJoystick 
-=============== 
-*/  
-void IN_StartupJoystick (void) 
-{ 
-	int     centerx, centery; 
- 
- 	Con_Printf ("\n");
+		buttons =  ((dos_inportb(0x201) >> 4)&1)^1;
+		if (buttons != oldbuttons)
+		{
+			oldbuttons = buttons;
+			continue;
+		}
+	} while ( buttons);
 
-	joy_avail = false; 
-	if ( COM_CheckParm ("-nojoy") ) 
-		return; 
- 
-	if (!IN_ReadJoystick ()) 
-	{ 
-		joy_avail = false; 
-		Con_Printf ("joystick not found\n"); 
-		return; 
-	} 
+	return true;
+}
 
-	Con_Printf ("joystick found\n"); 
- 
-	Con_Printf ("CENTER the joystick\nand press button 1 (ESC to skip):\n"); 
-	if (!WaitJoyButton ()) 
-		return; 
-	IN_ReadJoystick (); 
-	centerx = joystickx; 
-	centery = joysticky; 
- 
-	Con_Printf ("Push the joystick to the UPPER LEFT\nand press button 1 (ESC to skip):\n"); 
-	if (!WaitJoyButton ()) 
-		return; 
-	IN_ReadJoystick (); 
-	joyxl = (centerx + joystickx)/2; 
-	joyyl = (centerx + joysticky)/2; 
- 
-	Con_Printf ("Push the joystick to the LOWER RIGHT\nand press button 1 (ESC to skip):\n"); 
-	if (!WaitJoyButton ()) 
-		return; 
-	IN_ReadJoystick (); 
-	joyxh = (centerx + joystickx)/2; 
-	joyyh = (centery + joysticky)/2; 
 
-	joy_avail = true; 
-	Con_Printf ("joystick configured.\n"); 
+
+/*
+===============
+IN_StartupJoystick
+===============
+*/
+void IN_StartupJoystick (void)
+{
+	int	centerx, centery;
 
  	Con_Printf ("\n");
-} 
- 
- 
-/* 
-============================================================================ 
- 
-					EXTERNAL 
- 
-============================================================================ 
+
+	joy_avail = false;
+	if ( COM_CheckParm ("-nojoy") )
+		return;
+
+	if (!IN_ReadJoystick ())
+	{
+		joy_avail = false;
+		Con_Printf ("joystick not found\n");
+		return;
+	}
+
+	Con_Printf ("joystick found\n");
+
+	Con_Printf ("CENTER the joystick\nand press button 1 (ESC to skip):\n");
+	if (!WaitJoyButton ())
+		return;
+	IN_ReadJoystick ();
+	centerx = joystickx;
+	centery = joysticky;
+
+	Con_Printf ("Push the joystick to the UPPER LEFT\nand press button 1 (ESC to skip):\n");
+	if (!WaitJoyButton ())
+		return;
+	IN_ReadJoystick ();
+	joyxl = (centerx + joystickx)/2;
+	joyyl = (centerx + joysticky)/2;
+
+	Con_Printf ("Push the joystick to the LOWER RIGHT\nand press button 1 (ESC to skip):\n");
+	if (!WaitJoyButton ())
+		return;
+	IN_ReadJoystick ();
+	joyxh = (centerx + joystickx)/2;
+	joyyh = (centery + joysticky)/2;
+
+	joy_avail = true;
+	Con_Printf ("joystick configured.\n");
+
+ 	Con_Printf ("\n");
+}
+
+
+/*
+============================================================================
+
+					EXTERNAL
+
+============================================================================
 */
 
 
-/* 
-=============== 
-IN_StartupExternal 
-=============== 
-*/  
-void IN_StartupExternal (void) 
-{ 
+/*
+===============
+IN_StartupExternal
+===============
+*/
+void IN_StartupExternal (void)
+{
 	if (extern_control->numButtons > 32)
 		extern_control->numButtons = 32;
 
@@ -607,9 +632,8 @@ Con_DPrintf("OUT: y:%f p:%f r:%f f:%f s:%f u:%f\n", extern_control->viewangles[Y
 	if (cl.viewangles[PITCH] < -70)
 		cl.viewangles[PITCH] = -70;
 
-	freelook = (extern_control->flags & AUX_FLAG_FREELOOK || aux_look.value || in_mlook.state & 1);
+	freelook = (extern_control->flags & AUX_FLAG_FREELOOK || aux_look->value || ((in_mlook.state & 1) ^ ((int)m_look->value & 1)));	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 
 	if (freelook)
 		V_StopPitchDrift ();
 }
-

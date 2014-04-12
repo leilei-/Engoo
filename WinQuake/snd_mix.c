@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -73,8 +73,8 @@ void S_TransferStereo16 (int endtime)
 	DWORD	*pbuf2;
 	HRESULT	hresult;
 #endif
-	
-	snd_vol = volume.value*256;
+
+	snd_vol = volume->value*256;
 
 	snd_p = (int *) paintbuffer;
 	lpaintedtime = paintedtime;
@@ -84,7 +84,7 @@ void S_TransferStereo16 (int endtime)
 	{
 		reps = 0;
 
-		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &pbuf, &dwSize, 
+		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &pbuf, &dwSize,
 									   &pbuf2, &dwSize2, 0)) != DS_OK)
 		{
 			if (hresult != DSERR_BUFFERLOST)
@@ -158,20 +158,20 @@ void S_TransferPaintBuffer(int endtime)
 		S_TransferStereo16 (endtime);
 		return;
 	}
-	
+
 	p = (int *) paintbuffer;
 	count = (endtime - paintedtime) * shm->channels;
-	out_mask = shm->samples - 1; 
+	out_mask = shm->samples - 1;
 	out_idx = paintedtime * shm->channels & out_mask;
 	step = 3 - shm->channels;
-	snd_vol = volume.value*256;
+	snd_vol = volume->value*256;
 
 #ifdef _WIN32
 	if (pDSBuf)
 	{
 		reps = 0;
 
-		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &pbuf, &dwSize, 
+		while ((hresult = pDSBuf->lpVtbl->Lock(pDSBuf, 0, gSndBufSize, &pbuf, &dwSize,
 									   &pbuf2,&dwSize2, 0)) != DS_OK)
 		{
 			if (hresult != DSERR_BUFFERLOST)
@@ -233,7 +233,7 @@ void S_TransferPaintBuffer(int endtime)
 		DWORD dwNewpos, dwWrite;
 		int il = paintedtime;
 		int ir = endtime - paintedtime;
-		
+
 		ir += il;
 
 		pDSBuf->lpVtbl->Unlock(pDSBuf, pbuf, dwSize, NULL, 0);
@@ -298,12 +298,12 @@ void S_PaintChannels(int endtime)
 					count = end - ltime;
 
 				if (count > 0)
-				{	
+				{
 					if (sc->width == 1)
 						SND_PaintChannelFrom8(ch, sc, count);
 					else
 						SND_PaintChannelFrom16(ch, sc, count);
-	
+
 					ltime += count;
 				}
 
@@ -315,14 +315,14 @@ void S_PaintChannels(int endtime)
 						ch->pos = sc->loopstart;
 						ch->end = ltime + sc->length - ch->pos;
 					}
-					else				
+					else
 					{	// channel just stopped
 						ch->sfx = NULL;
 						break;
 					}
 				}
 			}
-															  
+
 		}
 
 	// transfer out according to DMA format
@@ -334,7 +334,7 @@ void S_PaintChannels(int endtime)
 void SND_InitScaletable (void)
 {
 	int		i, j;
-	
+
 	for (i=0 ; i<32 ; i++)
 		for (j=0 ; j<256 ; j++)
 			snd_scaletable[i][j] = ((signed char)j) * i * 8;
@@ -354,7 +354,7 @@ void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int count)
 		ch->leftvol = 255;
 	if (ch->rightvol > 255)
 		ch->rightvol = 255;
-		
+
 	lscale = snd_scaletable[ch->leftvol >> 3];
 	rscale = snd_scaletable[ch->rightvol >> 3];
 	sfx = (signed char *)sc->data + ch->pos;
@@ -365,7 +365,7 @@ void SND_PaintChannelFrom8 (channel_t *ch, sfxcache_t *sc, int count)
 		paintbuffer[i].left += lscale[data];
 		paintbuffer[i].right += rscale[data];
 	}
-	
+
 	ch->pos += count;
 }
 

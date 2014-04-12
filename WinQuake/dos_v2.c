@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -108,10 +108,10 @@ void dos_irqdisable(void)
 
 int	dos_int86(int vec)
 {
-    int rc;
-    regs.x.ss = regs.x.sp = 0;
-    rc = _go32_dpmi_simulate_int(vec, (_go32_dpmi_registers *) &regs);
-    return rc || (regs.x.flags & 1);
+	int	rc;
+	regs.x.ss = regs.x.sp = 0;
+	rc = _go32_dpmi_simulate_int(vec, (_go32_dpmi_registers *) &regs);
+	return rc || (regs.x.flags & 1);
 }
 
 int	dos_int386(int vec, regs_t *inregs, regs_t *outregs)

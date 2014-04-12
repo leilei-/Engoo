@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -35,6 +35,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/nearptr.h>
 #include <conio.h>
 
+// 2000-07-16 DOSQuake/DJGPP mem detection fix by Norberto Alfredo Bensa  start
+#include <crt0.h>
+int _crt0_startup_flags = _CRT0_FLAG_UNIX_SBRK;
+// 2000-07-16 DOSQuake/DJGPP mem detection fix by Norberto Alfredo Bensa  end
+
 #include "quakedef.h"
 #include "dosisms.h"
 
@@ -54,11 +59,18 @@ static int				keybuf_tail=0;
 
 static quakeparms_t	quakeparms;
 int					sys_checksum;
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  start
+/*
 static double		curtime = 0.0;
 static double		lastcurtime = 0.0;
 static double		oldtime = 0.0;
+*/
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  end
 
-static qboolean		isDedicated;
+// 2000-07-16 DOSQuake wrong variable definition fix by Ender/Norberto Alfredo Bensa  start
+//static qboolean	isDedicated;
+qboolean		isDedicated;
+// 2000-07-16 DOSQuake wrong variable definition fix by Ender/Norberto Alfredo Bensa  end
 
 static int			minmem;
 
@@ -78,7 +90,7 @@ extern byte end;
 void Sys_InitStackCheck (void)
 {
 	int		i;
-	
+
 	for (i=0 ; i<128*1024 ; i++)
 		(&end)[i] = CHECKBYTE;
 }
@@ -86,11 +98,11 @@ void Sys_InitStackCheck (void)
 void Sys_StackCheck (void)
 {
 	int		i;
-	
+
 	for (i=0 ; i<128*1024 ; i++)
 		if ( (&end)[i] != CHECKBYTE )
 			break;
-	
+
 	Con_Printf ("%i undisturbed stack bytes\n", i);
 	if (end != CHECKBYTE)
 		Sys_Error ("System stack overflow!");
@@ -99,49 +111,49 @@ void Sys_StackCheck (void)
 
 //=============================================================================
 
-byte        scantokey[128] = 
-					{ 
-//  0           1       2       3       4       5       6       7 
-//  8           9       A       B       C       D       E       F 
-	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6', 
-	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0 
-	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i', 
-	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1 
-	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';', 
-	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2 
-	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*', 
-	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3 
-	K_F6, K_F7, K_F8, K_F9, K_F10,0  ,    0  , K_HOME, 
-	K_UPARROW,K_PGUP,'-',K_LEFTARROW,'5',K_RIGHTARROW,'+',K_END, //4 
-	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11, 
-	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7 
-					}; 
+byte	scantokey[128] =
+{
+//  0           1       2       3       4       5       6       7
+//  8           9       A       B       C       D       E       F
+	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6',
+	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0
+	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i',
+	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1
+	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';',
+	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2
+	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*',
+	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3
+	K_F6, K_F7, K_F8, K_F9, K_F10,0  ,    0  , K_HOME,
+	K_UPARROW,K_PGUP,'-',K_LEFTARROW,'5',K_RIGHTARROW,'+',K_END, //4
+	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11,
+	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7
+};
 
-byte        shiftscantokey[128] = 
-					{ 
-//  0           1       2       3       4       5       6       7 
-//  8           9       A       B       C       D       E       F 
-	0  ,    27,     '!',    '@',    '#',    '$',    '%',    '^', 
-	'&',    '*',    '(',    ')',    '_',    '+',    K_BACKSPACE, 9, // 0 
-	'Q',    'W',    'E',    'R',    'T',    'Y',    'U',    'I', 
-	'O',    'P',    '{',    '}',    13 ,    K_CTRL,'A',  'S',      // 1 
-	'D',    'F',    'G',    'H',    'J',    'K',    'L',    ':', 
-	'"' ,    '~',    K_SHIFT,'|',  'Z',    'X',    'C',    'V',      // 2 
-	'B',    'N',    'M',    '<',    '>',    '?',    K_SHIFT,'*', 
-	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3 
-	K_F6, K_F7, K_F8, K_F9, K_F10,0  ,    0  , K_HOME, 
-	K_UPARROW,K_PGUP,'_',K_LEFTARROW,'%',K_RIGHTARROW,'+',K_END, //4 
-	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11, 
-	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7 
-					}; 
+byte	shiftscantokey[128] =
+{
+//  0           1       2       3       4       5       6       7
+//  8           9       A       B       C       D       E       F
+	0  ,    27,     '!',    '@',    '#',    '$',    '%',    '^',
+	'&',    '*',    '(',    ')',    '_',    '+',    K_BACKSPACE, 9, // 0
+	'Q',    'W',    'E',    'R',    'T',    'Y',    'U',    'I',
+	'O',    'P',    '{',    '}',    13 ,    K_CTRL,'A',  'S',      // 1
+	'D',    'F',    'G',    'H',    'J',    'K',    'L',    ':',
+	'"' ,    '~',    K_SHIFT,'|',  'Z',    'X',    'C',    'V',      // 2
+	'B',    'N',    'M',    '<',    '>',    '?',    K_SHIFT,'*',
+	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3
+	K_F6, K_F7, K_F8, K_F9, K_F10,0  ,    0  , K_HOME,
+	K_UPARROW,K_PGUP,'_',K_LEFTARROW,'%',K_RIGHTARROW,'+',K_END, //4
+	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11,
+	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7
+};
 
 void TrapKey(void)
 {
@@ -157,16 +169,20 @@ void TrapKey(void)
 	keybuf_head = (keybuf_head + 1) & (KEYBUF_SIZE-1);
 }
 
-#define SC_UPARROW              0x48
-#define SC_DOWNARROW    0x50
-#define SC_LEFTARROW            0x4b
-#define SC_RIGHTARROW   0x4d
-#define SC_LEFTSHIFT   0x2a
-#define SC_RIGHTSHIFT   0x36
-#define SC_RIGHTARROW   0x4d
+#define SC_UPARROW		0x48
+#define SC_DOWNARROW	0x50
+#define SC_LEFTARROW	0x4b
+#define SC_RIGHTARROW	0x4d
+#define SC_LEFTSHIFT	0x2a
+#define SC_RIGHTSHIFT	0x36
+#define SC_RIGHTARROW	0x4d
 
 void MaskExceptions (void);
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  start
+/*
 void Sys_InitFloatTime (void);
+*/
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  end
 void Sys_PushFPCW_SetHigh (void);
 void Sys_PopFPCW (void);
 
@@ -214,7 +230,7 @@ void *dos_getmaxlockedmem(int *size)
 	static char				*msg = "Locking data...";
 	int						m, n;
 	byte					*x;
- 
+
 // first lock all the current executing image so the locked count will
 // be accurate.  It doesn't hurt to lock the memory multiple times
 	last_locked = __djgpp_selector_limit + 1;
@@ -309,10 +325,10 @@ void *dos_getmaxlockedmem(int *size)
 			 j -= 0x100000)
 		{
 			info.size = j;
-	
+
 			if (!__dpmi_lock_linear_region(&info))
 				goto Locked;
-	
+
 			write (STDOUT, ".", 1);
 		}
 
@@ -386,10 +402,10 @@ returns -1 if not present
 int	Sys_FileTime (char *path)
 {
 	struct	stat	buf;
-	
+
 	if (stat (path,&buf) == -1)
 		return -1;
-	
+
 	return buf.st_mtime;
 }
 
@@ -455,11 +471,15 @@ void Sys_Init(void)
 
 	Sys_SetFPCW ();
 
-    dos_outportb(0x43, 0x34); // set system timer to mode 2
-    dos_outportb(0x40, 0);    // for the Sys_FloatTime() function
-    dos_outportb(0x40, 0);
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  start
+/*
+	dos_outportb(0x43, 0x34); // set system timer to mode 2
+	dos_outportb(0x40, 0);    // for the Sys_FloatTime() function
+	dos_outportb(0x40, 0);
 
 	Sys_InitFloatTime ();
+*/
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  end
 
 	_go32_interrupt_stack_size = 4 * 1024;;
 	_go32_rmcb_stack_size = 4 * 1024;
@@ -479,8 +499,8 @@ void Sys_Shutdown(void)
 }
 
 
-#define SC_RSHIFT       0x36 
-#define SC_LSHIFT       0x2a 
+#define SC_RSHIFT       0x36
+#define SC_LSHIFT       0x2a
 void Sys_SendKeyEvents (void)
 {
 	int k, next;
@@ -495,24 +515,24 @@ void Sys_SendKeyEvents (void)
 		keybuf_tail &= (KEYBUF_SIZE-1);
 
 		if (k==0xe0)
-			continue;               // special / pause keys
+			continue;	// special / pause keys
 		next = keybuf[(keybuf_tail-2)&(KEYBUF_SIZE-1)];
 		if (next == 0xe1)
-			continue;                               // pause key bullshit
-		if (k==0xc5 && next == 0x9d) 
-		{ 
+			continue;	// pause key bullshit
+		if (k==0xc5 && next == 0x9d)
+		{
 			Key_Event (K_PAUSE, true);
-			continue; 
-		} 
+			continue;
+		}
 
-		// extended keyboard shift key bullshit 
-		if ( (k&0x7f)==SC_LSHIFT || (k&0x7f)==SC_RSHIFT ) 
-		{ 
-			if ( keybuf[(keybuf_tail-2)&(KEYBUF_SIZE-1)]==0xe0 ) 
-				continue; 
-			k &= 0x80; 
-			k |= SC_RSHIFT; 
-		} 
+		// extended keyboard shift key bullshit
+		if ( (k&0x7f)==SC_LSHIFT || (k&0x7f)==SC_RSHIFT )
+		{
+			if ( keybuf[(keybuf_tail-2)&(KEYBUF_SIZE-1)]==0xe0 )
+				continue;
+			k &= 0x80;
+			k |= SC_RSHIFT;
+		}
 
 		if (k==0xc5 && keybuf[(keybuf_tail-2)&(KEYBUF_SIZE-1)] == 0x9d)
 			continue; // more pause bullshit
@@ -543,13 +563,19 @@ void Sys_Printf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		text[1024];
-	
+
 	va_start (argptr,fmt);
 	vsprintf (text,fmt,argptr);
 	va_end (argptr);
 
 	if (cls.state == ca_dedicated)
+	{	// 2000-07-11 Piped output of a dedicated server not written immediately fix by Hendrik Lipka
 		fprintf(stderr, "%s", text);
+// 2000-07-11 Piped output of a dedicated server not written immediately fix by Hendrik Lipka  start
+		fflush(stderr);
+	}
+// 2000-07-11 Piped output of a dedicated server not written immediately fix by Hendrik Lipka  end
+
 }
 
 void Sys_AtExit (void)
@@ -565,18 +591,32 @@ void Sys_AtExit (void)
 void Sys_Quit (void)
 {
 	byte	screen[80*25*2];
-	byte	*d;
+//	byte	*d;	// 2001-09-12 Returning information about loaded file by Maddes
 	char			ver[6];
 	int			i;
-	
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
+
 
 // load the sell screen before shuting everything down
-	if (registered.value)
-		d = COM_LoadHunkFile ("end2.bin"); 
+	if (registered->value)
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//		d = COM_LoadHunkFile ("end2.bin");
+		fileinfo = COM_LoadHunkFile ("end2.bin");
+// 2001-09-12 Returning information about loaded file by Maddes  end
 	else
-		d = COM_LoadHunkFile ("end1.bin"); 
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//		d = COM_LoadHunkFile ("end1.bin");
+		fileinfo = COM_LoadHunkFile ("end1.bin");
+// 2001-09-12 Returning information about loaded file by Maddes  end
+
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
 	if (d)
 		memcpy (screen, d, sizeof(screen));
+*/
+	if (fileinfo)
+		memcpy (screen, fileinfo->data, sizeof(screen));
+// 2001-09-12 Returning information about loaded file by Maddes  end
 
 // write the version number directly to the end screen
 	sprintf (ver, " v%4.2f", VERSION);
@@ -586,16 +626,19 @@ void Sys_Quit (void)
 	Host_Shutdown();
 
 // do the text mode sell screen
-	if (d)
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//	if (d)
+	if (fileinfo)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 	{
-		memcpy ((void *)real2ptr(0xb8000), screen,80*25*2); 
-	
+		memcpy ((void *)real2ptr(0xb8000), screen,80*25*2);
+
 	// set text pos
-		regs.x.ax = 0x0200; 
-		regs.h.bh = 0; 
-		regs.h.dl = 0; 
+		regs.x.ax = 0x0200;
+		regs.h.bh = 0;
+		regs.h.dl = 0;
 		regs.h.dh = 22;
-		dos_int86 (0x10); 
+		dos_int86 (0x10);
 	}
 	else
 		printf ("couldn't load endscreen.\n");
@@ -604,10 +647,10 @@ void Sys_Quit (void)
 }
 
 void Sys_Error (char *error, ...)
-{ 
-    va_list     argptr;
-    char        string[1024];
-    
+{
+	va_list	argptr;
+	char	string[1024];
+
     va_start (argptr,error);
     vsprintf (string,error,argptr);
     va_end (argptr);
@@ -616,19 +659,19 @@ void Sys_Error (char *error, ...)
 	fprintf(stderr, "Error: %s\n", string);
 // Sys_AtExit is called by exit to shutdown the system
 	exit(0);
-} 
+}
 
 
 int Sys_FileOpenRead (char *path, int *handle)
 {
 	int	h;
 	struct stat	fileinfo;
-    
+
 	h = open (path, O_RDONLY|O_BINARY, 0666);
 	*handle = h;
 	if (h == -1)
 		return -1;
-	
+
 	if (fstat (h,&fileinfo) == -1)
 		Sys_Error ("Error fstating %s", path);
 
@@ -637,10 +680,10 @@ int Sys_FileOpenRead (char *path, int *handle)
 
 int Sys_FileOpenWrite (char *path)
 {
-	int     handle;
+	int	handle;
 
 	umask (0);
-	
+
 	handle = open(path,O_RDWR | O_BINARY | O_CREAT | O_TRUNC
 	, 0666);
 
@@ -688,24 +731,28 @@ Sys_FloatTime
 */
 double Sys_FloatTime (void)
 {
-    int				r;
-    unsigned		t, tick;
-	double			ft, time;
-	static int		sametimecount;
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  start
+	// Warning!!! uclock() is not an ANSI-C standard function
+	return (double) uclock() / (double) UCLOCKS_PER_SEC;
+/*
+	int			r;
+	unsigned	t, tick;
+	double		ft, time;
+	static int	sametimecount;
 
 	Sys_PushFPCW_SetHigh ();
 
-//{static float t = 0; t=t+0.05; return t;}	// DEBUG
+//	{static float t = 0; t=t+0.05; return t;}	// DEBUG
 
-    t = *(unsigned short*)real2ptr(0x46c) * 65536;
+	t = *(unsigned short*)real2ptr(0x46c) * 65536;
 
-    dos_outportb(0x43, 0); // latch time
-    r = dos_inportb(0x40);
-    r |= dos_inportb(0x40) << 8;
-    r = (r-1) & 0xffff;
+	dos_outportb(0x43, 0); // latch time
+	r = dos_inportb(0x40);
+	r |= dos_inportb(0x40) << 8;
+	r = (r-1) & 0xffff;
 
-    tick = *(unsigned short*)real2ptr(0x46c) * 65536;
-    if ((tick != t) && (r & 0x8000))
+	tick = *(unsigned short*)real2ptr(0x46c) * 65536;
+	if ((tick != t) && (r & 0x8000))
 		t = tick;
 
 	ft = (double) (t+(65536-r)) / 1193200.0;
@@ -741,7 +788,9 @@ double Sys_FloatTime (void)
 
 	Sys_PopFPCW ();
 
-    return curtime;
+	return curtime;
+*/
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  end
 }
 
 
@@ -750,6 +799,8 @@ double Sys_FloatTime (void)
 Sys_InitFloatTime
 ================
 */
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  start
+/*
 void Sys_InitFloatTime (void)
 {
 	int		j;
@@ -770,6 +821,8 @@ void Sys_InitFloatTime (void)
 	}
 	lastcurtime = curtime;
 }
+*/
+// 2000-07-28 DOSQuake time running too fast fix by Norberto Alfredo Bensa  end
 
 
 /*
@@ -890,7 +943,7 @@ int main (int c, char **v)
 	static	char	cwd[1024];
 
 	printf ("Quake v%4.2f\n", VERSION);
-	
+
 // make sure there's an FPU
 	signal(SIGNOFP, Sys_NoFPUExceptionHandler);
 	signal(SIGABRT, Sys_DefaultExceptionHandler);
@@ -916,7 +969,7 @@ int main (int c, char **v)
 	atexit (Sys_AtExit);	// in case we crash
 
 	getwd (cwd);
-	if (cwd[Q_strlen(cwd)-1] == '/') cwd[Q_strlen(cwd)-1] = 0;
+	if (cwd[strlen(cwd)-1] == '/') cwd[strlen(cwd)-1] = 0;
 	quakeparms.basedir = cwd; //"f:/quake";
 
 	isDedicated = (COM_CheckParm ("-dedicated") != 0);
@@ -927,7 +980,7 @@ int main (int c, char **v)
 		dos_registerintr(9, TrapKey);
 
 //Sys_InitStackCheck ();
-	
+
 	Host_Init(&quakeparms);
 
 //Sys_StackCheck ();
@@ -939,7 +992,7 @@ int main (int c, char **v)
 		newtime = Sys_FloatTime ();
 		time = newtime - oldtime;
 
-		if (cls.state == ca_dedicated && (time<sys_ticrate.value))
+		if (cls.state == ca_dedicated && (time<sys_ticrate->value))
 			continue;
 
 		Host_Frame (time);

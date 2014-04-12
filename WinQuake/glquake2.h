@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma warning(disable : 4244)     // MIPS
 #pragma warning(disable : 4136)     // X86
 #pragma warning(disable : 4051)     // ALPHA
-  
+
 #include <windows.h>
 
 #include <gl\gl.h>
@@ -180,26 +180,26 @@ extern	int	playertextures;
 
 extern	int	skytexturenum;		// index in cl.loadmodel, not gl texture object
 
-extern	cvar_t	r_drawentities;
-extern	cvar_t	r_drawworld;
-extern	cvar_t	r_drawviewmodel;
-extern	cvar_t	r_speeds;
-extern	cvar_t	r_waterwarp;
-extern	cvar_t	r_fullbright;
-extern	cvar_t	r_lightmap;
-extern	cvar_t	r_shadows;
-extern	cvar_t	r_dynamic;
+extern	cvar_t	*r_drawentities;
+extern	cvar_t	*r_drawworld;
+extern	cvar_t	*r_drawviewmodel;
+extern	cvar_t	*r_speeds;
+extern	cvar_t	*r_waterwarp;
+extern	cvar_t	*r_fullbright;
+extern	cvar_t	*r_lightmap;
+extern	cvar_t	*r_shadows;
+extern	cvar_t	*r_dynamic;
 
-extern	cvar_t	gl_clear;
-extern	cvar_t	gl_cull;
-extern	cvar_t	gl_poly;
-extern	cvar_t	gl_texsort;
-extern	cvar_t	gl_smoothmodels;
-extern	cvar_t	gl_affinemodels;
-extern	cvar_t	gl_fogblend;
-extern	cvar_t	gl_polyblend;
-extern	cvar_t	gl_keeptjunctions;
-extern	cvar_t	gl_reporttjunctions;
+extern	cvar_t	*gl_clear;
+extern	cvar_t	*gl_cull;
+extern	cvar_t	*gl_poly;
+extern	cvar_t	*gl_texsort;
+extern	cvar_t	*gl_smoothmodels;
+extern	cvar_t	*gl_affinemodels;
+extern	cvar_t	*gl_fogblend;
+extern	cvar_t	*gl_polyblend;
+extern	cvar_t	*gl_keeptjunctions;
+extern	cvar_t	*gl_reporttjunctions;
 
 extern	int		gl_lightmap_format;
 extern	int		gl_solid_format;

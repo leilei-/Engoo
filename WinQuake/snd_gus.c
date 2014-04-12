@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -646,7 +646,7 @@ void ClearGf1Ints(void)
    SetGf18(DMA_CONTROL,0x00);
    SetGf18(ADLIB_CONTROL,0x00);
    SetGf18(RECORD_CONTROL,0x00);
-		
+
    GetGf18(DMA_CONTROL);
    GetGf18(RECORD_CONTROL);
    for (i=0;i<32;i++);
@@ -1095,11 +1095,11 @@ qboolean GUS_Init(void)
 		if (rc)
 		{
 			shm->speed = Q_atoi(com_argv[rc+1]);
-	
+
 			// Make sure rate not too high
 			if (shm->speed>48000)
 				shm->speed=48000;
-	
+
 			// Adjust speed to match one of the possible CODEC rates
 			for (CodecRate=CodecRates;CodecRate->Rate!=0;CodecRate++)
 			{
@@ -1112,11 +1112,11 @@ qboolean GUS_Init(void)
 			}
 		}
 
-	
+
 		// Always do 16 bit stereo
 		shm->channels = 2;
 		shm->samplebits = 16;
-	
+
 		// allocate buffer twice the size we need so we can get aligned buffer
 		dma_buffer = dos_getmemory(BUFFER_SIZE*2);
 		if (dma_buffer==NULL)

@@ -26,7 +26,7 @@ int nostdout = 0;
 char *basedir = ".";
 char *cachedir = "/tmp";
 
-cvar_t  sys_linerefresh = {"sys_linerefresh","0"};// set for entity display
+cvar_t	*sys_linerefresh;	// set for entity display
 
 // =======================================================================
 // General routines
@@ -41,12 +41,12 @@ void Sys_Printf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		text[1024];
-	
+
 	va_start (argptr,fmt);
 	vsprintf (text,fmt,argptr);
 	va_end (argptr);
 	fprintf(stderr, "%s", text);
-	
+
 	Con_Print (text);
 }
 
@@ -96,8 +96,8 @@ void Sys_Printf (char *fmt, ...)
 	if (strlen(text) > sizeof(text))
 		Sys_Error("memory overwrite in Sys_Printf");
 
-    if (nostdout)
-        return;
+	if (nostdout)
+		return;
 
 	for (p = (unsigned char *)text; *p; p++) {
 		*p &= 0x7f;
@@ -106,6 +106,7 @@ void Sys_Printf (char *fmt, ...)
 		else
 			putc(*p, stdout);
 	}
+	fflush(stdout);	// 2000-07-11 Piped output of a dedicated server not written immediately fix by Hendrik Lipka
 }
 
 #if 0
@@ -120,7 +121,7 @@ void Sys_Quit (void)
 	Host_Shutdown();
     fcntl (0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);
 #if 0
-	if (registered.value)
+	if (registered->value)
 		printf("%s", end2);
 	else
 		printf("%s", end1);
@@ -134,16 +135,18 @@ void Sys_Init(void)
 #if id386
 	Sys_SetFPCW();
 #endif
+
+	sys_linerefresh = Cvar_Get ("sys_linerefresh", "0", CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
 }
 
 void Sys_Error (char *error, ...)
-{ 
+{
     va_list     argptr;
     char        string[1024];
 
 // change stdin to non blocking
     fcntl (0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);
-    
+
     va_start (argptr,error);
     vsprintf (string,error,argptr);
     va_end (argptr);
@@ -152,18 +155,18 @@ void Sys_Error (char *error, ...)
 	Host_Shutdown ();
 	exit (1);
 
-} 
+}
 
 void Sys_Warn (char *warning, ...)
-{ 
+{
     va_list     argptr;
     char        string[1024];
-    
+
     va_start (argptr,warning);
     vsprintf (string,warning,argptr);
     va_end (argptr);
 	fprintf(stderr, "Warning: %s", string);
-} 
+}
 
 /*
 ============
@@ -175,10 +178,10 @@ returns -1 if not present
 int	Sys_FileTime (char *path)
 {
 	struct	stat	buf;
-	
+
 	if (stat (path,&buf) == -1)
 		return -1;
-	
+
 	return buf.st_mtime;
 }
 
@@ -192,13 +195,13 @@ int Sys_FileOpenRead (char *path, int *handle)
 {
 	int	h;
 	struct stat	fileinfo;
-    
-	
+
+
 	h = open (path, O_RDONLY, 0666);
 	*handle = h;
 	if (h == -1)
 		return -1;
-	
+
 	if (fstat (h,&fileinfo) == -1)
 		Sys_Error ("Error fstating %s", path);
 
@@ -210,7 +213,7 @@ int Sys_FileOpenWrite (char *path)
 	int     handle;
 
 	umask (0);
-	
+
 	handle = open(path,O_RDWR | O_CREAT | O_TRUNC
 	, 0666);
 
@@ -242,10 +245,10 @@ int Sys_FileRead (int handle, void *dest, int count)
 
 void Sys_DebugLog(char *file, char *fmt, ...)
 {
-    va_list argptr; 
+    va_list argptr;
     static char data[1024];
     int fd;
-    
+
     va_start(argptr, fmt);
     vsprintf(data, fmt, argptr);
     va_end(argptr);
@@ -281,10 +284,10 @@ void Sys_EditFile(char *filename)
 double Sys_FloatTime (void)
 {
     struct timeval tp;
-    struct timezone tzp; 
-    static int      secbase; 
-    
-    gettimeofday(&tp, &tzp);  
+    struct timezone tzp;
+    static int      secbase;
+
+    gettimeofday(&tp, &tzp);
 
     if (!secbase)
     {
@@ -408,15 +411,15 @@ int main (int c, char **v)
 
         if (cls.state == ca_dedicated)
         {   // play vcrfiles at max speed
-            if (time < sys_ticrate.value && (vcrFile == -1 || recording) )
+            if (time < sys_ticrate->value && (vcrFile == -1 || recording) )
             {
 				usleep(1);
                 continue;       // not time to run a server only tic yet
             }
-            time = sys_ticrate.value;
+            time = sys_ticrate->value;
         }
 
-        if (time > sys_ticrate.value*2)
+        if (time > sys_ticrate->value*2)
             oldtime = newtime;
         else
             oldtime += time;
@@ -454,4 +457,3 @@ void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
     		Sys_Error("Protection change failed\n");
 
 }
-

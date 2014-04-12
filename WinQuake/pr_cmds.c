@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,6 +22,64 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define	RETURN_EDICT(e) (((int *)pr_globals)[OFS_RETURN] = EDICT_TO_PROG(e))
 
+#define PR_MAX_TEMPSTRING 2048	// 2001-10-25 Enhanced temp string handling by Maddes
+
+memzone_t	*zone_progstrings;	// 2001-09-20 QuakeC string zone by Maddes
+
+// 2001-10-20 Extension System by LordHavoc/Maddes  start
+char *pr_extensions[] =
+{
+// add the extension names here, syntax: "extensionname",
+	"TIMESCALE",	// 2001-10-20 TIMESCALE extension by Tomaz/Maddes
+// 2001-09-16 Quake 2 builtin functions by id/Maddes  start
+	"DP_QC_ETOS",
+	"DP_QC_CHANGEPITCH",
+	"DP_QC_TRACETOSS",
+// 2001-09-16 Quake 2 builtin functions by id/Maddes  end
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  start
+	"DP_REGISTERCVAR",	// 2001-09-18 New BuiltIn Function: cvar_create() by Maddes
+	"DP_QC_SINCOSSQRTPOW",
+	"DP_QC_TRACEBOX",
+	"DP_QC_RANDOMVEC",
+	"DP_QC_MINMAXBOUND",
+	"DP_QC_FINDFLOAT",
+
+	"DP_QC_COPYENTITY",
+	"DP_SV_SETCOLOR",
+	"DP_QC_FINDCHAIN",
+	"DP_QC_FINDCHAINFLOAT",
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+};
+
+int pr_numextensions = sizeof(pr_extensions)/sizeof(pr_extensions[0]);
+
+qboolean extension_find(char *name)
+{
+	int	i;
+
+	for (i=0; i < pr_numextensions; i++)
+	{
+		if (!Q_strcasecmp(pr_extensions[i], name))
+			return true;
+	}
+	return false;
+}
+
+/*
+=================
+PF_extension_find
+
+returns true if the extension is supported by the server
+
+float extension_find(string name)
+=================
+*/
+void PF_extension_find (void)
+{
+	G_FLOAT(OFS_RETURN) = extension_find(G_STRING(OFS_PARM0));
+}
+// 2001-10-20 Extension System by LordHavoc/Maddes  end
+
 /*
 ===============================================================================
 
@@ -30,23 +88,49 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 ===============================================================================
 */
 
+char	pr_varstring_temp[PR_MAX_TEMPSTRING];	// 2001-10-25 Enhanced temp string handling by Maddes
+
 char *PF_VarString (int	first)
 {
 	int		i;
+// 2001-10-25 Enhanced temp string handling by Maddes  start
+/*
 	static char out[256];
-	
+
 	out[0] = 0;
 	for (i=first ; i<pr_argc ; i++)
 	{
 		strcat (out, G_STRING((OFS_PARM0+i*3)));
 	}
 	return out;
+*/
+	int		maxlen;
+	char	*add;
+
+	pr_varstring_temp[0] = 0;
+	for (i=first ; i<pr_argc ; i++)
+	{
+		maxlen = PR_MAX_TEMPSTRING - strlen(pr_varstring_temp) - 1;	// -1 is EndOfString
+		add = G_STRING((OFS_PARM0+i*3));
+		if (maxlen > strlen(add))
+		{
+			strcat (pr_varstring_temp, add);
+		}
+		else
+		{
+			strncat (pr_varstring_temp, add, maxlen);
+			pr_varstring_temp[PR_MAX_TEMPSTRING-1] = 0;
+			break;	// can stop here
+		}
+	}
+	return pr_varstring_temp;
+// 2001-10-25 Enhanced temp string handling by Maddes  end
 }
 
 
 /*
 =================
-PF_errror
+PF_error
 
 This is a TERMINAL error, which will kill off the entire server.
 Dumps self.
@@ -58,7 +142,7 @@ void PF_error (void)
 {
 	char	*s;
 	edict_t	*ed;
-	
+
 	s = PF_VarString(0);
 	Con_Printf ("======SERVER ERROR in %s:\n%s\n"
 	,pr_strings + pr_xfunction->s_name,s);
@@ -82,15 +166,14 @@ void PF_objerror (void)
 {
 	char	*s;
 	edict_t	*ed;
-	
+
 	s = PF_VarString(0);
-	Con_Printf ("======OBJECT ERROR in %s:\n%s\n"
-	,pr_strings + pr_xfunction->s_name,s);
+	Con_Printf ("======OBJECT ERROR in %s:\n%s\n", pr_strings + pr_xfunction->s_name, s);
 	ed = PROG_TO_EDICT(pr_global_struct->self);
 	ED_Print (ed);
 	ED_Free (ed);
-	
-	Host_Error ("Program error");
+
+//	Host_Error ("Program error");	// 2001-12-16 Do not stop server on objerror
 }
 
 
@@ -121,7 +204,7 @@ void PF_setorigin (void)
 {
 	edict_t	*e;
 	float	*org;
-	
+
 	e = G_EDICT(OFS_PARM0);
 	org = G_VECTOR(OFS_PARM1);
 	VectorCopy (org, e->v.origin);
@@ -138,7 +221,7 @@ void SetMinMaxSize (edict_t *e, float *min, float *max, qboolean rotate)
 	float	a;
 	vec3_t	base, transformed;
 	int		i, j, k, l;
-	
+
 	for (i=0 ; i<3 ; i++)
 		if (min[i] > max[i])
 			PR_RunError ("backwards mins/maxs");
@@ -154,20 +237,20 @@ void SetMinMaxSize (edict_t *e, float *min, float *max, qboolean rotate)
 	{
 	// find min / max for rotations
 		angles = e->v.angles;
-		
+
 		a = angles[1]/180 * M_PI;
-		
+
 		xvector[0] = cos(a);
 		xvector[1] = sin(a);
 		yvector[0] = -sin(a);
 		yvector[1] = cos(a);
-		
+
 		VectorCopy (min, bounds[0]);
 		VectorCopy (max, bounds[1]);
-		
+
 		rmin[0] = rmin[1] = rmin[2] = 9999;
 		rmax[0] = rmax[1] = rmax[2] = -9999;
-		
+
 		for (i=0 ; i<= 1 ; i++)
 		{
 			base[0] = bounds[i][0];
@@ -177,12 +260,12 @@ void SetMinMaxSize (edict_t *e, float *min, float *max, qboolean rotate)
 				for (k=0 ; k<= 1 ; k++)
 				{
 					base[2] = bounds[k][2];
-					
+
 				// transform the point
 					transformed[0] = xvector[0]*base[0] + yvector[0]*base[1];
 					transformed[1] = xvector[1]*base[0] + yvector[1]*base[1];
 					transformed[2] = base[2];
-					
+
 					for (l=0 ; l<3 ; l++)
 					{
 						if (transformed[l] < rmin[l])
@@ -194,12 +277,12 @@ void SetMinMaxSize (edict_t *e, float *min, float *max, qboolean rotate)
 			}
 		}
 	}
-	
+
 // set derived values
 	VectorCopy (rmin, e->v.mins);
 	VectorCopy (rmax, e->v.maxs);
 	VectorSubtract (max, min, e->v.size);
-	
+
 	SV_LinkEdict (e, false);
 }
 
@@ -216,7 +299,7 @@ void PF_setsize (void)
 {
 	edict_t	*e;
 	float	*min, *max;
-	
+
 	e = G_EDICT(OFS_PARM0);
 	min = G_VECTOR(OFS_PARM1);
 	max = G_VECTOR(OFS_PARM2);
@@ -245,16 +328,16 @@ void PF_setmodel (void)
 	for (i=0, check = sv.model_precache ; *check ; i++, check++)
 		if (!strcmp(*check, m))
 			break;
-			
+
 	if (!*check)
 		PR_RunError ("no precache: %s\n", m);
-		
+
 
 	e->v.model = m - pr_strings;
-	e->v.modelindex = i; //SV_ModelIndex (m);
+	e->v.modelindex = i;	//SV_ModelIndex (m);
 
-	mod = sv.models[ (int)e->v.modelindex];  // Mod_ForName (m, true);
-	
+	mod = sv.models[(int)e->v.modelindex];	// Mod_ForName (m, true);
+
 	if (mod)
 		SetMinMaxSize (e, mod->mins, mod->maxs, true);
 	else
@@ -292,18 +375,18 @@ void PF_sprint (void)
 	char		*s;
 	client_t	*client;
 	int			entnum;
-	
+
 	entnum = G_EDICTNUM(OFS_PARM0);
 	s = PF_VarString(1);
-	
+
 	if (entnum < 1 || entnum > svs.maxclients)
 	{
 		Con_Printf ("tried to sprint to a non-client\n");
 		return;
 	}
-		
+
 	client = &svs.clients[entnum-1];
-		
+
 	MSG_WriteChar (&client->message,svc_print);
 	MSG_WriteString (&client->message, s );
 }
@@ -323,18 +406,18 @@ void PF_centerprint (void)
 	char		*s;
 	client_t	*client;
 	int			entnum;
-	
+
 	entnum = G_EDICTNUM(OFS_PARM0);
 	s = PF_VarString(1);
-	
+
 	if (entnum < 1 || entnum > svs.maxclients)
 	{
 		Con_Printf ("tried to sprint to a non-client\n");
 		return;
 	}
-		
+
 	client = &svs.clients[entnum-1];
-		
+
 	MSG_WriteChar (&client->message,svc_centerprint);
 	MSG_WriteString (&client->message, s );
 }
@@ -352,12 +435,12 @@ void PF_normalize (void)
 	float	*value1;
 	vec3_t	newvalue;
 	float	new;
-	
+
 	value1 = G_VECTOR(OFS_PARM0);
 
 	new = value1[0] * value1[0] + value1[1] * value1[1] + value1[2]*value1[2];
 	new = sqrt(new);
-	
+
 	if (new == 0)
 		newvalue[0] = newvalue[1] = newvalue[2] = 0;
 	else
@@ -367,8 +450,8 @@ void PF_normalize (void)
 		newvalue[1] = value1[1] * new;
 		newvalue[2] = value1[2] * new;
 	}
-	
-	VectorCopy (newvalue, G_VECTOR(OFS_RETURN));	
+
+	VectorCopy (newvalue, G_VECTOR(OFS_RETURN));
 }
 
 /*
@@ -382,12 +465,12 @@ void PF_vlen (void)
 {
 	float	*value1;
 	float	new;
-	
+
 	value1 = G_VECTOR(OFS_PARM0);
 
 	new = value1[0] * value1[0] + value1[1] * value1[1] + value1[2]*value1[2];
 	new = sqrt(new);
-	
+
 	G_FLOAT(OFS_RETURN) = new;
 }
 
@@ -402,7 +485,7 @@ void PF_vectoyaw (void)
 {
 	float	*value1;
 	float	yaw;
-	
+
 	value1 = G_VECTOR(OFS_PARM0);
 
 	if (value1[1] == 0 && value1[0] == 0)
@@ -430,7 +513,7 @@ void PF_vectoangles (void)
 	float	*value1;
 	float	forward;
 	float	yaw, pitch;
-	
+
 	value1 = G_VECTOR(OFS_PARM0);
 
 	if (value1[1] == 0 && value1[0] == 0)
@@ -462,7 +545,7 @@ void PF_vectoangles (void)
 =================
 PF_Random
 
-Returns a number from 0<= num < 1
+Returns a number from 0>= num <= 1
 
 random()
 =================
@@ -470,9 +553,9 @@ random()
 void PF_random (void)
 {
 	float		num;
-		
+
 	num = (rand ()&0x7fff) / ((float)0x7fff);
-	
+
 	G_FLOAT(OFS_RETURN) = num;
 }
 
@@ -488,7 +571,7 @@ void PF_particle (void)
 	float		*org, *dir;
 	float		color;
 	float		count;
-			
+
 	org = G_VECTOR(OFS_PARM0);
 	dir = G_VECTOR(OFS_PARM1);
 	color = G_FLOAT(OFS_PARM2);
@@ -511,16 +594,16 @@ void PF_ambientsound (void)
 	float 		vol, attenuation;
 	int			i, soundnum;
 
-	pos = G_VECTOR (OFS_PARM0);			
+	pos = G_VECTOR (OFS_PARM0);
 	samp = G_STRING(OFS_PARM1);
 	vol = G_FLOAT(OFS_PARM2);
 	attenuation = G_FLOAT(OFS_PARM3);
-	
+
 // check to see if samp was properly precached
 	for (soundnum=0, check = sv.sound_precache ; *check ; check++, soundnum++)
 		if (!strcmp(*check,samp))
 			break;
-			
+
 	if (!*check)
 	{
 		Con_Printf ("no precache: %s\n", samp);
@@ -548,7 +631,7 @@ Each entity can have eight independant sound sources, like voice,
 weapon, feet, etc.
 
 Channel 0 is an auto-allocate channel, the others override anything
-allready running on that entity/channel pair.
+already running on that entity/channel pair.
 
 An attenuation of 0 will play full volume everywhere in the level.
 Larger attenuations will drop off.
@@ -562,13 +645,13 @@ void PF_sound (void)
 	edict_t		*entity;
 	int 		volume;
 	float attenuation;
-		
+
 	entity = G_EDICT(OFS_PARM0);
 	channel = G_FLOAT(OFS_PARM1);
 	sample = G_STRING(OFS_PARM2);
 	volume = G_FLOAT(OFS_PARM3) * 255;
 	attenuation = G_FLOAT(OFS_PARM4);
-	
+
 	if (volume < 0 || volume > 255)
 		Sys_Error ("SV_StartSound: volume = %i", volume);
 
@@ -600,10 +683,10 @@ Con_Printf ("break statement\n");
 PF_traceline
 
 Used for use tracing and shot targeting
-Traces are blocked by bbox and exact bsp entityes, and also slide box entities
-if the tryents flag is set.
+Traces are blocked by bbox and exact bsp entities, and also slide box entities
+if the tryents flag is set(?).
 
-traceline (vector1, vector2, tryents)
+void(vector v1, vector v2, float nomonsters, entity forent) traceline
 =================
 */
 void PF_traceline (void)
@@ -627,7 +710,7 @@ void PF_traceline (void)
 	pr_global_struct->trace_inopen = trace.inopen;
 	VectorCopy (trace.endpos, pr_global_struct->trace_endpos);
 	VectorCopy (trace.plane.normal, pr_global_struct->trace_plane_normal);
-	pr_global_struct->trace_plane_dist =  trace.plane.dist;	
+	pr_global_struct->trace_plane_dist = trace.plane.dist;
 	if (trace.ent)
 		pr_global_struct->trace_ent = EDICT_TO_PROG(trace.ent);
 	else
@@ -635,7 +718,7 @@ void PF_traceline (void)
 }
 
 
-#ifdef QUAKE2
+//#ifdef QUAKE2	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 extern trace_t SV_Trace_Toss (edict_t *ent, edict_t *ignore);
 
 void PF_TraceToss (void)
@@ -656,13 +739,13 @@ void PF_TraceToss (void)
 	pr_global_struct->trace_inopen = trace.inopen;
 	VectorCopy (trace.endpos, pr_global_struct->trace_endpos);
 	VectorCopy (trace.plane.normal, pr_global_struct->trace_plane_normal);
-	pr_global_struct->trace_plane_dist =  trace.plane.dist;	
+	pr_global_struct->trace_plane_dist = trace.plane.dist;
 	if (trace.ent)
 		pr_global_struct->trace_ent = EDICT_TO_PROG(trace.ent);
 	else
 		pr_global_struct->trace_ent = EDICT_TO_PROG(sv.edicts);
 }
-#endif
+//#endif	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 
 
 /*
@@ -703,7 +786,7 @@ int PF_newcheckclient (int check)
 	else
 		i = check + 1;
 
-	for ( ;  ; i++)
+	for ( ; ; i++)
 	{
 		if (i == svs.maxclients+1)
 			i = 1;
@@ -756,7 +839,7 @@ void PF_checkclient (void)
 	mleaf_t	*leaf;
 	int		l;
 	vec3_t	view;
-	
+
 // find a new check if on a new frame
 	if (sv.time - sv.lastchecktime >= 0.1)
 	{
@@ -764,7 +847,7 @@ void PF_checkclient (void)
 		sv.lastchecktime = sv.time;
 	}
 
-// return check if it might be visible	
+// return check if it might be visible
 	ent = EDICT_NUM(sv.lastcheck);
 	if (ent->free || ent->v.health <= 0)
 	{
@@ -806,12 +889,12 @@ void PF_stuffcmd (void)
 	int		entnum;
 	char	*str;
 	client_t	*old;
-	
+
 	entnum = G_EDICTNUM(OFS_PARM0);
 	if (entnum < 1 || entnum > svs.maxclients)
 		PR_RunError ("Parm 0 not a client");
-	str = G_STRING(OFS_PARM1);	
-	
+	str = G_STRING(OFS_PARM1);
+
 	old = host_client;
 	host_client = &svs.clients[entnum-1];
 	Host_ClientCommands ("%s", str);
@@ -822,7 +905,7 @@ void PF_stuffcmd (void)
 =================
 PF_localcmd
 
-Sends text over to the client's execution buffer
+Adds text to the server's execution buffer
 
 localcmd (string)
 =================
@@ -830,11 +913,13 @@ localcmd (string)
 void PF_localcmd (void)
 {
 	char	*str;
-	
-	str = G_STRING(OFS_PARM0);	
+
+	str = G_STRING(OFS_PARM0);
 	Cbuf_AddText (str);
 }
 
+// 2001-09-18 New cvar system by Maddes  start
+//            completly new functions
 /*
 =================
 PF_cvar
@@ -844,29 +929,51 @@ float cvar (string)
 */
 void PF_cvar (void)
 {
-	char	*str;
-	
-	str = G_STRING(OFS_PARM0);
-	
-	G_FLOAT(OFS_RETURN) = Cvar_VariableValue (str);
+	char	*varname;
+	cvar_t	*var;
+	float	value;
+
+	value = 0;
+
+	varname = G_STRING(OFS_PARM0);
+	var = Cvar_FindVar (varname);
+	if (var)
+	{
+		value = var->value;
+	}
+	G_FLOAT(OFS_RETURN) = value;
 }
 
 /*
 =================
 PF_cvar_set
 
-float cvar (string)
+float cvar_set (string, string)
 =================
 */
 void PF_cvar_set (void)
 {
-	char	*var, *val;
-	
-	var = G_STRING(OFS_PARM0);
-	val = G_STRING(OFS_PARM1);
-	
-	Cvar_Set (var, val);
+	char	*varname;
+	cvar_t	*var;
+
+	varname = G_STRING(OFS_PARM0);
+	var = Cvar_FindVar (varname);
+	if (!var)
+	{
+		Con_DPrintf ("Cvar_Set: variable \"%s\" not found\n", varname);	// 2001-09-09 Made 'Cvar not found' a developer message by Maddes
+		return;
+	}
+
+	if ( (var->flags & CVAR_ROM)		// check for progs-protected cvar (=not a progs or user created variable)
+	     && (!(var->flags & (CVAR_USER_CREATED|CVAR_PROGS_CREATED))) )
+	{
+		Con_DPrintf ("Cvar_Set: variable \"%s\" is read-only\n", var->name);
+		return;
+	}
+
+	Cvar_Set (var, G_STRING(OFS_PARM1));
 }
+// 2001-09-18 New cvar system by Maddes  end
 
 /*
 =================
@@ -886,7 +993,7 @@ void PF_findradius (void)
 	int		i, j;
 
 	chain = (edict_t *)sv.edicts;
-	
+
 	org = G_VECTOR(OFS_PARM0);
 	rad = G_FLOAT(OFS_PARM1);
 
@@ -898,10 +1005,10 @@ void PF_findradius (void)
 		if (ent->v.solid == SOLID_NOT)
 			continue;
 		for (j=0 ; j<3 ; j++)
-			eorg[j] = org[j] - (ent->v.origin[j] + (ent->v.mins[j] + ent->v.maxs[j])*0.5);			
+			eorg[j] = org[j] - (ent->v.origin[j] + (ent->v.mins[j] + ent->v.maxs[j])*0.5);
 		if (Length(eorg) > rad)
 			continue;
-			
+
 		ent->v.chain = EDICT_TO_PROG(chain);
 		chain = ent;
 	}
@@ -920,17 +1027,33 @@ void PF_dprint (void)
 	Con_DPrintf ("%s",PF_VarString(0));
 }
 
-char	pr_string_temp[128];
+// 2001-10-25 Enhanced temp string handling by Maddes  start
+//char	pr_string_temp[128];
+char	pr_string_temp[PR_MAX_TEMPSTRING];
+// 2001-10-25 Enhanced temp string handling by Maddes  end
 
 void PF_ftos (void)
 {
 	float	v;
+	int	i;	// 2000-01-14 Maximum precision for FTOS by Maddes
+
 	v = G_FLOAT(OFS_PARM0);
-	
+
 	if (v == (int)v)
 		sprintf (pr_string_temp, "%d",(int)v);
 	else
-		sprintf (pr_string_temp, "%5.1f",v);
+// 1999-07-25 FTOS fix by Maddes  start
+// 2000-01-14 Maximum precision for FTOS by Maddes  start
+	{
+//		sprintf (pr_string_temp, "%5.1f",v);
+		sprintf (pr_string_temp, "%1f", v);
+		for (i=strlen(pr_string_temp)-1 ; i>0 && pr_string_temp[i]=='0' && pr_string_temp[i-1]!='.' ; i--)
+		{
+			pr_string_temp[i] = 0;
+		}
+	}
+// 2000-01-14 Maximum precision for FTOS by Maddes  end
+// 1999-07-25 FTOS fix by Maddes  end
 	G_INT(OFS_RETURN) = pr_string_temp - pr_strings;
 }
 
@@ -947,13 +1070,13 @@ void PF_vtos (void)
 	G_INT(OFS_RETURN) = pr_string_temp - pr_strings;
 }
 
-#ifdef QUAKE2
+//#ifdef QUAKE2	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 void PF_etos (void)
 {
 	sprintf (pr_string_temp, "entity %i", G_EDICTNUM(OFS_PARM0));
 	G_INT(OFS_RETURN) = pr_string_temp - pr_strings;
 }
-#endif
+//#endif		// 2001-09-16 Quake 2 builtin functions by id/Maddes
 
 void PF_Spawn (void)
 {
@@ -965,7 +1088,7 @@ void PF_Spawn (void)
 void PF_Remove (void)
 {
 	edict_t	*ed;
-	
+
 	ed = G_EDICT(OFS_PARM0);
 	ED_Free (ed);
 }
@@ -975,7 +1098,7 @@ void PF_Remove (void)
 void PF_Find (void)
 #ifdef QUAKE2
 {
-	int		e;	
+	int		e;
 	int		f;
 	char	*s, *t;
 	edict_t	*ed;
@@ -989,7 +1112,7 @@ void PF_Find (void)
 	s = G_STRING(OFS_PARM2);
 	if (!s)
 		PR_RunError ("PF_Find: bad search string");
-		
+
 	for (e++ ; e < sv.num_edicts ; e++)
 	{
 		ed = EDICT_NUM(e);
@@ -1023,7 +1146,7 @@ void PF_Find (void)
 }
 #else
 {
-	int		e;	
+	int		e;
 	int		f;
 	char	*s, *t;
 	edict_t	*ed;
@@ -1033,7 +1156,7 @@ void PF_Find (void)
 	s = G_STRING(OFS_PARM2);
 	if (!s)
 		PR_RunError ("PF_Find: bad search string");
-		
+
 	for (e++ ; e < sv.num_edicts ; e++)
 	{
 		ed = EDICT_NUM(e);
@@ -1068,14 +1191,14 @@ void PF_precache_sound (void)
 {
 	char	*s;
 	int		i;
-	
+
 	if (sv.state != ss_loading)
 		PR_RunError ("PF_Precache_*: Precache can only be done in spawn functions");
-		
+
 	s = G_STRING(OFS_PARM0);
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
 	PR_CheckEmptyString (s);
-	
+
 	for (i=0 ; i<MAX_SOUNDS ; i++)
 	{
 		if (!sv.sound_precache[i])
@@ -1093,10 +1216,10 @@ void PF_precache_model (void)
 {
 	char	*s;
 	int		i;
-	
+
 	if (sv.state != ss_loading)
 		PR_RunError ("PF_Precache_*: Precache can only be done in spawn functions");
-		
+
 	s = G_STRING(OFS_PARM0);
 	G_INT(OFS_RETURN) = G_INT(OFS_PARM0);
 	PR_CheckEmptyString (s);
@@ -1150,11 +1273,11 @@ void PF_walkmove (void)
 	vec3_t	move;
 	dfunction_t	*oldf;
 	int 	oldself;
-	
+
 	ent = PROG_TO_EDICT(pr_global_struct->self);
 	yaw = G_FLOAT(OFS_PARM0);
 	dist = G_FLOAT(OFS_PARM1);
-	
+
 	if ( !( (int)ent->v.flags & (FL_ONGROUND|FL_FLY|FL_SWIM) ) )
 	{
 		G_FLOAT(OFS_RETURN) = 0;
@@ -1162,7 +1285,7 @@ void PF_walkmove (void)
 	}
 
 	yaw = yaw*M_PI*2 / 360;
-	
+
 	move[0] = cos(yaw)*dist;
 	move[1] = sin(yaw)*dist;
 	move[2] = 0;
@@ -1170,10 +1293,10 @@ void PF_walkmove (void)
 // save program state, because SV_movestep may call other progs
 	oldf = pr_xfunction;
 	oldself = pr_global_struct->self;
-	
+
 	G_FLOAT(OFS_RETURN) = SV_movestep(ent, move, true);
-	
-	
+
+
 // restore program state
 	pr_xfunction = oldf;
 	pr_global_struct->self = oldself;
@@ -1191,12 +1314,12 @@ void PF_droptofloor (void)
 	edict_t		*ent;
 	vec3_t		end;
 	trace_t		trace;
-	
+
 	ent = PROG_TO_EDICT(pr_global_struct->self);
 
 	VectorCopy (ent->v.origin, end);
 	end[2] -= 256;
-	
+
 	trace = SV_Move (ent->v.origin, ent->v.mins, ent->v.maxs, end, false, ent);
 
 	if (trace.fraction == 1 || trace.allsolid)
@@ -1224,17 +1347,17 @@ void PF_lightstyle (void)
 	char	*val;
 	client_t	*client;
 	int			j;
-	
+
 	style = G_FLOAT(OFS_PARM0);
 	val = G_STRING(OFS_PARM1);
 
 // change the string in sv
 	sv.lightstyles[style] = val;
-	
+
 // send message to all clients on this server
 	if (sv.state != ss_active)
 		return;
-	
+
 	for (j=0, client = svs.clients ; j<svs.maxclients ; j++, client++)
 		if (client->active || client->spawned)
 		{
@@ -1271,7 +1394,7 @@ PF_checkbottom
 void PF_checkbottom (void)
 {
 	edict_t	*ent;
-	
+
 	ent = G_EDICT(OFS_PARM0);
 
 	G_FLOAT(OFS_RETURN) = SV_CheckBottom (ent);
@@ -1285,10 +1408,10 @@ PF_pointcontents
 void PF_pointcontents (void)
 {
 	float	*v;
-	
+
 	v = G_VECTOR(OFS_PARM0);
 
-	G_FLOAT(OFS_RETURN) = SV_PointContents (v);	
+	G_FLOAT(OFS_RETURN) = SV_PointContents (v);
 }
 
 /*
@@ -1302,7 +1425,7 @@ void PF_nextent (void)
 {
 	int		i;
 	edict_t	*ent;
-	
+
 	i = G_EDICTNUM(OFS_PARM0);
 	while (1)
 	{
@@ -1329,7 +1452,8 @@ Pick a vector for the player to shoot along
 vector aim(entity, missilespeed)
 =============
 */
-cvar_t	sv_aim = {"sv_aim", "0.93"};
+cvar_t	*sv_aim;
+
 void PF_aim (void)
 {
 	edict_t	*ent, *check, *bestent;
@@ -1337,10 +1461,10 @@ void PF_aim (void)
 	int		i, j;
 	trace_t	tr;
 	float	dist, bestdist;
-	float	speed;
-	
+//	float	speed;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
+
 	ent = G_EDICT(OFS_PARM0);
-	speed = G_FLOAT(OFS_PARM1);
+//	speed = G_FLOAT(OFS_PARM1);	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	VectorCopy (ent->v.origin, start);
 	start[2] += 20;
@@ -1350,7 +1474,7 @@ void PF_aim (void)
 	VectorMA (start, 2048, dir, end);
 	tr = SV_Move (start, vec3_origin, vec3_origin, end, false, ent);
 	if (tr.ent && tr.ent->v.takedamage == DAMAGE_AIM
-	&& (!teamplay.value || ent->v.team <=0 || ent->v.team != tr.ent->v.team) )
+	&& (!teamplay->value || ent->v.team <=0 || ent->v.team != tr.ent->v.team) )
 	{
 		VectorCopy (pr_global_struct->v_forward, G_VECTOR(OFS_RETURN));
 		return;
@@ -1359,9 +1483,9 @@ void PF_aim (void)
 
 // try all possible entities
 	VectorCopy (dir, bestdir);
-	bestdist = sv_aim.value;
+	bestdist = sv_aim->value;
 	bestent = NULL;
-	
+
 	check = NEXT_EDICT(sv.edicts);
 	for (i=1 ; i<sv.num_edicts ; i++, check = NEXT_EDICT(check) )
 	{
@@ -1369,7 +1493,7 @@ void PF_aim (void)
 			continue;
 		if (check == ent)
 			continue;
-		if (teamplay.value && ent->v.team > 0 && ent->v.team == check->v.team)
+		if (teamplay->value && ent->v.team > 0 && ent->v.team == check->v.team)
 			continue;	// don't aim at teammate
 		for (j=0 ; j<3 ; j++)
 			end[j] = check->v.origin[j]
@@ -1386,7 +1510,7 @@ void PF_aim (void)
 			bestent = check;
 		}
 	}
-	
+
 	if (bestent)
 	{
 		VectorSubtract (bestent->v.origin, ent->v.origin, dir);
@@ -1394,7 +1518,7 @@ void PF_aim (void)
 		VectorScale (pr_global_struct->v_forward, dist, end);
 		end[2] = dir[2];
 		VectorNormalize (end);
-		VectorCopy (end, G_VECTOR(OFS_RETURN));	
+		VectorCopy (end, G_VECTOR(OFS_RETURN));
 	}
 	else
 	{
@@ -1413,12 +1537,12 @@ void PF_changeyaw (void)
 {
 	edict_t		*ent;
 	float		ideal, current, move, speed;
-	
+
 	ent = PROG_TO_EDICT(pr_global_struct->self);
 	current = anglemod( ent->v.angles[1] );
 	ideal = ent->v.ideal_yaw;
 	speed = ent->v.yaw_speed;
-	
+
 	if (current == ideal)
 		return;
 	move = ideal - current;
@@ -1442,11 +1566,11 @@ void PF_changeyaw (void)
 		if (move < -speed)
 			move = -speed;
 	}
-	
+
 	ent->v.angles[1] = anglemod (current + move);
 }
 
-#ifdef QUAKE2
+//#ifdef QUAKE2	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 /*
 ==============
 PF_changepitch
@@ -1456,12 +1580,40 @@ void PF_changepitch (void)
 {
 	edict_t		*ent;
 	float		ideal, current, move, speed;
-	
+	eval_t		*val;	// 2001-09-16 PF_changepitch entity check by LordHavoc
+
 	ent = G_EDICT(OFS_PARM0);
 	current = anglemod( ent->v.angles[0] );
+#ifdef QUAKE2	// 2001-09-16 PF_changepitch entity check by LordHavoc
 	ideal = ent->v.idealpitch;
 	speed = ent->v.pitch_speed;
-	
+// 2001-09-16 PF_changepitch entity check by LordHavoc  start
+#else
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//	val = GetEdictFieldValue(ent, "idealpitch");
+	val = GETEDICTFIELDVALUE(ent, pr_field_idealpitch);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
+	if (val)
+		ideal = val->_float;
+	else
+	{
+		PR_RunError ("PF_changepitch: .float idealpitch and .float pitch_speed must be defined to use changepitch");
+		return;
+	}
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//	val = GetEdictFieldValue(ent, "pitch_speed");
+	val = GETEDICTFIELDVALUE(ent, pr_field_pitch_speed);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
+	if (val)
+		speed = val->_float;
+	else
+	{
+		PR_RunError ("PF_changepitch: .float idealpitch and .float pitch_speed must be defined to use changepitch");
+		return;
+	}
+#endif
+// 2001-09-16 PF_changepitch entity check by LordHavoc  end
+
 	if (current == ideal)
 		return;
 	move = ideal - current;
@@ -1485,10 +1637,10 @@ void PF_changepitch (void)
 		if (move < -speed)
 			move = -speed;
 	}
-	
+
 	ent->v.angles[0] = anglemod (current + move);
 }
-#endif
+//#endif	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 
 /*
 ===============================================================================
@@ -1498,10 +1650,14 @@ MESSAGE WRITING
 ===============================================================================
 */
 
+// 2000-05-02 NVS SVC by Maddes  start
+/*
 #define	MSG_BROADCAST	0		// unreliable to all
 #define	MSG_ONE			1		// reliable to one (msg_entity)
 #define	MSG_ALL			2		// reliable to all
 #define	MSG_INIT		3		// write to the init string
+*/
+// 2000-05-02 NVS SVC by Maddes  end
 
 sizebuf_t *WriteDest (void)
 {
@@ -1514,17 +1670,17 @@ sizebuf_t *WriteDest (void)
 	{
 	case MSG_BROADCAST:
 		return &sv.datagram;
-	
+
 	case MSG_ONE:
 		ent = PROG_TO_EDICT(pr_global_struct->msg_entity);
 		entnum = NUM_FOR_EDICT(ent);
 		if (entnum < 1 || entnum > svs.maxclients)
 			PR_RunError ("WriteDest: not a client");
 		return &svs.clients[entnum-1].message;
-		
+
 	case MSG_ALL:
 		return &sv.reliable_datagram;
-	
+
 	case MSG_INIT:
 		return &sv.signon;
 
@@ -1532,50 +1688,141 @@ sizebuf_t *WriteDest (void)
 		PR_RunError ("WriteDest: bad destination");
 		break;
 	}
-	
+
 	return NULL;
 }
 
 void PF_WriteByte (void)
 {
-	MSG_WriteByte (WriteDest(), G_FLOAT(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteByte (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteByte (WriteDest(), G_FLOAT(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 void PF_WriteChar (void)
 {
-	MSG_WriteChar (WriteDest(), G_FLOAT(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteChar (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteChar (WriteDest(), G_FLOAT(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 void PF_WriteShort (void)
 {
-	MSG_WriteShort (WriteDest(), G_FLOAT(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteShort (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteShort (WriteDest(), G_FLOAT(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 void PF_WriteLong (void)
 {
-	MSG_WriteLong (WriteDest(), G_FLOAT(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteLong (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteLong (WriteDest(), G_FLOAT(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 void PF_WriteAngle (void)
 {
-	MSG_WriteAngle (WriteDest(), G_FLOAT(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteAngle (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteAngle (WriteDest(), G_FLOAT(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 void PF_WriteCoord (void)
 {
-	MSG_WriteCoord (WriteDest(), G_FLOAT(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteCoord (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteCoord (WriteDest(), G_FLOAT(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 void PF_WriteString (void)
 {
-	MSG_WriteString (WriteDest(), G_STRING(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteString (G_FLOAT(OFS_PARM0), G_STRING(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteString (WriteDest(), G_STRING(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
 
 
 void PF_WriteEntity (void)
 {
-	MSG_WriteShort (WriteDest(), G_EDICTNUM(OFS_PARM1));
+// 2000-05-02 NVS SVC by Maddes  start
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteShort (G_FLOAT(OFS_PARM0), G_EDICTNUM(OFS_PARM1), NULL);
+	}
+	else
+	{
+// 2000-05-02 NVS SVC by Maddes  end
+		MSG_WriteShort (WriteDest(), G_EDICTNUM(OFS_PARM1));
+	}			// 2000-05-02 NVS SVC by Maddes
 }
+
+// 2001-09-16 New BuiltIn Function: WriteFloat() by Maddes  start
+/*
+PF_WriteFloat
+
+void (float to, float f) WriteFloat
+*/
+void PF_WriteFloat (void)
+{
+	if (sv.nvs_msgwrites)
+	{
+		NVS_WriteFloat (G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), NULL);
+	}
+	else
+	{
+		MSG_WriteFloat (WriteDest(), G_FLOAT(OFS_PARM1));
+	}
+}
+// 2001-09-16 New BuiltIn Function: WriteFloat() by Maddes  end
 
 //=============================================================================
 
@@ -1585,7 +1832,7 @@ void PF_makestatic (void)
 {
 	edict_t	*ent;
 	int		i;
-	
+
 	ent = G_EDICT(OFS_PARM0);
 
 	MSG_WriteByte (&sv.signon,svc_spawnstatic);
@@ -1658,7 +1905,7 @@ void PF_changelevel (void)
 	if (svs.changelevel_issued)
 		return;
 	svs.changelevel_issued = true;
-	
+
 	s = G_STRING(OFS_PARM0);
 	Cbuf_AddText (va("changelevel %s\n",s));
 #endif
@@ -1738,11 +1985,11 @@ void PF_WaterMove (void)
 			self->v.air_finished = sv.time + 12.0;
 			self->v.dmg = 2;
 		}
-	
+
 	if (!waterlevel)
 	{
 		if (flags & FL_INWATER)
-		{	
+		{
 			// play leave water sound
 //			sound (self, CHAN_BODY, "misc/outwater.wav", 1, ATTN_NORM);
 			SV_StartSound (self, CHAN_BODY, "misc/outwater.wav", 255, ATTN_NORM);
@@ -1776,9 +2023,9 @@ void PF_WaterMove (void)
 				damage = (float)(4*waterlevel);
 			}
 	}
-	
+
 	if ( !(flags & FL_INWATER) )
-	{	
+	{
 
 // player enter water sound
 		if (watertype == CONTENT_LAVA)
@@ -1794,7 +2041,7 @@ void PF_WaterMove (void)
 		self->v.flags = (float)(flags | FL_INWATER);
 		self->v.dmgtime = 0;
 	}
-	
+
 	if (! (flags & FL_WATERJUMP) )
 	{
 //		self.velocity = self.velocity - 0.8*self.waterlevel*frametime*self.velocity;
@@ -1803,7 +2050,7 @@ void PF_WaterMove (void)
 
 	G_FLOAT(OFS_RETURN) = damage;
 }
-
+#endif	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 
 void PF_sin (void)
 {
@@ -1819,116 +2066,1097 @@ void PF_sqrt (void)
 {
 	G_FLOAT(OFS_RETURN) = sqrt(G_FLOAT(OFS_PARM0));
 }
-#endif
+//#endif	// 2001-09-16 Quake 2 builtin functions by id/Maddes
 
 void PF_Fixme (void)
 {
-	PR_RunError ("unimplemented bulitin");
+	PR_RunError ("unimplemented builtin");	// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes
 }
 
+// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes  start
+/*
+=================
+PF_builtin_find
 
-
-builtin_t pr_builtin[] =
+float builtin_find (string)
+=================
+*/
+void PF_builtin_find (void)
 {
-PF_Fixme,
-PF_makevectors,	// void(entity e)	makevectors 		= #1;
-PF_setorigin,	// void(entity e, vector o) setorigin	= #2;
-PF_setmodel,	// void(entity e, string m) setmodel	= #3;
-PF_setsize,	// void(entity e, vector min, vector max) setsize = #4;
-PF_Fixme,	// void(entity e, vector min, vector max) setabssize = #5;
-PF_break,	// void() break						= #6;
-PF_random,	// float() random						= #7;
-PF_sound,	// void(entity e, float chan, string samp) sound = #8;
-PF_normalize,	// vector(vector v) normalize			= #9;
-PF_error,	// void(string e) error				= #10;
-PF_objerror,	// void(string e) objerror				= #11;
-PF_vlen,	// float(vector v) vlen				= #12;
-PF_vectoyaw,	// float(vector v) vectoyaw		= #13;
-PF_Spawn,	// entity() spawn						= #14;
-PF_Remove,	// void(entity e) remove				= #15;
-PF_traceline,	// float(vector v1, vector v2, float tryents) traceline = #16;
-PF_checkclient,	// entity() clientlist					= #17;
-PF_Find,	// entity(entity start, .string fld, string match) find = #18;
-PF_precache_sound,	// void(string s) precache_sound		= #19;
-PF_precache_model,	// void(string s) precache_model		= #20;
-PF_stuffcmd,	// void(entity client, string s)stuffcmd = #21;
-PF_findradius,	// entity(vector org, float rad) findradius = #22;
-PF_bprint,	// void(string s) bprint				= #23;
-PF_sprint,	// void(entity client, string s) sprint = #24;
-PF_dprint,	// void(string s) dprint				= #25;
-PF_ftos,	// void(string s) ftos				= #26;
-PF_vtos,	// void(string s) vtos				= #27;
-PF_coredump,
-PF_traceon,
-PF_traceoff,
-PF_eprint,	// void(entity e) debug print an entire entity
-PF_walkmove, // float(float yaw, float dist) walkmove
-PF_Fixme, // float(float yaw, float dist) walkmove
-PF_droptofloor,
-PF_lightstyle,
-PF_rint,
-PF_floor,
-PF_ceil,
-PF_Fixme,
-PF_checkbottom,
-PF_pointcontents,
-PF_Fixme,
-PF_fabs,
-PF_aim,
-PF_cvar,
-PF_localcmd,
-PF_nextent,
-PF_particle,
-PF_changeyaw,
-PF_Fixme,
-PF_vectoangles,
+	int		j;
+	float	funcno;
+	char	*funcname;
 
-PF_WriteByte,
-PF_WriteChar,
-PF_WriteShort,
-PF_WriteLong,
-PF_WriteCoord,
-PF_WriteAngle,
-PF_WriteString,
-PF_WriteEntity,
+	funcno = 0;
+	funcname = G_STRING(OFS_PARM0);
 
-#ifdef QUAKE2
-PF_sin,
-PF_cos,
-PF_sqrt,
-PF_changepitch,
-PF_TraceToss,
-PF_etos,
-PF_WaterMove,
-#else
-PF_Fixme,
-PF_Fixme,
-PF_Fixme,
-PF_Fixme,
-PF_Fixme,
-PF_Fixme,
-PF_Fixme,
-#endif
+	// search function name
+	for ( j=1 ; j < pr_ebfs_numbuiltins ; j++)
+	{
+		if ((pr_ebfs_builtins[j].funcname) && (!(Q_strcasecmp(funcname,pr_ebfs_builtins[j].funcname))))
+		{
+			break;	// found
+		}
+	}
 
-SV_MoveToGoal,
-PF_precache_file,
-PF_makestatic,
+	if (j < pr_ebfs_numbuiltins)
+	{
+		funcno = pr_ebfs_builtins[j].funcno;
+	}
 
-PF_changelevel,
-PF_Fixme,
+	G_FLOAT(OFS_RETURN) = funcno;
+}
+// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes  end
 
-PF_cvar_set,
-PF_centerprint,
+// 2001-09-16 New BuiltIn Function: cmd_find() by Maddes  start
+/*
+=================
+PF_cmd_find
 
-PF_ambientsound,
+float cmd_find (string)
+=================
+*/
+void PF_cmd_find (void)
+{
+	char	*cmdname;
+	float	result;
 
-PF_precache_model,
-PF_precache_sound,		// precache_sound2 is different only for qcc
-PF_precache_file,
+	cmdname = G_STRING(OFS_PARM0);
 
-PF_setspawnparms
+	result = Cmd_Exists (cmdname);
+
+	G_FLOAT(OFS_RETURN) = result;
+}
+// 2001-09-16 New BuiltIn Function: cmd_find() by Maddes  end
+
+// 2001-09-16 New BuiltIn Function: cvar_find() by Maddes  start
+/*
+=================
+PF_cvar_find
+
+float cvar_find (string)
+=================
+*/
+void PF_cvar_find (void)
+{
+	char	*varname;
+	float	result;
+
+	varname = G_STRING(OFS_PARM0);
+
+	result = 0;
+	if (Cvar_FindVar (varname))
+	{
+		result = 1;
+	}
+
+	G_FLOAT(OFS_RETURN) = result;
+}
+// 2001-09-16 New BuiltIn Function: cvar_find() by Maddes  end
+
+// 2001-09-16 New BuiltIn Function: cvar_string() by Maddes  start
+/*
+=================
+PF_cvar_string
+
+string cvar_string (string)
+=================
+*/
+void PF_cvar_string (void)
+{
+	char	*varname;
+	cvar_t	*var;
+
+	varname = G_STRING(OFS_PARM0);
+	var = Cvar_FindVar (varname);
+	if (!var)
+	{
+		Con_DPrintf ("Cvar_String: variable \"%s\" not found\n", varname);	// 2001-09-09 Made 'Cvar not found' a developer message by Maddes
+		G_INT(OFS_RETURN) = OFS_NULL;
+	}
+	else
+	{
+		G_INT(OFS_RETURN) = var->string - pr_strings;
+	}
+}
+// 2001-09-16 New BuiltIn Function: cvar_string() by Maddes  end
+
+// 2001-09-18 New BuiltIn Function: cvar_create() by Maddes  start
+#define CVAR_QC_NONE		0		//cvar has no flags
+#define CVAR_QC_ARCHIVE		1		//cvar will be stored in config.cfg
+#define CVAR_QC_ROM			2		//cvar is readonly
+#define CVAR_QC_NOTIFY		4		//cvar changes will be broadcasted to all players
+#define CVAR_QC_SERVERINFO	8		//cvar will be send to clients (net_dgrm.c)
+#define CVAR_QC_USERINFO	16		//cvar will be send to server (QW-like)
+
+/*
+=================
+PF_cvar_create
+
+void cvar_create (string, string, float)
+=================
+*/
+void PF_cvar_create (void)
+{
+	char	*varname;
+	int		qc_flags;
+	int		flags;
+	cvar_t	*var;
+
+	varname = G_STRING(OFS_PARM0);
+	qc_flags = G_FLOAT(OFS_PARM2);
+
+	// convert QC flags to engine flags
+	flags = CVAR_NONE;
+	if (qc_flags & CVAR_QC_ARCHIVE)
+	{
+		flags |= CVAR_ARCHIVE;
+	}
+	if (qc_flags & CVAR_QC_ROM)
+	{
+		flags |= CVAR_ROM;
+	}
+	if (qc_flags & CVAR_QC_NOTIFY)
+	{
+		flags |= CVAR_NOTIFY;
+	}
+	if (qc_flags & CVAR_QC_SERVERINFO)
+	{
+		flags |= CVAR_SERVERINFO;
+	}
+	if (qc_flags & CVAR_QC_USERINFO)
+	{
+		flags |= CVAR_QC_USERINFO;
+	}
+	flags |= CVAR_PROGS_CREATED;
+
+	var = Cvar_FindVar (varname);
+	if (!var)
+	{
+		var = Cvar_Get (varname, G_STRING(OFS_PARM1), flags);
+		return;
+	}
+
+	if (!(var->flags & (CVAR_USER_CREATED|CVAR_PROGS_CREATED)))
+	{
+		Con_DPrintf ("Cvar_Create: variable \"%s\" is not progs or user created\n", var->name);
+		return;
+	}
+
+	// always throw out flags
+	if (!(flags & CVAR_ROM))	// keep ARCHIVE flag if not ROM
+	{
+		flags |= var->flags & CVAR_ARCHIVE;
+	}
+	var->flags = flags;
+}
+// 2001-09-18 New BuiltIn Function: cvar_create() by Maddes  end
+
+// 2001-09-18 New BuiltIn Function: cvar_free() by Maddes  start
+/*
+=================
+PF_cvar_free
+
+void cvar_free (string)
+=================
+*/
+void PF_cvar_free (void)
+{
+	char	*varname;
+	cvar_t	*var;
+
+	varname = G_STRING(OFS_PARM0);
+	var = Cvar_FindVar (varname);
+	if (!var)
+	{
+		Con_DPrintf ("Cvar_Free: variable \"%s\" not found\n", varname);	// 2001-09-09 Made 'Cvar not found' a developer message by Maddes
+		return;
+	}
+
+	if (!(var->flags & (CVAR_USER_CREATED|CVAR_PROGS_CREATED)))
+	{
+		Con_DPrintf ("Cvar_Free: variable \"%s\" is not progs or user created\n", var->name);
+		return;
+	}
+
+	var = Cvar_Free (var);
+}
+// 2001-09-18 New BuiltIn Function: cvar_free() by Maddes  end
+
+// 2001-09-25 New BuiltIn Function: etof() by Maddes  start
+/*
+=================
+PF_etof
+
+float etof (entity)
+=================
+*/
+void PF_etof (void)
+{
+	G_FLOAT(OFS_RETURN) = G_EDICTNUM(OFS_PARM0);
+}
+// 2001-09-25 New BuiltIn Function: etof() by Maddes  end
+
+// 2001-09-25 New BuiltIn Function: ftoe() by Maddes  start
+/*
+=================
+PF_ftoe
+
+entity ftoe (float)
+=================
+*/
+void PF_ftoe (void)
+{
+	edict_t		*e;
+
+	e = EDICT_NUM(G_FLOAT(OFS_PARM0));
+	RETURN_EDICT(e);
+}
+// 2001-09-25 New BuiltIn Function: ftoe() by Maddes  end
+
+// 2001-09-20 QuakeC string manipulation by FrikaC/Maddes  start
+// 2001-09-20 QuakeC string zone by Maddes  start
+/*
+=================
+PF_allocate_zone_progstrings
+=================
+*/
+void PF_allocate_zone_progstrings (void)
+{
+	int	zonesize_progstrings;
+
+	Cvar_Set(pr_zone_min_strings, pr_zone_min_strings->string);	// do rangecheck
+	zonesize_progstrings = pr_zone_min_strings->value * 1024;
+	zone_progstrings = Hunk_AllocName (zonesize_progstrings, "qcstrings");	// note only 8 chars copied
+	Z_ClearZone (zone_progstrings, zonesize_progstrings);
+}
+// 2001-09-20 QuakeC string zone by Maddes  end
+
+/*
+=================
+PF_strzone
+
+string strzone (string)
+=================
+*/
+void PF_strzone (void)
+{
+	char *m, *p;
+
+// 2001-09-20 QuakeC string zone by Maddes  start
+	if (!zone_progstrings)
+	{
+		PF_allocate_zone_progstrings();
+	}
+// 2001-09-20 QuakeC string zone by Maddes  end
+
+	m = G_STRING(OFS_PARM0);
+	p = Z_Malloc(zone_progstrings, strlen(m) + 1);	// 2001-09-20 QuakeC string zone by Maddes
+	strcpy(p, m);
+
+	G_INT(OFS_RETURN) = p - pr_strings;
+}
+
+/*
+=================
+PF_strunzone
+
+string strunzone (string)
+=================
+*/
+void PF_strunzone (void)
+{
+// 2001-09-20 QuakeC string zone by Maddes  start
+	if (!zone_progstrings)
+	{
+		PF_allocate_zone_progstrings();
+	}
+// 2001-09-20 QuakeC string zone by Maddes  end
+
+	Z_Free(zone_progstrings, G_STRING(OFS_PARM0));	// 2001-09-20 QuakeC string zone by Maddes
+	G_INT(OFS_PARM0) = OFS_NULL; // empty the def
 };
 
-builtin_t *pr_builtins = pr_builtin;
-int pr_numbuiltins = sizeof(pr_builtin)/sizeof(pr_builtin[0]);
+/*
+=================
+PF_strlen
 
+float strlen (string)
+=================
+*/
+void PF_strlen (void)
+{
+	char *p = G_STRING(OFS_PARM0);
+	G_FLOAT(OFS_RETURN) = strlen(p);
+}
+
+/*
+=================
+PF_strcat
+
+string strcat (string, string)
+=================
+*/
+
+//char pr_strcat_buf [128]; // 2001-10-25 Enhanced temp string handling by Maddes
+							// need this because pr_string_temp sucks
+
+void PF_strcat (void)
+{
+	char *s1, *s2;
+	int		maxlen;	// 2001-10-25 Enhanced temp string handling by Maddes
+
+//	memset(pr_strcat_buf, 0, 127);	// 2001-10-25 Enhanced temp string handling by Maddes
+	s1 = G_STRING(OFS_PARM0);
+	s2 = PF_VarString(1);
+
+// 2001-10-25 Enhanced temp string handling by Maddes  start
+//	strcpy(pr_strcat_buf, s1);
+	pr_string_temp[0] = 0;
+	if (strlen(s1) < PR_MAX_TEMPSTRING)
+	{
+		strcpy(pr_string_temp, s1);
+	}
+	else
+	{
+		strncpy(pr_string_temp, s1, PR_MAX_TEMPSTRING);
+		pr_string_temp[PR_MAX_TEMPSTRING-1] = 0;
+	}
+
+//	strcat(pr_strcat_buf, s2);
+	maxlen = PR_MAX_TEMPSTRING - strlen(pr_string_temp) - 1;	// -1 is EndOfString
+	if (maxlen > 0)
+	{
+		if (maxlen > strlen(s2))
+		{
+			strcat (pr_string_temp, s2);
+		}
+		else
+		{
+			strncat (pr_string_temp, s2, maxlen);
+			pr_string_temp[PR_MAX_TEMPSTRING-1] = 0;
+		}
+	}
+
+//	G_INT(OFS_RETURN) = pr_strcat_buf - pr_strings;
+	G_INT(OFS_RETURN) = pr_string_temp - pr_strings;
+// 2001-10-25 Enhanced temp string handling by Maddes  end
+}
+
+/*
+=================
+PF_substring
+
+string substring (string, float, float)
+=================
+*/
+void PF_substring (void)
+{
+	int		offset, length;
+	int		maxoffset;		// 2001-10-25 Enhanced temp string handling by Maddes
+	char	*p;
+
+	p = G_STRING(OFS_PARM0);
+	offset = (int)G_FLOAT(OFS_PARM1); // for some reason, Quake doesn't like G_INT
+	length = (int)G_FLOAT(OFS_PARM2);
+
+	// cap values
+	maxoffset = strlen(p);
+	if (offset > maxoffset)
+	{
+		offset = maxoffset;
+	}
+	if (offset < 0)
+		offset = 0;
+// 2001-10-25 Enhanced temp string handling by Maddes  start
+	if (length >= PR_MAX_TEMPSTRING)
+		length = PR_MAX_TEMPSTRING-1;
+// 2001-10-25 Enhanced temp string handling by Maddes  end
+	if (length < 0)
+		length = 0;
+
+	p += offset;
+	strncpy(pr_string_temp, p, length);
+	pr_string_temp[length]=0;
+
+	G_INT(OFS_RETURN) = pr_string_temp - pr_strings;
+}
+
+/*
+=================
+PF_stof
+
+float stof (string)
+=================
+*/
+// thanks Zoid, taken from QuakeWorld
+void PF_stof (void)
+{
+	char	*s;
+
+	s = G_STRING(OFS_PARM0);
+	G_FLOAT(OFS_RETURN) = atof(s);
+}
+
+/*
+=================
+PF_stov
+
+vector stov (string)
+=================
+*/
+void PF_stov (void)
+{
+	char *v;
+	int i;
+	vec3_t d;
+
+	v = G_STRING(OFS_PARM0);
+
+	for (i=0; i<3; i++)
+	{
+		while(v && (v[0] == ' ' || v[0] == '\'')) //skip unneeded data
+			v++;
+		d[i] = atof(v);
+		while (v && v[0] != ' ') // skip to next space
+			v++;
+	}
+	VectorCopy (d, G_VECTOR(OFS_RETURN));
+}
+// 2001-09-20 QuakeC string manipulation by FrikaC/Maddes  end
+
+// 2001-09-20 QuakeC file access by FrikaC/Maddes  start
+/*
+=================
+PF_fopen
+
+float fopen (string,float)
+=================
+*/
+void PF_fopen (void)
+{
+	char *p = G_STRING(OFS_PARM0);
+	char *ftemp;
+	int fmode = G_FLOAT(OFS_PARM1);
+	int h = 0, fsize = 0;
+
+	switch (fmode)
+	{
+		case 0: // read
+			Sys_FileOpenRead (va("%s/%s",com_gamedir, p), &h);
+			G_FLOAT(OFS_RETURN) = (float) h;
+			return;
+		case 1: // append -- this is nasty
+			// copy whole file into the zone
+			fsize = Sys_FileOpenRead(va("%s/%s",com_gamedir, p), &h);
+			if (h == -1)
+			{
+				h = Sys_FileOpenWrite(va("%s/%s",com_gamedir, p));
+				G_FLOAT(OFS_RETURN) = (float) h;
+				return;
+			}
+
+// 2001-09-20 QuakeC string zone by Maddes  start
+			if (!zone_progstrings)
+			{
+				PF_allocate_zone_progstrings();
+			}
+// 2001-09-20 QuakeC string zone by Maddes  end
+
+			ftemp = Z_Malloc(zone_progstrings, fsize + 1);	// 2001-09-20 QuakeC string zone by Maddes
+			Sys_FileRead(h, ftemp, fsize);
+			Sys_FileClose(h);
+			// spit it back out
+			h = Sys_FileOpenWrite(va("%s/%s",com_gamedir, p));
+			Sys_FileWrite(h, ftemp, fsize);
+			Z_Free(zone_progstrings, ftemp); // free it from memory	// 2001-09-20 QuakeC string zone by Maddes
+			G_FLOAT(OFS_RETURN) = (float) h;  // return still open handle
+			return;
+		default: // write
+			h = Sys_FileOpenWrite (va("%s/%s", com_gamedir, p));
+			G_FLOAT(OFS_RETURN) = (float) h;
+			return;
+	}
+}
+
+/*
+=================
+PF_fclose
+
+void fclose (float)
+=================
+*/
+void PF_fclose (void)
+{
+	int h = (int)G_FLOAT(OFS_PARM0);
+	Sys_FileClose(h);
+}
+
+/*
+=================
+PF_fgets
+
+string fgets (float)
+=================
+*/
+void PF_fgets (void)
+{
+	// reads one line (up to a \n) into a string
+	int		h;
+	int		i;
+	int		count;
+	char	buffer;
+
+	h = (int)G_FLOAT(OFS_PARM0);
+
+	count = Sys_FileRead(h, &buffer, 1);
+	if (count && buffer == '\r')	// carriage return
+	{
+		count = Sys_FileRead(h, &buffer, 1);	// skip
+	}
+	if (!count)	// EndOfFile
+	{
+		G_INT(OFS_RETURN) = OFS_NULL;	// void string
+		return;
+	}
+
+	i = 0;
+	while (count && buffer != '\n')
+	{
+		if (i < PR_MAX_TEMPSTRING-1)	// no place for character in temp string
+		{
+			pr_string_temp[i++] = buffer;
+		}
+
+		// read next character
+		count = Sys_FileRead(h, &buffer, 1);
+		if (count && buffer == '\r')	// carriage return
+		{
+			count = Sys_FileRead(h, &buffer, 1);	// skip
+		}
+	};
+	pr_string_temp[i] = 0;
+
+	G_INT(OFS_RETURN) = pr_string_temp - pr_strings;
+}
+
+/*
+=================
+PF_fputs
+
+void fputs (float,string)
+=================
+*/
+void PF_fputs (void)
+{
+	// writes to file, like bprint
+	float handle = G_FLOAT(OFS_PARM0);
+	char *str = PF_VarString(1);
+	Sys_FileWrite (handle, str, strlen(str));
+}
+// 2001-09-20 QuakeC file access by FrikaC/Maddes  end
+
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  start
+/*
+=================
+PF_fmin
+
+Returns the minimum of two or more supplied floats
+
+float fmin(float f1, float f2, ...)
+=================
+*/
+void PF_fmin (void)
+{
+	// LordHavoc: 3+ argument enhancement suggested by FrikaC
+	if (pr_argc == 2)
+		G_FLOAT(OFS_RETURN) = min(G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1));
+	else if (pr_argc >= 3)
+	{
+		int i;
+		float f = G_FLOAT(OFS_PARM0);
+		for (i = 1;i < pr_argc;i++)
+			if (G_FLOAT((OFS_PARM0+i*3)) < f)
+				f = G_FLOAT((OFS_PARM0+i*3));
+		G_FLOAT(OFS_RETURN) = f;
+	}
+	else
+		PR_RunError("fmin: must supply at least 2 floats\n");
+}
+
+/*
+=================
+PF_fmax
+
+Returns the maximum of two or more supplied floats
+
+float fmax(float f1, float f2, ...)
+=================
+*/
+void PF_fmax (void)
+{
+	// LordHavoc: 3+ argument enhancement suggested by FrikaC
+	if (pr_argc == 2)
+		G_FLOAT(OFS_RETURN) = max(G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1));
+	else if (pr_argc >= 3)
+	{
+		int i;
+		float f = G_FLOAT(OFS_PARM0);
+		for (i = 1;i < pr_argc;i++)
+			if (G_FLOAT((OFS_PARM0+i*3)) > f)
+				f = G_FLOAT((OFS_PARM0+i*3));
+		G_FLOAT(OFS_RETURN) = f;
+	}
+	else
+		PR_RunError("fmax: must supply at least 2 floats\n");
+}
+
+/*
+=================
+PF_fbound
+
+Returns number bounded by supplied range
+
+float fbound(float min, float f, float max)
+=================
+*/
+void PF_fbound (void)
+{
+	G_FLOAT(OFS_RETURN) = bound(G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1), G_FLOAT(OFS_PARM2));
+}
+
+/*
+=================
+PF_fpow
+
+Returns base raised to power exp (base^exp)
+
+float fpow(float base, float exp)
+=================
+*/
+void PF_fpow (void)
+{
+	G_FLOAT(OFS_RETURN) = pow(G_FLOAT(OFS_PARM0), G_FLOAT(OFS_PARM1));
+}
+
+/*
+=================
+PF_findfloat
+
+Loops through all entities beginning with the "start" entity, and checks the named entity field for a match.
+
+entity findfloat(entity start, .string fld, float match)
+=================
+*/
+// LordHavoc: added this for searching float, int, and entity reference fields
+void PF_FindFloat (void)
+{
+	int		e;
+	int		f;
+	float	s;
+	edict_t	*ed;
+
+	e = G_EDICTNUM(OFS_PARM0);
+	f = G_INT(OFS_PARM1);
+	s = G_FLOAT(OFS_PARM2);
+
+	for (e++ ; e < sv.num_edicts ; e++)
+	{
+		ed = EDICT_NUM(e);
+		if (ed->free)
+			continue;
+		if (E_FLOAT(ed,f) == s)
+		{
+			RETURN_EDICT(ed);
+			return;
+		}
+	}
+
+	RETURN_EDICT(sv.edicts);
+}
+
+/*
+=================
+PF_tracebox
+
+Used for use tracing and shot targeting
+Traces are blocked by bbox and exact bsp entities, and also slide box entities
+if the tryents flag is set(?).
+
+void(vector v1, vector mins, vector maxs, vector v2, float nomonsters, entity forent) tracebox
+=================
+*/
+// LordHavoc: added this for my own use, VERY useful, similar to traceline
+void PF_tracebox (void)
+{
+	float	*v1, *v2, *m1, *m2;
+	trace_t	trace;
+	int		nomonsters;
+	edict_t	*ent;
+
+	v1 = G_VECTOR(OFS_PARM0);
+	m1 = G_VECTOR(OFS_PARM1);
+	m2 = G_VECTOR(OFS_PARM2);
+	v2 = G_VECTOR(OFS_PARM3);
+	nomonsters = G_FLOAT(OFS_PARM4);
+	ent = G_EDICT(OFS_PARM5);
+
+	trace = SV_Move (v1, m1, m2, v2, nomonsters, ent);
+
+	pr_global_struct->trace_allsolid = trace.allsolid;
+	pr_global_struct->trace_startsolid = trace.startsolid;
+	pr_global_struct->trace_fraction = trace.fraction;
+	pr_global_struct->trace_inwater = trace.inwater;
+	pr_global_struct->trace_inopen = trace.inopen;
+	VectorCopy (trace.endpos, pr_global_struct->trace_endpos);
+	VectorCopy (trace.plane.normal, pr_global_struct->trace_plane_normal);
+	pr_global_struct->trace_plane_dist =  trace.plane.dist;
+	if (trace.ent)
+		pr_global_struct->trace_ent = EDICT_TO_PROG(trace.ent);
+	else
+		pr_global_struct->trace_ent = EDICT_TO_PROG(sv.edicts);
+}
+
+/*
+=================
+PF_randomvec
+
+Returns a vector of length < 1
+
+vector randomvec()
+=================
+*/
+void PF_randomvec (void)
+{
+	vec3_t		temp;
+	do
+	{
+		temp[0] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
+		temp[1] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
+		temp[2] = (rand()&32767) * (2.0 / 32767.0) - 1.0;
+	}
+	while (DotProduct(temp, temp) >= 1);
+	VectorCopy (temp, G_VECTOR(OFS_RETURN));
+}
+
+/*
+=================
+PF_copyentity
+
+copies data from one entity to another
+
+copyentity(src, dst)
+=================
+*/
+void PF_copyentity (void)
+{
+	edict_t *in, *out;
+	in = G_EDICT(OFS_PARM0);
+	out = G_EDICT(OFS_PARM1);
+	memcpy(out, in, pr_edict_size);
+}
+
+/*
+=================
+PF_setcolor
+
+sets the color of a client and broadcasts the update to all connected clients
+
+setcolor(clientent, value)
+=================
+*/
+void PF_setcolor (void)
+{
+	client_t	*client;
+	int			entnum, i;
+
+	entnum = G_EDICTNUM(OFS_PARM0);
+	i = G_FLOAT(OFS_PARM1);
+
+	if (entnum < 1 || entnum > svs.maxclients)
+	{
+		Con_DPrintf ("PROGS.DAT tried to setcolor a non-client\n");
+		return;
+	}
+
+	client = &svs.clients[entnum-1];
+	client->colors = i;
+	client->edict->v.team = (i & 15) + 1;
+
+	MSG_WriteByte (&sv.reliable_datagram, svc_updatecolors);
+	MSG_WriteByte (&sv.reliable_datagram, entnum - 1);
+	MSG_WriteByte (&sv.reliable_datagram, i);
+}
+
+// chained search for strings in entity fields
+// entity(.string field, string match) findchain = #402;
+void PF_findchain (void)
+{
+	int		i;
+	int		f;
+	char	*s, *t;
+	edict_t	*ent, *chain;
+
+	chain = (edict_t *)sv.edicts;
+
+	f = G_INT(OFS_PARM0);
+	s = G_STRING(OFS_PARM1);
+	if (!s || !s[0])
+	{
+		RETURN_EDICT(sv.edicts);
+		return;
+	}
+
+	ent = NEXT_EDICT(sv.edicts);
+	for (i = 1;i < sv.num_edicts;i++, ent = NEXT_EDICT(ent))
+	{
+		if (ent->free)
+			continue;
+		t = E_STRING(ent,f);
+		if (!t)
+			continue;
+		if (strcmp(t,s))
+			continue;
+
+		ent->v.chain = EDICT_TO_PROG(chain);
+		chain = ent;
+	}
+
+	RETURN_EDICT(chain);
+}
+
+// LordHavoc: chained search for float, int, and entity reference fields
+// entity(.string field, float match) findchainfloat = #403;
+void PF_findchainfloat (void)
+{
+	int		i;
+	int		f;
+	float	s;
+	edict_t	*ent, *chain;
+
+	chain = (edict_t *)sv.edicts;
+
+	f = G_INT(OFS_PARM0);
+	s = G_FLOAT(OFS_PARM1);
+
+	ent = NEXT_EDICT(sv.edicts);
+	for (i = 1;i < sv.num_edicts;i++, ent = NEXT_EDICT(ent))
+	{
+		if (ent->free)
+			continue;
+		if (E_FLOAT(ent,f) != s)
+			continue;
+
+		ent->v.chain = EDICT_TO_PROG(chain);
+		chain = ent;
+	}
+
+	RETURN_EDICT(chain);
+}
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+
+// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes  start
+/*
+builtin_t pr_builtin[] =
+{
+...
+};
+*/
+builtin_t *pr_builtins;	// = pr_builtin;
+int pr_numbuiltins;	// = sizeof(pr_builtin)/sizeof(pr_builtin[0]);
+
+// for builtin function definitions see Quake Standards Group at http://www.quakesrc.org/
+ebfs_builtin_t pr_ebfs_builtins[] =
+{
+	{   0, NULL, PF_Fixme },				// has to be first entry as it is needed for initialization in PR_LoadProgs()
+	{   1, "makevectors", PF_makevectors },	// void(entity e)	makevectors 		= #1;
+	{   2, "setorigin", PF_setorigin },		// void(entity e, vector o) setorigin	= #2;
+	{   3, "setmodel", PF_setmodel },		// void(entity e, string m) setmodel	= #3;
+	{   4, "setsize", PF_setsize },			// void(entity e, vector min, vector max) setsize = #4;
+//	{   5, "fixme", PF_Fixme },				// void(entity e, vector min, vector max) setabssize = #5;
+	{   6, "break", PF_break },				// void() break						= #6;
+	{   7, "random", PF_random },			// float() random						= #7;
+	{   8, "sound", PF_sound },				// void(entity e, float chan, string samp) sound = #8;
+	{   9, "normalize", PF_normalize },		// vector(vector v) normalize			= #9;
+	{  10, "error", PF_error },				// void(string e) error				= #10;
+	{  11, "objerror", PF_objerror },		// void(string e) objerror				= #11;
+	{  12, "vlen", PF_vlen },				// float(vector v) vlen				= #12;
+	{  13, "vectoyaw", PF_vectoyaw },		// float(vector v) vectoyaw		= #13;
+	{  14, "spawn", PF_Spawn },				// entity() spawn						= #14;
+	{  15, "remove", PF_Remove },			// void(entity e) remove				= #15;
+	{  16, "traceline", PF_traceline },		// float(vector v1, vector v2, float tryents) traceline = #16;
+	{  17, "checkclient", PF_checkclient },	// entity() clientlist					= #17;
+	{  18, "find", PF_Find },				// entity(entity start, .string fld, string match) find = #18;
+	{  19, "precache_sound", PF_precache_sound },	// void(string s) precache_sound		= #19;
+	{  20, "precache_model", PF_precache_model },	// void(string s) precache_model		= #20;
+	{  21, "stuffcmd", PF_stuffcmd },		// void(entity client, string s)stuffcmd = #21;
+	{  22, "findradius", PF_findradius },	// entity(vector org, float rad) findradius = #22;
+	{  23, "bprint", PF_bprint },			// void(string s) bprint				= #23;
+	{  24, "sprint", PF_sprint },			// void(entity client, string s) sprint = #24;
+	{  25, "dprint", PF_dprint },			// void(string s) dprint				= #25;
+	{  26, "ftos", PF_ftos },				// void(string s) ftos				= #26;
+	{  27, "vtos", PF_vtos },				// void(string s) vtos				= #27;
+	{  28, "coredump", PF_coredump },
+	{  29, "traceon", PF_traceon },
+	{  30, "traceoff", PF_traceoff },
+	{  31, "eprint", PF_eprint },			// void(entity e) debug print an entire entity
+	{  32, "walkmove", PF_walkmove },		// float(float yaw, float dist) walkmove
+//	{  33, "fixme", PF_Fixme },				// float(float yaw, float dist) walkmove
+	{  34, "droptofloor", PF_droptofloor },
+	{  35, "lightstyle", PF_lightstyle },
+	{  36, "rint", PF_rint },
+	{  37, "floor", PF_floor },
+	{  38, "ceil", PF_ceil },
+//	{  39, "fixme", PF_Fixme },
+	{  40, "checkbottom", PF_checkbottom },
+	{  41, "pointcontents", PF_pointcontents },
+//	{  42, "fixme", PF_Fixme },
+	{  43, "fabs", PF_fabs },
+	{  44, "aim", PF_aim },
+	{  45, "cvar", PF_cvar },
+	{  46, "localcmd", PF_localcmd },
+	{  47, "nextent", PF_nextent },
+	{  48, "particle", PF_particle },
+	{  49, "ChangeYaw", PF_changeyaw },
+//	{  50, "fixme", PF_Fixme },
+	{  51, "vectoangles", PF_vectoangles },
+
+	{  52, "WriteByte", PF_WriteByte },
+	{  53, "WriteChar", PF_WriteChar },
+	{  54, "WriteShort", PF_WriteShort },
+	{  55, "WriteLong", PF_WriteLong },
+	{  56, "WriteCoord", PF_WriteCoord },
+	{  57, "WriteAngle", PF_WriteAngle },
+	{  58, "WriteString", PF_WriteString },
+	{  59, "WriteEntity", PF_WriteEntity },
+
+// 2001-09-16 Quake 2 builtin functions by id/Maddes  start
+//#ifdef QUAKE2
+	{  60, "sin", PF_sin },
+	{  61, "cos", PF_cos },
+	{  62, "sqrt", PF_sqrt },
+	{  63, "changepitch", PF_changepitch },
+	{  64, "TraceToss", PF_TraceToss },
+	{  65, "etos", PF_etos },
+#ifdef QUAKE2
+	{  66, "WaterMove", PF_WaterMove },
+// 2001-09-16 Quake 2 builtin functions by id/Maddes  end
+#endif
+
+	{  67, "movetogoal", SV_MoveToGoal },
+	{  68, "precache_file", PF_precache_file },
+	{  69, "makestatic", PF_makestatic },
+
+	{  70, "changelevel", PF_changelevel },
+//	{  71, "fixme", PF_Fixme },
+
+	{  72, "cvar_set", PF_cvar_set },
+	{  73, "centerprint", PF_centerprint },
+
+	{  74, "ambientsound", PF_ambientsound },
+
+	{  75, "precache_model2", PF_precache_model },
+	{  76, "precache_sound2", PF_precache_sound },	// precache_sound2 is different only for qcc
+	{  77, "precache_file2", PF_precache_file },
+
+	{  78, "setspawnparms", PF_setspawnparms },
+
+	{  81, "stof", PF_stof },	// 2001-09-20 QuakeC string manipulation by FrikaC/Maddes
+
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  start
+	{  90, "tracebox", PF_tracebox },
+	{  91, "randomvec", PF_randomvec },
+//	{  92, "getlight", PF_GetLight },	// not implemented yet
+	{  93, "cvar_create", PF_cvar_create },		// 2001-09-18 New BuiltIn Function: cvar_create() by Maddes
+	{  94, "fmin", PF_fmin },
+	{  95, "fmax", PF_fmax },
+	{  96, "fbound", PF_fbound },
+	{  97, "fpow", PF_fpow },
+	{  98, "findfloat", PF_FindFloat },
+	{ PR_DEFAULT_FUNCNO_EXTENSION_FIND, "extension_find", PF_extension_find },	// 2001-10-20 Extension System by LordHavoc/Maddes
+	{   0, "registercvar", PF_cvar_create },		// 0 indicates that this entry is just for remapping (because of name change)
+	{   0, "checkextension", PF_extension_find },
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+
+	{ PR_DEFAULT_FUNCNO_BUILTIN_FIND, "builtin_find", PF_builtin_find },		// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes
+
+	{ 101, "cmd_find", PF_cmd_find },		// 2001-09-16 New BuiltIn Function: cmd_find() by Maddes
+
+	{ 102, "cvar_find", PF_cvar_find },		// 2001-09-16 New BuiltIn Function: cvar_find() by Maddes
+
+	{ 103, "cvar_string", PF_cvar_string },	// 2001-09-16 New BuiltIn Function: cvar_string() by Maddes
+
+	{ 105, "cvar_free", PF_cvar_free },		// 2001-09-18 New BuiltIn Function: cvar_free() by Maddes
+
+	{ 106, "NVS_InitSVCMsg", PF_NVS_InitSVCMsg },	// 2000-05-02 NVS SVC by Maddes
+
+	{ 107, "WriteFloat", PF_WriteFloat },	// 2001-09-16 New BuiltIn Function: WriteFloat() by Maddes
+
+	{ 108, "etof", PF_etof },	// 2001-09-25 New BuiltIn Function: etof() by Maddes
+
+	{ 109, "ftoe", PF_ftoe },	// 2001-09-25 New BuiltIn Function: ftoe() by Maddes
+
+// 2001-09-20 QuakeC file access by FrikaC/Maddes  start
+	{ 110, "fopen", PF_fopen },
+	{ 111, "fclose", PF_fclose },
+	{ 112, "fgets", PF_fgets },
+	{ 113, "fputs", PF_fputs },
+	{   0, "open", PF_fopen },		// 0 indicates that this entry is just for remapping (because of name and number change)
+	{   0, "close", PF_fclose },
+	{   0, "read", PF_fgets },
+	{   0, "write", PF_fputs },
+// 2001-09-20 QuakeC file access by FrikaC/Maddes  end
+
+// 2001-09-20 QuakeC string manipulation by FrikaC/Maddes  start
+	{ 114, "strlen", PF_strlen },
+	{ 115, "strcat", PF_strcat },
+	{ 116, "substring", PF_substring },
+	{ 117, "stov", PF_stov },
+	{ 118, "strzone", PF_strzone },
+	{ 119, "strunzone", PF_strunzone },
+	{   0, "zone", PF_strzone },		// 0 indicates that this entry is just for remapping (because of name and number change)
+	{   0, "unzone", PF_strunzone },
+// 2001-09-20 QuakeC string manipulation by FrikaC/Maddes  end
+
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  start
+	{ 400, "copyentity", PF_copyentity },
+	{ 401, "setcolor", PF_setcolor },
+	{ 402, "findchain", PF_findchain },
+	{ 403, "findchainfloat", PF_findchainfloat },
+// not implemented yet
+/*
+	{ 404, "effect", PF_... },
+	{ 405, "te_blood", PF_... },
+	{ 406, "te_bloodshower", PF_... },
+	{ 407, "te_explosionrgb", PF_... },
+	{ 408, "te_particlecube", PF_... },
+	{ 409, "te_particlerain", PF_... },
+	{ 410, "te_particlesnow", PF_... },
+	{ 411, "te_spark", PF_... },
+	{ 412, "te_gunshotquad", PF_... },
+	{ 413, "te_spikequad", PF_... },
+	{ 414, "te_superspikequad", PF_... },
+	{ 415, "te_explosionquad", PF_... },
+	{ 416, "te_smallflash", PF_... },
+	{ 417, "te_customflash", PF_... },
+	{ 418, "te_gunshot", PF_... },
+	{ 419, "te_spike", PF_... },
+	{ 420, "te_superspike", PF_... },
+	{ 421, "te_explosion", PF_... },
+	{ 422, "te_tarexplosion", PF_... },
+	{ 423, "te_wizspike", PF_... },
+	{ 424, "te_knightspike", PF_... },
+	{ 425, "te_lavasplash", PF_... },
+	{ 426, "te_teleport", PF_... },
+	{ 427, "te_explosion2", PF_... },
+	{ 428, "te_lightning1", PF_... },
+	{ 429, "te_lightning2", PF_... },
+	{ 430, "te_lightning3", PF_... },
+	{ 431, "te_beam", PF_... },
+	{ 432, "vectorvectors", PF_... },
+*/
+// 2001-11-15 DarkPlaces general builtin functions by LordHavoc  end
+};
+
+int pr_ebfs_numbuiltins = sizeof(pr_ebfs_builtins)/sizeof(pr_ebfs_builtins[0]);
+// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes  end

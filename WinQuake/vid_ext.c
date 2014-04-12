@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -591,7 +591,7 @@ int VID_ExtraInitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 
 	pextra = pcurrentmode->pextradata;
 
-	if (vid_nopageflip.value)
+	if (vid_nopageflip->value)
 		lvid->numpages = 1;
 	else
 		lvid->numpages = pcurrentmode->numpages;
@@ -632,23 +632,23 @@ int VID_ExtraInitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 	if (!pextra->vga_incompatible  &&
 		(lvid->numpages == 3)      &&
 		de_exists                  &&
-		(_vid_wait_override.value == 0.0))
+		(_vid_wait_override->value == 0.0))
 	{
-		Cvar_SetValue ("vid_wait", (float)VID_WAIT_DISPLAY_ENABLE);
+		Cvar_SetValue (vid_wait, (float)VID_WAIT_DISPLAY_ENABLE);
 
 		VID_displayedpage = 0;
 		VID_currentpage = 1;
 	}
 	else
 	{
-		if ((lvid->numpages == 1) && (_vid_wait_override.value == 0.0))
+		if ((lvid->numpages == 1) && (_vid_wait_override->value == 0.0))
 		{
-			Cvar_SetValue ("vid_wait", (float)VID_WAIT_NONE);
+			Cvar_SetValue (vid_wait, (float)VID_WAIT_NONE);
 			VID_displayedpage = VID_currentpage = 0;
 		}
 		else
 		{
-			Cvar_SetValue ("vid_wait", (float)VID_WAIT_VSYNC);
+			Cvar_SetValue (vid_wait, (float)VID_WAIT_VSYNC);
 
 			VID_displayedpage = 0;
 
@@ -728,12 +728,12 @@ void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *pcurrentmode,
 	{
 	// page flipped
 		regs.x.ax = 0x4f07;
-	
-		if (vid_wait.value != VID_WAIT_VSYNC)
+
+		if (vid_wait->value != VID_WAIT_VSYNC)
 		{
-			if ((vid_wait.value == VID_WAIT_DISPLAY_ENABLE) && de_exists)
+			if ((vid_wait->value == VID_WAIT_DISPLAY_ENABLE) && de_exists)
 				VID_ExtraWaitDisplayEnable ();
-	
+
 			regs.x.bx = VESA_DONT_WAIT_VSYNC;
 		}
 		else
@@ -744,11 +744,11 @@ void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *pcurrentmode,
 		regs.x.cx = pageoffset % VGA_rowbytes;
 		regs.x.dx = pageoffset / VGA_rowbytes;
 		dos_int86(0x10);
-	
+
 		VID_displayedpage = VID_currentpage;
 		if (++VID_currentpage >= lvid->numpages)
 			VID_currentpage = 0;
-	
+
 	//
 	// set the new write window if this is a banked mode; otherwise, set the
 	// new address to which to write
@@ -767,13 +767,13 @@ void VID_ExtraSwapBuffers (viddef_t *lvid, vmode_t *pcurrentmode,
 			lvid->buffer = VID_membase + VID_pagelist[VID_currentpage];
 			lvid->conbuffer = lvid->buffer;
 		}
-	
+
 		VGA_pagebase = lvid->buffer;
 	}
 	else
 	{
 	// non-page-flipped
-		if (vsync_exists && (vid_wait.value == VID_WAIT_VSYNC))
+		if (vsync_exists && (vid_wait->value == VID_WAIT_VSYNC))
 		{
 			VGA_WaitVsync ();
 		}

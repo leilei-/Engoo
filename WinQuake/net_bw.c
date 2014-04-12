@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -182,7 +182,7 @@ typedef struct
 	char			reserved1 [2];
 	unsigned short	dataLenPlus8;
 	char			reserved2 [2];
-	char			data[1];			// actual size is <dataLenPlus8> - 8		
+	char			data[1];			// actual size is <dataLenPlus8> - 8
 } BW_UDPreadInfo2_t;
 
 typedef struct
@@ -278,7 +278,7 @@ static int GetEthdevinfo(void)
 {
 	int fd;
 
-	Q_strcpy((char *)lowmem_buffer, "ETHDEV27");
+	strcpy((char *)lowmem_buffer, "ETHDEV27");
 	regs.x.ax = 0x3d42;
 	regs.x.ds = lowmem_bufseg;
 	regs.x.dx = lowmem_bufoff;
@@ -340,8 +340,8 @@ int BW_Init(void)
 	}
 
 	BW_GetSocketAddr (net_controlsocket, &addr);
-	Q_strcpy(my_tcpip_address,  BW_AddrToString (&addr));
-	colon = Q_strrchr (my_tcpip_address, ':');
+	strcpy(my_tcpip_address,  BW_AddrToString (&addr));
+	colon = strrchr (my_tcpip_address, ':');
 	if (colon)
 		*colon = 0;
 
@@ -401,7 +401,7 @@ int BW_OpenSocket(int port)
 	static char nonblock_msg[2] = {BW_IOCTL_CLEAROPTIONS, BW_OPTION_BLOCKING};
 
 	// allocate a UDP socket
-	Q_strcpy((char *)lowmem_buffer, "UDP-IP10");
+	strcpy((char *)lowmem_buffer, "UDP-IP10");
 	regs.x.ax = 0x3d42;
 	regs.x.ds = lowmem_bufseg;
 	regs.x.dx = lowmem_bufoff;
@@ -669,7 +669,7 @@ int BW_GetSocketAddr (int socket, struct qsockaddr *addr)
 
 int BW_GetNameFromAddr (struct qsockaddr *addr, char *name)
 {
-	Q_strcpy(name, BW_AddrToString(addr));
+	strcpy(name, BW_AddrToString(addr));
 	return 0;
 }
 
@@ -690,7 +690,7 @@ int BW_GetAddrFromName (char *name, struct qsockaddr *hostaddr)
 
 	buff[0] = '.';
 	b = buff;
-	Q_strcpy(buff+1, name);
+	strcpy(buff+1, name);
 	if (buff[1] == '.')
 		b++;
 
@@ -723,7 +723,7 @@ int BW_GetAddrFromName (char *name, struct qsockaddr *hostaddr)
 		port = net_hostport;
 
 	hostaddr->sa_family = AF_INET;
-	((struct sockaddr_in *)hostaddr)->sin_port = htons((short)port);	
+	((struct sockaddr_in *)hostaddr)->sin_port = htons((short)port);
 	((struct sockaddr_in *)hostaddr)->sin_addr.s_addr =
 	((ethdevinfo.inetAddr & mask) | addr);
 

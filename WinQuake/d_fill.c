@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -52,7 +52,7 @@ void D_FillRect (vrect_t *rect, int color)
 		rwidth = vid.width - rx;
 	if (ry+rheight > vid.height)
 		rheight = vid.height - rx;
-		
+
 	if (rwidth < 1 || rheight < 1)
 		return;
 

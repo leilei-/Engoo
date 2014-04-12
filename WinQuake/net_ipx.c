@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -290,8 +290,8 @@ int IPX_Init(void)
 	SchedulePollProcedure(&pollProcedure, 0.01);
 
 	IPX_GetSocketAddr (net_controlsocket, &addr);
-	Q_strcpy(my_ipx_address,  IPX_AddrToString (&addr));
-	colon = Q_strrchr (my_ipx_address, ':');
+	strcpy(my_ipx_address,  IPX_AddrToString (&addr));
+	colon = strrchr (my_ipx_address, ':');
 	if (colon)
 		*colon = 0;
 
@@ -459,7 +459,7 @@ tryagain:
 
 	if (ecb->completionCode != 0)
 	{
-		Con_Printf("Warning: IPX_Read error %02x\n", ecb->completionCode);	
+		Con_Printf("Warning: IPX_Read error %02x\n", ecb->completionCode);
 		ecb->fragSize = sizeof(IPXheader) + sizeof(int) + NET_DATAGRAMSIZE;
 		IPX_ListenForPacket(ecb);
 		goto tryagain;
@@ -644,7 +644,7 @@ int IPX_GetSocketAddr (int handle, struct qsockaddr *addr)
 
 int IPX_GetNameFromAddr (struct qsockaddr *addr, char *name)
 {
-	Q_strcpy(name, IPX_AddrToString(addr));
+	strcpy(name, IPX_AddrToString(addr));
 	return 0;
 }
 
@@ -655,7 +655,7 @@ int IPX_GetAddrFromName (char *name, struct qsockaddr *addr)
 	int n;
 	char buf[32];
 
-	n = Q_strlen(name);
+	n = strlen(name);
 
 	if (n == 12)
 	{
@@ -680,7 +680,7 @@ int IPX_AddrCompare (struct qsockaddr *addr1, struct qsockaddr *addr2)
 	if (addr1->sa_family != addr2->sa_family)
 		return -1;
 
-	if(Q_memcmp(&((struct sockaddr_ipx *)addr1)->sipx_addr, &((struct sockaddr_ipx *)addr2)->sipx_addr, 10))
+	if(memcmp(&((struct sockaddr_ipx *)addr1)->sipx_addr, &((struct sockaddr_ipx *)addr2)->sipx_addr, 10))
 		return -1;
 
 	if (((struct sockaddr_ipx *)addr1)->sipx_port != ((struct sockaddr_ipx *)addr2)->sipx_port)

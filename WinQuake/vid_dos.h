@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -54,9 +54,9 @@ extern int		VGA_width, VGA_height, VGA_rowbytes, VGA_bufferrowbytes;
 extern byte		*VGA_pagebase;
 extern vmode_t	*VGA_pcurmode;
 
-extern cvar_t	vid_wait;
-extern cvar_t	vid_nopageflip;
-extern cvar_t	_vid_wait_override;
+extern cvar_t	*vid_wait;
+extern cvar_t	*vid_nopageflip;
+extern cvar_t	*_vid_wait_override;
 
 extern unsigned char colormap256[32][256];
 

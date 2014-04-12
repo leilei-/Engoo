@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -68,7 +68,7 @@ void KeyDown (kbutton_t *b)
 
 	if (k == b->down[0] || k == b->down[1])
 		return;		// repeating key
-	
+
 	if (!b->down[0])
 		b->down[0] = k;
 	else if (!b->down[1])
@@ -78,7 +78,7 @@ void KeyDown (kbutton_t *b)
 		Con_Printf ("Three keys down for a button!\n");
 		return;
 	}
-	
+
 	if (b->state & 1)
 		return;		// still down
 	b->state |= 1 + 2;	// down + impulse down
@@ -88,7 +88,7 @@ void KeyUp (kbutton_t *b)
 {
 	int		k;
 	char	*c;
-	
+
 	c = Cmd_Argv(1);
 	if (c[0])
 		k = atoi(c);
@@ -116,12 +116,22 @@ void KeyUp (kbutton_t *b)
 
 void IN_KLookDown (void) {KeyDown(&in_klook);}
 void IN_KLookUp (void) {KeyUp(&in_klook);}
-void IN_MLookDown (void) {KeyDown(&in_mlook);}
-void IN_MLookUp (void) {
-KeyUp(&in_mlook);
-if ( !(in_mlook.state&1) &&  lookspring.value)
-	V_StartPitchDrift();
+
+void IN_MLookDown (void)
+{
+	KeyDown(&in_mlook);
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
+	if ( !((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && lookspring->value)
+		V_StartPitchDrift();
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
 }
+void IN_MLookUp (void)
+{
+	KeyUp(&in_mlook);
+	if ( !((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && lookspring->value)	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		V_StartPitchDrift();
+}
+
 void IN_UpDown(void) {KeyDown(&in_up);}
 void IN_UpUp(void) {KeyUp(&in_up);}
 void IN_DownDown(void) {KeyDown(&in_down);}
@@ -172,35 +182,43 @@ float CL_KeyState (kbutton_t *key)
 {
 	float		val;
 	qboolean	impulsedown, impulseup, down;
-	
+
 	impulsedown = key->state & 2;
 	impulseup = key->state & 4;
 	down = key->state & 1;
 	val = 0;
-	
+
 	if (impulsedown && !impulseup)
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (down)
 			val = 0.5;	// pressed and held this frame
 		else
 			val = 0;	//	I_Error ();
+	}	// 1999-12-24 explicit brackets by Maddes
 	if (impulseup && !impulsedown)
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (down)
 			val = 0;	//	I_Error ();
 		else
 			val = 0;	// released this frame
+	}	// 1999-12-24 explicit brackets by Maddes
 	if (!impulsedown && !impulseup)
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (down)
 			val = 1.0;	// held the entire frame
 		else
 			val = 0;	// up the entire frame
+	}	// 1999-12-24 explicit brackets by Maddes
 	if (impulsedown && impulseup)
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (down)
 			val = 0.75;	// released and re-pressed this frame
 		else
 			val = 0.25;	// pressed and released this frame
+	}	// 1999-12-24 explicit brackets by Maddes
 
 	key->state &= 1;		// clear impulses
-	
+
 	return val;
 }
 
@@ -209,17 +227,17 @@ float CL_KeyState (kbutton_t *key)
 
 //==========================================================================
 
-cvar_t	cl_upspeed = {"cl_upspeed","200"};
-cvar_t	cl_forwardspeed = {"cl_forwardspeed","200", true};
-cvar_t	cl_backspeed = {"cl_backspeed","200", true};
-cvar_t	cl_sidespeed = {"cl_sidespeed","350"};
+cvar_t	*cl_upspeed;
+cvar_t	*cl_forwardspeed;
+cvar_t	*cl_backspeed;
+cvar_t	*cl_sidespeed;
 
-cvar_t	cl_movespeedkey = {"cl_movespeedkey","2.0"};
+cvar_t	*cl_movespeedkey;
 
-cvar_t	cl_yawspeed = {"cl_yawspeed","140"};
-cvar_t	cl_pitchspeed = {"cl_pitchspeed","150"};
+cvar_t	*cl_yawspeed;
+cvar_t	*cl_pitchspeed;
 
-cvar_t	cl_anglespeedkey = {"cl_anglespeedkey","1.5"};
+cvar_t	*cl_anglespeedkey;
 
 
 /*
@@ -233,34 +251,40 @@ void CL_AdjustAngles (void)
 {
 	float	speed;
 	float	up, down;
-	
+
 	if (in_speed.state & 1)
-		speed = host_frametime * cl_anglespeedkey.value;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//		speed = host_frametime * cl_anglespeedkey->value;
+		speed = host_org_frametime * cl_anglespeedkey->value;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 	else
-		speed = host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//		speed = host_frametime;
+		speed = host_org_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 	if (!(in_strafe.state & 1))
 	{
-		cl.viewangles[YAW] -= speed*cl_yawspeed.value*CL_KeyState (&in_right);
-		cl.viewangles[YAW] += speed*cl_yawspeed.value*CL_KeyState (&in_left);
+		cl.viewangles[YAW] -= speed*cl_yawspeed->value*CL_KeyState (&in_right);
+		cl.viewangles[YAW] += speed*cl_yawspeed->value*CL_KeyState (&in_left);
 		cl.viewangles[YAW] = anglemod(cl.viewangles[YAW]);
 	}
 	if (in_klook.state & 1)
 	{
 		V_StopPitchDrift ();
-		cl.viewangles[PITCH] -= speed*cl_pitchspeed.value * CL_KeyState (&in_forward);
-		cl.viewangles[PITCH] += speed*cl_pitchspeed.value * CL_KeyState (&in_back);
+		cl.viewangles[PITCH] -= speed*cl_pitchspeed->value * CL_KeyState (&in_forward);
+		cl.viewangles[PITCH] += speed*cl_pitchspeed->value * CL_KeyState (&in_back);
 	}
-	
+
 	up = CL_KeyState (&in_lookup);
 	down = CL_KeyState(&in_lookdown);
-	
-	cl.viewangles[PITCH] -= speed*cl_pitchspeed.value * up;
-	cl.viewangles[PITCH] += speed*cl_pitchspeed.value * down;
+
+	cl.viewangles[PITCH] -= speed*cl_pitchspeed->value * up;
+	cl.viewangles[PITCH] += speed*cl_pitchspeed->value * down;
 
 	if (up || down)
 		V_StopPitchDrift ();
-		
+
 	if (cl.viewangles[PITCH] > 80)
 		cl.viewangles[PITCH] = 80;
 	if (cl.viewangles[PITCH] < -70)
@@ -270,7 +294,7 @@ void CL_AdjustAngles (void)
 		cl.viewangles[ROLL] = 50;
 	if (cl.viewangles[ROLL] < -50)
 		cl.viewangles[ROLL] = -50;
-		
+
 }
 
 /*
@@ -281,40 +305,40 @@ Send the intended movement message to the server
 ================
 */
 void CL_BaseMove (usercmd_t *cmd)
-{	
+{
 	if (cls.signon != SIGNONS)
 		return;
-			
+
 	CL_AdjustAngles ();
-	
+
 	Q_memset (cmd, 0, sizeof(*cmd));
-	
+
 	if (in_strafe.state & 1)
 	{
-		cmd->sidemove += cl_sidespeed.value * CL_KeyState (&in_right);
-		cmd->sidemove -= cl_sidespeed.value * CL_KeyState (&in_left);
+		cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_right);
+		cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_left);
 	}
 
-	cmd->sidemove += cl_sidespeed.value * CL_KeyState (&in_moveright);
-	cmd->sidemove -= cl_sidespeed.value * CL_KeyState (&in_moveleft);
+	cmd->sidemove += cl_sidespeed->value * CL_KeyState (&in_moveright);
+	cmd->sidemove -= cl_sidespeed->value * CL_KeyState (&in_moveleft);
 
-	cmd->upmove += cl_upspeed.value * CL_KeyState (&in_up);
-	cmd->upmove -= cl_upspeed.value * CL_KeyState (&in_down);
+	cmd->upmove += cl_upspeed->value * CL_KeyState (&in_up);
+	cmd->upmove -= cl_upspeed->value * CL_KeyState (&in_down);
 
 	if (! (in_klook.state & 1) )
-	{	
-		cmd->forwardmove += cl_forwardspeed.value * CL_KeyState (&in_forward);
-		cmd->forwardmove -= cl_backspeed.value * CL_KeyState (&in_back);
-	}	
+	{
+		cmd->forwardmove += cl_forwardspeed->value * CL_KeyState (&in_forward);
+		cmd->forwardmove -= cl_backspeed->value * CL_KeyState (&in_back);
+	}
 
 //
 // adjust for speed key
 //
 	if (in_speed.state & 1)
 	{
-		cmd->forwardmove *= cl_movespeedkey.value;
-		cmd->sidemove *= cl_movespeedkey.value;
-		cmd->upmove *= cl_movespeedkey.value;
+		cmd->forwardmove *= cl_movespeedkey->value;
+		cmd->sidemove *= cl_movespeedkey->value;
+		cmd->upmove *= cl_movespeedkey->value;
 	}
 
 #ifdef QUAKE2
@@ -335,43 +359,61 @@ void CL_SendMove (usercmd_t *cmd)
 	int		bits;
 	sizebuf_t	buf;
 	byte	data[128];
-	
+
 	buf.maxsize = 128;
 	buf.cursize = 0;
 	buf.data = data;
-	
+
 	cl.cmd = *cmd;
 
 //
 // send the movement message
 //
-    MSG_WriteByte (&buf, clc_move);
+	MSG_WriteByte (&buf, clc_move);
 
 	MSG_WriteFloat (&buf, cl.mtime[0]);	// so server can get ping times
 
-	for (i=0 ; i<3 ; i++)
-		MSG_WriteAngle (&buf, cl.viewangles[i]);
-	
-    MSG_WriteShort (&buf, cmd->forwardmove);
-    MSG_WriteShort (&buf, cmd->sidemove);
-    MSG_WriteShort (&buf, cmd->upmove);
+// 2000-05-01 NVS CLC_move precise aiming by Maddes  start
+	if (nvs_current_cclc->value >= 0.50)
+	{
+		for (i=0 ; i<3 ; i++)
+		{
+			MSG_WriteFloat (&buf, cl.viewangles[i]);
+		}
+	}
+	else
+	{
+// 2000-05-01 NVS CLC_move precise aiming by Maddes  end
+		for (i=0 ; i<3 ; i++)
+			MSG_WriteAngle (&buf, cl.viewangles[i]);
+	}					// 2000-05-01 NVS CLC_move precise aiming by Maddes
+
+	MSG_WriteShort (&buf, cmd->forwardmove);
+	MSG_WriteShort (&buf, cmd->sidemove);
+	MSG_WriteShort (&buf, cmd->upmove);
 
 //
 // send button bits
 //
 	bits = 0;
-	
+
 	if ( in_attack.state & 3 )
 		bits |= 1;
 	in_attack.state &= ~2;
-	
+
 	if (in_jump.state & 3)
 		bits |= 2;
 	in_jump.state &= ~2;
-	
-    MSG_WriteByte (&buf, bits);
 
-    MSG_WriteByte (&buf, in_impulse);
+// 1999-10-29 +USE fix by Maddes  start
+	if (in_use.state & 3)
+		bits |= 4;
+	in_use.state &= ~2;
+// 1999-10-29 +USE fix by Maddes  end
+
+	MSG_WriteByte (&buf, bits);
+
+	MSG_WriteByte (&buf, in_impulse);
 	in_impulse = 0;
 
 #ifdef QUAKE2
@@ -388,12 +430,12 @@ void CL_SendMove (usercmd_t *cmd)
 		return;
 
 //
-// allways dump the first two message, because it may contain leftover inputs
+// always dump the first two message, because it may contain leftover inputs
 // from the last level
 //
 	if (++cl.movemessages <= 2)
 		return;
-	
+
 	if (NET_SendUnreliableMessage (cls.netcon, &buf) == -1)
 	{
 		Con_Printf ("CL_SendMove: lost server connection\n");

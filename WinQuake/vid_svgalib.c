@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -74,18 +74,13 @@ int		UseKeyboard = 1;
 
 int		mouserate = MOUSE_DEFAULTSAMPLERATE;
 
-cvar_t		vid_mode = {"vid_mode","5",false};
-cvar_t		vid_redrawfull = {"vid_redrawfull","0",false};
-cvar_t		vid_waitforrefresh = {"vid_waitforrefresh","0",true};
- 
+cvar_t	*vid_mode;
+cvar_t	*vid_redrawfull;
+cvar_t	*vid_waitforrefresh;
+
 char	*framebuffer_ptr;
 
-cvar_t  mouse_button_commands[3] =
-{
-    {"mouse1","+attack"},
-    {"mouse2","+strafe"},
-    {"mouse3","+forward"},
-};
+cvar_t	*mouse_button_commands[3];
 
 int     mouse_buttons;
 int     mouse_buttonstate;
@@ -94,7 +89,7 @@ float   mouse_x, mouse_y;
 float	old_mouse_x, old_mouse_y;
 int		mx, my;
 
-cvar_t	m_filter = {"m_filter","0"};
+cvar_t	*m_filter;
 
 static byte     backingbuf[48*24];
 
@@ -218,7 +213,7 @@ void D_EndDirectRect (int x, int y, int width, int height)
 					vidpage=offset / 0x10000;
 					vga_setpage(vidpage);
 				}
-				memcpy (vid.direct + off, 
+				memcpy (vid.direct + off,
 						&backingbuf[(i +j)*24],
 						width);
 			}
@@ -263,7 +258,7 @@ void VID_Gamma_f (void)
 void VID_DescribeMode_f (void)
 {
 	int modenum;
-	
+
 	modenum = Q_atoi (Cmd_Argv(1));
 	if ((modenum >= num_modes) || (modenum < 0 ) || !modes[modenum].width)
 		Con_Printf("Invalid video mode: %d!\n",modenum);
@@ -277,7 +272,7 @@ void VID_DescribeMode_f (void)
 void VID_DescribeModes_f (void)
 {
 	int i;
-	
+
 	for (i=0;i<num_modes;i++)
 		if (modes[i].width) {
 			Con_Printf("%d: %d x %d - ", i, modes[i].width,modes[i].height);
@@ -296,7 +291,7 @@ VID_NumModes
 int VID_NumModes ()
 {
 	int i,i1=0;
-	
+
 	for (i=0;i<num_modes;i++)
 		i1+=(modes[i].width?1:0);
 	return (i1);
@@ -325,7 +320,7 @@ void VID_InitModes(void)
 // get complete information on all modes
 
 	num_modes = vga_lastmodenumber()+1;
-	modes = Z_Malloc(num_modes * sizeof(vga_modeinfo));
+	modes = Z_Malloc(mainzone, num_modes * sizeof(vga_modeinfo));	// 2001-09-20 Enhanced zone handling by Maddes
 	for (i=0 ; i<num_modes ; i++)
 	{
 		if (vga_hasmode(i))
@@ -338,7 +333,7 @@ void VID_InitModes(void)
 
 	for (i=0 ; i<num_modes ; i++)
 	{
-		if (modes[i].bytesperpixel != 1 && modes[i].colors != 256) 
+		if (modes[i].bytesperpixel != 1 && modes[i].colors != 256)
 			modes[i].width = 0;
 	}
 
@@ -414,7 +409,7 @@ void vtswitch(int newconsole)
 
 void keyhandler(int scancode, int state)
 {
-	
+
 	int sc;
 
 	sc = scancode & 0x7f;
@@ -475,15 +470,15 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	if ((modenum >= num_modes) || (modenum < 0) || !modes[modenum].width)
 	{
-		Cvar_SetValue ("vid_mode", (float)current_mode);
-		
+		Cvar_SetValue (vid_mode, (float)current_mode);
+
 		Con_Printf("No such video mode: %d\n",modenum);
-		
+
 		return 0;
 	}
 
-	Cvar_SetValue ("vid_mode", (float)modenum);
-	
+	Cvar_SetValue (vid_mode, (float)modenum);
+
 	current_mode=modenum;
 
 	vid.width = modes[current_mode].width;
@@ -506,7 +501,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	vid.conwidth = vid.width;
 	vid.conheight = vid.height;
 	vid.numpages = 1;
-	
+
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
 
@@ -552,6 +547,20 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	return 0;
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+	vid_mode = Cvar_Get ("vid_mode", "5", CVAR_ORIGINAL);
+	vid_redrawfull = Cvar_Get ("vid_redrawfull", "0", CVAR_ORIGINAL);
+	vid_waitforrefresh= Cvar_Get ("vid_waitforrefresh", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void VID_Init(unsigned char *palette)
 {
 
@@ -569,10 +578,14 @@ void VID_Init(unsigned char *palette)
 
 		VID_InitModes();
 
-		Cvar_RegisterVariable (&vid_mode);
-		Cvar_RegisterVariable (&vid_redrawfull);
-		Cvar_RegisterVariable (&vid_waitforrefresh);
-		
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+		vid_mode = Cvar_Get ("vid_mode", "5", CVAR_ORIGINAL);
+		vid_redrawfull = Cvar_Get ("vid_redrawfull", "0", CVAR_ORIGINAL);
+		vid_waitforrefresh= Cvar_Get ("vid_waitforrefresh", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 		Cmd_AddCommand("vid_nummodes", VID_NumModes_f);
 		Cmd_AddCommand("vid_describemode", VID_DescribeMode_f);
 		Cmd_AddCommand("vid_describemodes", VID_DescribeModes_f);
@@ -605,7 +618,7 @@ void VID_Init(unsigned char *palette)
 		VID_SetPalette(palette);
 
 		// we do want to run in the background when switched away
-		vga_runinbackground(1);	
+		vga_runinbackground(1);
 	}
 
 	if (COM_CheckParm("-nokbd")) UseKeyboard = 0;
@@ -688,29 +701,29 @@ void VID_Init(unsigned char *palette)
 		scantokey[30] = 'a';
 		scantokey[48] = 'b';
 		scantokey[46] = 'c';
-        scantokey[32] = 'd';       
-        scantokey[18] = 'e';       
-        scantokey[33] = 'f';       
-        scantokey[34] = 'g';       
-        scantokey[35] = 'h';       
-        scantokey[23] = 'i';       
-        scantokey[36] = 'j';       
-        scantokey[37] = 'k';       
-        scantokey[38] = 'l';       
-        scantokey[50] = 'm';       
-        scantokey[49] = 'n';       
-        scantokey[24] = 'o';       
-        scantokey[25] = 'p';       
-        scantokey[16] = 'q';       
-        scantokey[19] = 'r';       
-        scantokey[31] = 's';       
-        scantokey[20] = 't';       
-        scantokey[22] = 'u';       
-        scantokey[47] = 'v';       
-        scantokey[17] = 'w';       
-        scantokey[45] = 'x';       
-        scantokey[21] = 'y';       
-        scantokey[44] = 'z';       
+        scantokey[32] = 'd';
+        scantokey[18] = 'e';
+        scantokey[33] = 'f';
+        scantokey[34] = 'g';
+        scantokey[35] = 'h';
+        scantokey[23] = 'i';
+        scantokey[36] = 'j';
+        scantokey[37] = 'k';
+        scantokey[38] = 'l';
+        scantokey[50] = 'm';
+        scantokey[49] = 'n';
+        scantokey[24] = 'o';
+        scantokey[25] = 'p';
+        scantokey[16] = 'q';
+        scantokey[19] = 'r';
+        scantokey[31] = 's';
+        scantokey[20] = 't';
+        scantokey[22] = 'u';
+        scantokey[47] = 'v';
+        scantokey[17] = 'w';
+        scantokey[45] = 'x';
+        scantokey[21] = 'y';
+        scantokey[44] = 'z';
 
 		if (keyboard_init())
 			Sys_Error("keyboard_init() failed");
@@ -727,13 +740,13 @@ void VID_Update(vrect_t *rects)
 	if (!vga_oktowrite())
 		return; // can't update screen if it's not active
 
-	if (vid_waitforrefresh.value)
+	if (vid_waitforrefresh->value)
 		vga_waitretrace();
 
 	if (VGA_planar)
 		VGA_UpdatePlanarScreen (vid.buffer);
 
-	else if (vid_redrawfull.value) {
+	else if (vid_redrawfull->value) {
 		int total = vid.rowbytes * vid.height;
 		int offset;
 
@@ -757,32 +770,32 @@ void VID_Update(vrect_t *rects)
 			while (ycount--)
 			{
 				register int i = offset % 0x10000;
-	
+
 				if ((offset / 0x10000) != vidpage) {
 					vidpage=offset / 0x10000;
 					vga_setpage(vidpage);
 				}
 				if (rects->width + i > 0x10000) {
-					memcpy(framebuffer_ptr + i, 
-							vid.buffer + offset, 
+					memcpy(framebuffer_ptr + i,
+							vid.buffer + offset,
 							0x10000 - i);
 					vga_setpage(++vidpage);
 					memcpy(framebuffer_ptr,
-							vid.buffer + offset + 0x10000 - i, 
+							vid.buffer + offset + 0x10000 - i,
 							rects->width - 0x10000 + i);
 				} else
-					memcpy(framebuffer_ptr + i, 
-							vid.buffer + offset, 
+					memcpy(framebuffer_ptr + i,
+							vid.buffer + offset,
 							rects->width);
 				offset += vid.rowbytes;
 			}
-	
+
 			rects = rects->pnext;
 		}
 	}
-	
-	if (vid_mode.value != current_mode)
-		VID_SetMode ((int)vid_mode.value, vid_current_palette);
+
+	if (vid_mode->value != current_mode)
+		VID_SetMode ((int)vid_mode->value, vid_current_palette);
 }
 
 static int dither;
@@ -827,6 +840,18 @@ void mousehandler(int buttonstate, int dx, int dy)
 	my += dy;
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void IN_Init(void)
 {
 
@@ -836,11 +861,11 @@ void IN_Init(void)
 
 	if (UseMouse)
 	{
+		mouse_button_commands[0] = Cvar_Get ("mouse1", "+attack", CVAR_ORIGINAL);
+		mouse_button_commands[1] = Cvar_Get ("mouse2", "+strafe", CVAR_ORIGINAL);
+		mouse_button_commands[2] = Cvar_Get ("mouse3", "+forward", CVAR_ORIGINAL);
+//		m_filter = Cvar_Get ("m_filter", "0", CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes (Init)
 
-		Cvar_RegisterVariable (&mouse_button_commands[0]);
-		Cvar_RegisterVariable (&mouse_button_commands[1]);
-		Cvar_RegisterVariable (&mouse_button_commands[2]);
-		Cvar_RegisterVariable (&m_filter);
 		Cmd_AddCommand ("force_centerview", Force_CenterView_f);
 
 		mouse_buttons = 3;
@@ -930,7 +955,7 @@ void IN_MouseMove (usercmd_t *cmd)
 	while (mouse_update())
 		;
 
-	if (m_filter.value)
+	if (m_filter->value)
 	{
 		mouse_x = (mx + old_mouse_x) * 0.5;
 		mouse_y = (my + old_mouse_y) * 0.5;
@@ -944,21 +969,21 @@ void IN_MouseMove (usercmd_t *cmd)
 	old_mouse_y = my;
 	mx = my = 0; // clear for next update
 
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
+	mouse_x *= sensitivity->value;
+	mouse_y *= sensitivity->value;
 
 // add mouse X/Y movement to cmd
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-		
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
@@ -967,9 +992,9 @@ void IN_MouseMove (usercmd_t *cmd)
 	else
 	{
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
+			cmd->upmove -= m_forward->value * mouse_y;
 		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
+			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 }
 

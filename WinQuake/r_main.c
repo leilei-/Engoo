@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -115,29 +115,29 @@ float	se_time1, se_time2, de_time1, de_time2, dv_time1, dv_time2;
 
 void R_MarkLeaves (void);
 
-cvar_t	r_draworder = {"r_draworder","0"};
-cvar_t	r_speeds = {"r_speeds","0"};
-cvar_t	r_timegraph = {"r_timegraph","0"};
-cvar_t	r_graphheight = {"r_graphheight","10"};
-cvar_t	r_clearcolor = {"r_clearcolor","2"};
-cvar_t	r_waterwarp = {"r_waterwarp","1"};
-cvar_t	r_fullbright = {"r_fullbright","0"};
-cvar_t	r_drawentities = {"r_drawentities","1"};
-cvar_t	r_drawviewmodel = {"r_drawviewmodel","1"};
-cvar_t	r_aliasstats = {"r_polymodelstats","0"};
-cvar_t	r_dspeeds = {"r_dspeeds","0"};
-cvar_t	r_drawflat = {"r_drawflat", "0"};
-cvar_t	r_ambient = {"r_ambient", "0"};
-cvar_t	r_reportsurfout = {"r_reportsurfout", "0"};
-cvar_t	r_maxsurfs = {"r_maxsurfs", "0"};
-cvar_t	r_numsurfs = {"r_numsurfs", "0"};
-cvar_t	r_reportedgeout = {"r_reportedgeout", "0"};
-cvar_t	r_maxedges = {"r_maxedges", "0"};
-cvar_t	r_numedges = {"r_numedges", "0"};
-cvar_t	r_aliastransbase = {"r_aliastransbase", "200"};
-cvar_t	r_aliastransadj = {"r_aliastransadj", "100"};
+cvar_t	*r_draworder;
+cvar_t	*r_speeds;
+cvar_t	*r_timegraph;
+cvar_t	*r_graphheight;
+cvar_t	*r_clearcolor;
+cvar_t	*r_waterwarp;
+cvar_t	*r_fullbright;
+cvar_t	*r_drawentities;
+cvar_t	*r_drawviewmodel;
+cvar_t	*r_aliasstats;
+cvar_t	*r_dspeeds;
+cvar_t	*r_drawflat;
+cvar_t	*r_ambient;
+cvar_t	*r_reportsurfout;
+cvar_t	*r_maxsurfs;
+cvar_t	*r_numsurfs;
+cvar_t	*r_reportedgeout;
+cvar_t	*r_maxedges;
+cvar_t	*r_numedges;
+cvar_t	*r_aliastransbase;
+cvar_t	*r_aliastransadj;
 
-extern cvar_t	scr_fov;
+extern cvar_t	*scr_fov;
 
 void CreatePassages (void);
 void SetVisibilityByPassages (void);
@@ -151,16 +151,16 @@ void	R_InitTextures (void)
 {
 	int		x,y, m;
 	byte	*dest;
-	
+
 // create a simple checkerboard texture for the default
 	r_notexture_mip = Hunk_AllocName (sizeof(texture_t) + 16*16+8*8+4*4+2*2, "notexture");
-	
+
 	r_notexture_mip->width = r_notexture_mip->height = 16;
 	r_notexture_mip->offsets[0] = sizeof(texture_t);
 	r_notexture_mip->offsets[1] = r_notexture_mip->offsets[0] + 16*16;
 	r_notexture_mip->offsets[2] = r_notexture_mip->offsets[1] + 8*8;
 	r_notexture_mip->offsets[3] = r_notexture_mip->offsets[2] + 4*4;
-	
+
 	for (m=0 ; m<4 ; m++)
 	{
 		dest = (byte *)r_notexture_mip + r_notexture_mip->offsets[m];
@@ -172,8 +172,43 @@ void	R_InitTextures (void)
 				else
 					*dest++ = 0xff;
 			}
-	}	
+	}
 }
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===============
+R_Init_Cvars
+===============
+*/
+void R_Init_Cvars (void)
+{
+	r_draworder = Cvar_Get ("r_draworder", "0", CVAR_ORIGINAL);
+	r_speeds = Cvar_Get ("r_speeds", "0", CVAR_ORIGINAL);
+	r_timegraph = Cvar_Get ("r_timegraph", "0", CVAR_ORIGINAL);
+	r_graphheight = Cvar_Get ("r_graphheight", "10", CVAR_ORIGINAL);
+	r_drawflat = Cvar_Get ("r_drawflat", "0", CVAR_ORIGINAL);
+	r_ambient = Cvar_Get ("r_ambient", "0", CVAR_ORIGINAL);
+	r_clearcolor = Cvar_Get ("r_clearcolor", "2", CVAR_ORIGINAL);
+	r_waterwarp = Cvar_Get ("r_waterwarp", "1", CVAR_ORIGINAL);
+	r_fullbright = Cvar_Get ("r_fullbright", "0", CVAR_ORIGINAL);
+	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ORIGINAL);
+	r_drawviewmodel = Cvar_Get ("r_drawviewmodel", "1", CVAR_ORIGINAL);
+	r_aliasstats = Cvar_Get ("r_polymodelstats", "0", CVAR_ORIGINAL);
+	r_dspeeds = Cvar_Get ("r_dspeeds", "0", CVAR_ORIGINAL);
+	r_reportsurfout = Cvar_Get ("r_reportsurfout", "0", CVAR_ORIGINAL);
+	r_maxsurfs = Cvar_Get ("r_maxsurfs", "0", CVAR_ORIGINAL);
+	r_numsurfs = Cvar_Get ("r_numsurfs", "0", CVAR_ORIGINAL);
+	r_reportedgeout = Cvar_Get ("r_reportedgeout", "0", CVAR_ORIGINAL);
+	r_maxedges = Cvar_Get ("r_maxedges", "0", CVAR_ORIGINAL);
+	r_numedges = Cvar_Get ("r_numedges", "0", CVAR_ORIGINAL);
+	r_aliastransbase = Cvar_Get ("r_aliastransbase", "200", CVAR_ORIGINAL);
+	r_aliastransadj = Cvar_Get ("r_aliastransadj", "100", CVAR_ORIGINAL);
+
+	Cvar_SetValue (r_maxedges, (float)NUMSTACKEDGES);
+	Cvar_SetValue (r_maxsurfs, (float)NUMSTACKSURFACES);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 ===============
@@ -183,39 +218,43 @@ R_Init
 void R_Init (void)
 {
 	int		dummy;
-	
+
 // get stack position so we can guess if we are going to overflow
 	r_stack_start = (byte *)&dummy;
-	
+
 	R_InitTurb ();
-	
-	Cmd_AddCommand ("timerefresh", R_TimeRefresh_f);	
-	Cmd_AddCommand ("pointfile", R_ReadPointFile_f);	
 
-	Cvar_RegisterVariable (&r_draworder);
-	Cvar_RegisterVariable (&r_speeds);
-	Cvar_RegisterVariable (&r_timegraph);
-	Cvar_RegisterVariable (&r_graphheight);
-	Cvar_RegisterVariable (&r_drawflat);
-	Cvar_RegisterVariable (&r_ambient);
-	Cvar_RegisterVariable (&r_clearcolor);
-	Cvar_RegisterVariable (&r_waterwarp);
-	Cvar_RegisterVariable (&r_fullbright);
-	Cvar_RegisterVariable (&r_drawentities);
-	Cvar_RegisterVariable (&r_drawviewmodel);
-	Cvar_RegisterVariable (&r_aliasstats);
-	Cvar_RegisterVariable (&r_dspeeds);
-	Cvar_RegisterVariable (&r_reportsurfout);
-	Cvar_RegisterVariable (&r_maxsurfs);
-	Cvar_RegisterVariable (&r_numsurfs);
-	Cvar_RegisterVariable (&r_reportedgeout);
-	Cvar_RegisterVariable (&r_maxedges);
-	Cvar_RegisterVariable (&r_numedges);
-	Cvar_RegisterVariable (&r_aliastransbase);
-	Cvar_RegisterVariable (&r_aliastransadj);
+	Cmd_AddCommand ("timerefresh", R_TimeRefresh_f);
+	Cmd_AddCommand ("pointfile", R_ReadPointFile_f);
 
-	Cvar_SetValue ("r_maxedges", (float)NUMSTACKEDGES);
-	Cvar_SetValue ("r_maxsurfs", (float)NUMSTACKSURFACES);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	r_draworder = Cvar_Get ("r_draworder", "0", CVAR_ORIGINAL);
+	r_speeds = Cvar_Get ("r_speeds", "0", CVAR_ORIGINAL);
+	r_timegraph = Cvar_Get ("r_timegraph", "0", CVAR_ORIGINAL);
+	r_graphheight = Cvar_Get ("r_graphheight", "10", CVAR_ORIGINAL);
+	r_drawflat = Cvar_Get ("r_drawflat", "0", CVAR_ORIGINAL);
+	r_ambient = Cvar_Get ("r_ambient", "0", CVAR_ORIGINAL);
+	r_clearcolor = Cvar_Get ("r_clearcolor", "2", CVAR_ORIGINAL);
+	r_waterwarp = Cvar_Get ("r_waterwarp", "1", CVAR_ORIGINAL);
+	r_fullbright = Cvar_Get ("r_fullbright", "0", CVAR_ORIGINAL);
+	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ORIGINAL);
+	r_drawviewmodel = Cvar_Get ("r_drawviewmodel", "1", CVAR_ORIGINAL);
+	r_aliasstats = Cvar_Get ("r_polymodelstats", "0", CVAR_ORIGINAL);
+	r_dspeeds = Cvar_Get ("r_dspeeds", "0", CVAR_ORIGINAL);
+	r_reportsurfout = Cvar_Get ("r_reportsurfout", "0", CVAR_ORIGINAL);
+	r_maxsurfs = Cvar_Get ("r_maxsurfs", "0", CVAR_ORIGINAL);
+	r_numsurfs = Cvar_Get ("r_numsurfs", "0", CVAR_ORIGINAL);
+	r_reportedgeout = Cvar_Get ("r_reportedgeout", "0", CVAR_ORIGINAL);
+	r_maxedges = Cvar_Get ("r_maxedges", "0", CVAR_ORIGINAL);
+	r_numedges = Cvar_Get ("r_numedges", "0", CVAR_ORIGINAL);
+	r_aliastransbase = Cvar_Get ("r_aliastransbase", "200", CVAR_ORIGINAL);
+	r_aliastransadj = Cvar_Get ("r_aliastransadj", "100", CVAR_ORIGINAL);
+
+	Cvar_SetValue (r_maxedges, (float)NUMSTACKEDGES);
+	Cvar_SetValue (r_maxsurfs, (float)NUMSTACKSURFACES);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	view_clipplanes[0].leftedge = true;
 	view_clipplanes[1].rightedge = true;
@@ -231,8 +270,7 @@ void R_Init (void)
 
 // TODO: collect 386-specific code in one place
 #if	id386
-	Sys_MakeCodeWriteable ((long)R_EdgeCodeStart,
-					     (long)R_EdgeCodeEnd - (long)R_EdgeCodeStart);
+	Sys_MakeCodeWriteable ((long)R_EdgeCodeStart, (long)R_EdgeCodeEnd - (long)R_EdgeCodeStart);
 #endif	// id386
 
 	D_Init ();
@@ -246,16 +284,16 @@ R_NewMap
 void R_NewMap (void)
 {
 	int		i;
-	
+
 // clear out efrags in case the level hasn't been reloaded
 // FIXME: is this one short?
 	for (i=0 ; i<cl.worldmodel->numleafs ; i++)
 		cl.worldmodel->leafs[i].efrags = NULL;
-		 	
+
 	r_viewleaf = NULL;
 	R_ClearParticles ();
 
-	r_cnumsurfs = r_maxsurfs.value;
+	r_cnumsurfs = r_maxsurfs->value;
 
 	if (r_cnumsurfs <= MINSURFACES)
 		r_cnumsurfs = MINSURFACES;
@@ -279,7 +317,7 @@ void R_NewMap (void)
 	r_maxedgesseen = 0;
 	r_maxsurfsseen = 0;
 
-	r_numallocatededges = r_maxedges.value;
+	r_numallocatededges = r_maxedges->value;
 
 	if (r_numallocatededges < MINEDGES)
 		r_numallocatededges = MINEDGES;
@@ -312,13 +350,13 @@ void R_SetVrect (vrect_t *pvrectin, vrect_t *pvrect, int lineadj)
 	int		h;
 	float	size;
 
-	size = scr_viewsize.value > 100 ? 100 : scr_viewsize.value;
+	size = scr_viewsize->value > 100 ? 100 : scr_viewsize->value;
 	if (cl.intermission)
 	{
 		size = 100;
 		lineadj = 0;
 	}
-	size /= 100;
+	size /= 100.0;			// 2000-01-07 Border with viewsize 100 fix by Radix
 
 	h = pvrectin->height - lineadj;
 	pvrect->width = pvrectin->width * size;
@@ -338,7 +376,7 @@ void R_SetVrect (vrect_t *pvrectin, vrect_t *pvrect, int lineadj)
 	pvrect->y = (h - pvrect->height)/2;
 
 	{
-		if (lcd_x.value)
+		if (lcd_x->value)
 		{
 			pvrect->y >>= 1;
 			pvrect->height >>= 1;
@@ -391,7 +429,7 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 	pixelAspect = aspect;
 	xOrigin = r_refdef.xOrigin;
 	yOrigin = r_refdef.yOrigin;
-	
+
 	screenAspect = r_refdef.vrect.width*pixelAspect /
 			r_refdef.vrect.height;
 // 320*200 1.0 pixelAspect = 1.6 screenAspect
@@ -427,36 +465,35 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 	screenedge[0].normal[1] = 0;
 	screenedge[0].normal[2] = 1;
 	screenedge[0].type = PLANE_ANYZ;
-	
+
 // right side clip
 	screenedge[1].normal[0] =
 			1.0 / ((1.0-xOrigin)*r_refdef.horizontalFieldOfView);
 	screenedge[1].normal[1] = 0;
 	screenedge[1].normal[2] = 1;
 	screenedge[1].type = PLANE_ANYZ;
-	
+
 // top side clip
 	screenedge[2].normal[0] = 0;
 	screenedge[2].normal[1] = -1.0 / (yOrigin*verticalFieldOfView);
 	screenedge[2].normal[2] = 1;
 	screenedge[2].type = PLANE_ANYZ;
-	
+
 // bottom side clip
 	screenedge[3].normal[0] = 0;
 	screenedge[3].normal[1] = 1.0 / ((1.0-yOrigin)*verticalFieldOfView);
-	screenedge[3].normal[2] = 1;	
+	screenedge[3].normal[2] = 1;
 	screenedge[3].type = PLANE_ANYZ;
-	
+
 	for (i=0 ; i<4 ; i++)
 		VectorNormalize (screenedge[i].normal);
 
 	res_scale = sqrt ((double)(r_refdef.vrect.width * r_refdef.vrect.height) /
-			          (320.0 * 152.0)) *
-			(2.0 / r_refdef.horizontalFieldOfView);
-	r_aliastransition = r_aliastransbase.value * res_scale;
-	r_resfudge = r_aliastransadj.value * res_scale;
+						(320.0 * 152.0)) * (2.0 / r_refdef.horizontalFieldOfView);
+	r_aliastransition = r_aliastransbase->value * res_scale;
+	r_resfudge = r_aliastransadj->value * res_scale;
 
-	if (scr_fov.value <= 90.0)
+	if (scr_fov->value <= 90.0)
 		r_fov_greater_than_90 = false;
 	else
 		r_fov_greater_than_90 = true;
@@ -465,15 +502,13 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 #if	id386
 	if (r_pixbytes == 1)
 	{
-		Sys_MakeCodeWriteable ((long)R_Surf8Start,
-						     (long)R_Surf8End - (long)R_Surf8Start);
+		Sys_MakeCodeWriteable ((long)R_Surf8Start, (long)R_Surf8End - (long)R_Surf8Start);
 		colormap = vid.colormap;
 		R_Surf8Patch ();
 	}
 	else
 	{
-		Sys_MakeCodeWriteable ((long)R_Surf16Start,
-						     (long)R_Surf16End - (long)R_Surf16Start);
+		Sys_MakeCodeWriteable ((long)R_Surf16Start, (long)R_Surf16End - (long)R_Surf16Start);
 		colormap = vid.colormap16;
 		R_Surf16Patch ();
 	}
@@ -496,12 +531,12 @@ void R_MarkLeaves (void)
 
 	if (r_oldviewleaf == r_viewleaf)
 		return;
-	
+
 	r_visframecount++;
 	r_oldviewleaf = r_viewleaf;
 
 	vis = Mod_LeafPVS (r_viewleaf, cl.worldmodel);
-		
+
 	for (i=0 ; i<cl.worldmodel->numleafs ; i++)
 	{
 		if (vis[i>>3] & (1<<(i&7)))
@@ -534,7 +569,7 @@ void R_DrawEntitiesOnList (void)
 	vec3_t		dist;
 	float		add;
 
-	if (!r_drawentities.value)
+	if (!r_drawentities->value)
 		return;
 
 	for (i=0 ; i<cl_numvisedicts ; i++)
@@ -542,7 +577,20 @@ void R_DrawEntitiesOnList (void)
 		currententity = cl_visedicts[i];
 
 		if (currententity == &cl_entities[cl.viewentity])
-			continue;	// don't draw the player
+// 2000-01-09 ChaseCam fix by FrikaC  start
+		{
+			if (!chase_active->value)
+			{
+// 2000-01-09 ChaseCam fix by FrikaC  end
+				continue;	// don't draw the player
+// 2000-01-09 ChaseCam fix by FrikaC  start
+			}
+			else
+			{
+				currententity->angles[0] *= 0.3;
+			}
+		}
+// 2000-01-09 ChaseCam fix by FrikaC  end
 
 		switch (currententity->model->type)
 		{
@@ -561,7 +609,7 @@ void R_DrawEntitiesOnList (void)
 			if (R_AliasCheckBBox ())
 			{
 				j = R_LightPoint (currententity->origin);
-	
+
 				lighting.ambientlight = j;
 				lighting.shadelight = j;
 
@@ -575,12 +623,12 @@ void R_DrawEntitiesOnList (void)
 										cl_dlights[lnum].origin,
 										dist);
 						add = cl_dlights[lnum].radius - Length(dist);
-	
+
 						if (add > 0)
 							lighting.ambientlight += add;
 					}
 				}
-	
+
 			// clamp lighting so it doesn't overbright as much
 				if (lighting.ambientlight > 128)
 					lighting.ambientlight = 128;
@@ -612,9 +660,16 @@ void R_DrawViewModel (void)
 	vec3_t		dist;
 	float		add;
 	dlight_t	*dl;
-	
-	if (!r_drawviewmodel.value || r_fov_greater_than_90)
+
+	if (!r_drawviewmodel->value || r_fov_greater_than_90)
 		return;
+
+// 2000-01-09 ChaseCam fix by FrikaC  start
+	if (chase_active->value)
+	{
+		return;
+	}
+// 2000-01-09 ChaseCam fix by FrikaC  end
 
 	if (cl.items & IT_INVISIBILITY)
 		return;
@@ -635,11 +690,11 @@ void R_DrawViewModel (void)
 	j = R_LightPoint (currententity->origin);
 
 	if (j < 24)
-		j = 24;		// allways give some light on gun
+		j = 24;		// always give some light on gun
 	r_viewlighting.ambientlight = j;
 	r_viewlighting.shadelight = j;
 
-// add dynamic lights		
+// add dynamic lights
 	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
 	{
 		dl = &cl_dlights[lnum];
@@ -713,7 +768,7 @@ int R_BmodelCheckBBox (model_t *clmodel, float *minmaxs)
 			rejectpt[0] = minmaxs[pindex[0]];
 			rejectpt[1] = minmaxs[pindex[1]];
 			rejectpt[2] = minmaxs[pindex[2]];
-			
+
 			d = DotProduct (rejectpt, view_clipplanes[i].normal);
 			d -= view_clipplanes[i].dist;
 
@@ -748,7 +803,7 @@ void R_DrawBEntitiesOnList (void)
 	model_t		*clmodel;
 	float		minmaxs[6];
 
-	if (!r_drawentities.value)
+	if (!r_drawentities->value)
 		return;
 
 	VectorCopy (modelorg, oldorigin);
@@ -783,9 +838,9 @@ void R_DrawBEntitiesOnList (void)
 				VectorSubtract (r_origin, r_entorigin, modelorg);
 			// FIXME: is this needed?
 				VectorCopy (modelorg, r_worldmodelorg);
-		
+
 				r_pcurrentvertbase = clmodel->vertexes;
-		
+
 			// FIXME: stop transforming twice
 				R_RotateBmodel ();
 
@@ -828,7 +883,7 @@ void R_DrawBEntitiesOnList (void)
 					if (r_pefragtopnode)
 					{
 						currententity->topnode = r_pefragtopnode;
-	
+
 						if (r_pefragtopnode->contents >= 0)
 						{
 						// not a leaf; has to be clipped to the world BSP
@@ -842,12 +897,12 @@ void R_DrawBEntitiesOnList (void)
 						// drawing order
 							R_DrawSubmodelPolygons (clmodel, clipflags);
 						}
-	
+
 						currententity->topnode = NULL;
 					}
 				}
 
-			// put back world rotation and frustum clipping		
+			// put back world rotation and frustum clipping
 			// FIXME: R_RotateBmodel should just work off base_vxx
 				VectorCopy (base_vpn, vpn);
 				VectorCopy (base_vup, vup);
@@ -903,7 +958,7 @@ void R_EdgeDrawing (void)
 
 	R_BeginEdgeFrame ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 	{
 		rw_time1 = Sys_FloatTime ();
 	}
@@ -917,7 +972,7 @@ void R_EdgeDrawing (void)
 // z writes, so have the driver turn z compares on now
 	D_TurnZOn ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 	{
 		rw_time2 = Sys_FloatTime ();
 		db_time1 = rw_time2;
@@ -925,19 +980,19 @@ void R_EdgeDrawing (void)
 
 	R_DrawBEntitiesOnList ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 	{
 		db_time2 = Sys_FloatTime ();
 		se_time1 = db_time2;
 	}
 
-	if (!r_dspeeds.value)
+	if (!r_dspeeds->value)
 	{
 		VID_UnlockBuffer ();
 		S_ExtraUpdate ();	// don't let sound get messed up if going slow
 		VID_LockBuffer ();
 	}
-	
+
 	if (!(r_drawpolys | r_drawculledpolys))
 		R_ScanEdges ();
 }
@@ -956,7 +1011,7 @@ void R_RenderView_ (void)
 
 	r_warpbuffer = warpbuffer;
 
-	if (r_timegraph.value || r_speeds.value || r_dspeeds.value)
+	if (r_timegraph->value || r_speeds->value || r_dspeeds->value)
 		r_time1 = Sys_FloatTime ();
 
 	R_SetupFrame ();
@@ -975,24 +1030,24 @@ SetVisibilityByPassages ();
 
 	if (!cl_entities[0].model || !cl.worldmodel)
 		Sys_Error ("R_RenderView: NULL worldmodel");
-		
-	if (!r_dspeeds.value)
+
+	if (!r_dspeeds->value)
 	{
 		VID_UnlockBuffer ();
 		S_ExtraUpdate ();	// don't let sound get messed up if going slow
 		VID_LockBuffer ();
 	}
-	
+
 	R_EdgeDrawing ();
 
-	if (!r_dspeeds.value)
+	if (!r_dspeeds->value)
 	{
 		VID_UnlockBuffer ();
 		S_ExtraUpdate ();	// don't let sound get messed up if going slow
 		VID_LockBuffer ();
 	}
-	
-	if (r_dspeeds.value)
+
+	if (r_dspeeds->value)
 	{
 		se_time2 = Sys_FloatTime ();
 		de_time1 = se_time2;
@@ -1000,7 +1055,7 @@ SetVisibilityByPassages ();
 
 	R_DrawEntitiesOnList ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 	{
 		de_time2 = Sys_FloatTime ();
 		dv_time1 = de_time2;
@@ -1008,7 +1063,7 @@ SetVisibilityByPassages ();
 
 	R_DrawViewModel ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 	{
 		dv_time2 = Sys_FloatTime ();
 		dp_time1 = Sys_FloatTime ();
@@ -1016,7 +1071,7 @@ SetVisibilityByPassages ();
 
 	R_DrawParticles ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 		dp_time2 = Sys_FloatTime ();
 
 	if (r_dowarp)
@@ -1024,22 +1079,22 @@ SetVisibilityByPassages ();
 
 	V_SetContentsColor (r_viewleaf->contents);
 
-	if (r_timegraph.value)
+	if (r_timegraph->value)
 		R_TimeGraph ();
 
-	if (r_aliasstats.value)
+	if (r_aliasstats->value)
 		R_PrintAliasStats ();
-		
-	if (r_speeds.value)
+
+	if (r_speeds->value)
 		R_PrintTimes ();
 
-	if (r_dspeeds.value)
+	if (r_dspeeds->value)
 		R_PrintDSpeeds ();
 
-	if (r_reportsurfout.value && r_outofsurfaces)
+	if (r_reportsurfout->value && r_outofsurfaces)
 		Con_Printf ("Short %d surfaces\n", r_outofsurfaces);
 
-	if (r_reportedgeout.value && r_outofedges)
+	if (r_reportedgeout->value && r_outofedges)
 		Con_Printf ("Short roughly %d edges\n", r_outofedges * 2 / 3);
 
 // back to high floating-point precision
@@ -1050,7 +1105,7 @@ void R_RenderView (void)
 {
 	int		dummy;
 	int		delta;
-	
+
 	delta = (byte *)&dummy - r_stack_start;
 	if (delta < -10000 || delta > 10000)
 		Sys_Error ("R_RenderView: called without enough stack");
@@ -1075,7 +1130,7 @@ R_InitTurb
 void R_InitTurb (void)
 {
 	int		i;
-	
+
 	for (i=0 ; i<(SIN_BUFFER_SIZE) ; i++)
 	{
 		sintable[i] = AMP + sin(i*3.14159*2/CYCLE)*AMP;

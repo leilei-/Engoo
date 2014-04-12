@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,7 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma warning( disable : 4229 )  // mgraph gets this
 
 #include <windows.h>
-#define WM_MOUSEWHEEL                   0x020A
+// 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  start
+#ifdef __LCC__
+#include <ws2spi.h>
+#endif
+#include <mmsystem.h>
+// 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  end
+#define WM_MOUSEWHEEL	0x020A
 
 #ifndef SERVERONLY
 #include <ddraw.h>
@@ -76,7 +82,7 @@ void IN_MouseEvent (int mstate);
 
 extern qboolean	winsock_lib_initialized;
 
-extern cvar_t		_windowed_mouse;
+extern cvar_t		*_windowed_mouse;
 
 extern int		window_center_x, window_center_y;
 extern RECT		window_rect;
@@ -110,5 +116,9 @@ int (PASCAL FAR *pgethostname)(char FAR * name, int namelen);
 struct hostent FAR * (PASCAL FAR *pgethostbyname)(const char FAR * name);
 struct hostent FAR * (PASCAL FAR *pgethostbyaddr)(const char FAR * addr,
 												  int len, int type);
-int (PASCAL FAR *pgetsockname)(SOCKET s, struct sockaddr FAR *name,
-							   int FAR * namelen);
+int (PASCAL FAR *pgetsockname)(SOCKET s, struct sockaddr FAR *name, int FAR * namelen);
+
+// 2001-12-10 Reduced compiler warnings by Jeff Ford  start
+LONG CDAudio_MessageHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+void IN_Accumulate (void);
+// 2001-12-10 Reduced compiler warnings by Jeff Ford  end

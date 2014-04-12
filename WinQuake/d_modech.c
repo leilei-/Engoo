@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -27,7 +27,7 @@ int	d_vrectx, d_vrecty, d_vrectright_particle, d_vrectbottom_particle;
 int	d_y_aspect_shift, d_pix_min, d_pix_max, d_pix_shift;
 
 int		d_scantable[MAXHEIGHT];
-short	*zspantable[MAXHEIGHT]; 
+short	*zspantable[MAXHEIGHT];
 
 /*
 ================
@@ -42,8 +42,7 @@ void D_Patch (void)
 
 	if (!protectset8)
 	{
-		Sys_MakeCodeWriteable ((int)D_PolysetAff8Start,
-						     (int)D_PolysetAff8End - (int)D_PolysetAff8Start);
+		Sys_MakeCodeWriteable ((int)D_PolysetAff8Start, (int)D_PolysetAff8End - (int)D_PolysetAff8Start);
 		protectset8 = true;
 	}
 

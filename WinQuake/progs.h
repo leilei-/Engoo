@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -29,19 +29,19 @@ typedef union eval_s
 	func_t			function;
 	int				_int;
 	int				edict;
-} eval_t;	
+} eval_t;
 
 #define	MAX_ENT_LEAFS	16
 typedef struct edict_s
 {
 	qboolean	free;
 	link_t		area;				// linked to a division node or leaf
-	
+
 	int			num_leafs;
 	short		leafnums[MAX_ENT_LEAFS];
 
 	entity_state_t	baseline;
-	
+
 	float		freetime;			// sv.time when the object was freed
 	entvars_t	v;					// C exported fields from progs
 // other fields from progs come immediately after
@@ -114,8 +114,28 @@ int NUM_FOR_EDICT(edict_t *e);
 extern	int		type_size[8];
 
 typedef void (*builtin_t) (void);
-extern	builtin_t *pr_builtins;
-extern int pr_numbuiltins;
+extern builtin_t	*pr_builtins;
+extern int			pr_numbuiltins;
+
+// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes  start
+typedef struct ebfs_builtin_s
+{
+	int			default_funcno;
+	char		*funcname;
+	builtin_t	function;
+	int			funcno;
+} ebfs_builtin_t;
+
+extern ebfs_builtin_t	pr_ebfs_builtins[];
+extern int				pr_ebfs_numbuiltins;
+
+#define PR_DEFAULT_FUNCNO_BUILTIN_FIND	100
+
+extern cvar_t	*pr_builtin_find;
+extern cvar_t	*pr_builtin_remap;
+
+#define PR_DEFAULT_FUNCNO_EXTENSION_FIND	99	// 2001-10-20 Extension System by LordHavoc/Maddes
+// 2001-09-14 Enhanced BuiltIn Function System (EBFS) by Maddes  end
 
 extern int		pr_argc;
 
@@ -125,6 +145,8 @@ extern	int			pr_xstatement;
 
 extern	unsigned short		pr_crc;
 
+extern func_t	pr_func_endframe;	// 2000-01-02 EndFrame function by Maddes/FrikaC
+
 void PR_RunError (char *error, ...);
 
 void ED_PrintEdicts (void);
@@ -132,3 +154,35 @@ void ED_PrintNum (int ent);
 
 eval_t *GetEdictFieldValue(edict_t *ed, char *field);
 
+// 2001-10-20 Extension System by LordHavoc/Maddes  start
+extern char	*pr_extensions[];
+extern int	pr_numextensions;
+// 2001-10-20 Extension System by LordHavoc/Maddes  end
+
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+extern ddef_t	*pr_global_cpu_frametime;
+extern ddef_t	*pr_global_org_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+
+// 2001-09-20 QuakeC string zone by Maddes  start
+extern cvar_t		*pr_zone_min_strings;
+extern memzone_t	*zone_progstrings;
+// 2001-09-20 QuakeC string zone by Maddes  end
+
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+// LordHavoc: in an effort to eliminate time wasted on GetEdictFieldValue...
+//            see pr_edict.c for the functions which use these.
+#define GETEDICTFIELDVALUE(ed, def) (def ? (eval_t *)((char *)&ed->v + def->ofs*4) : NULL)
+
+extern ddef_t	*pr_field_ammo_shells1;
+extern ddef_t	*pr_field_ammo_nails1;
+extern ddef_t	*pr_field_ammo_lava_nails;
+extern ddef_t	*pr_field_ammo_rockets1;
+extern ddef_t	*pr_field_ammo_multi_rockets;
+extern ddef_t	*pr_field_ammo_cells1;
+extern ddef_t	*pr_field_ammo_plasma;
+extern ddef_t	*pr_field_idealpitch;
+extern ddef_t	*pr_field_pitch_speed;
+extern ddef_t	*pr_field_items2;
+extern ddef_t	*pr_field_gravity;
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end

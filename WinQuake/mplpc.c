@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -27,117 +27,117 @@ typedef unsigned long DWORD;
 
 //#include "lpc.h"
 typedef struct {
-   short  version;            // version of LPC requested
-   short  sizeOfArgs;         // size of arguments
-   short  service;            // service # requested
-   char   Data[1];            // data
+	short	version;	// version of LPC requested
+	short	sizeOfArgs;	// size of arguments
+	short	service;	// service # requested
+	char	Data[1];	// data
 } LPCData;
 
 typedef struct {
-   short version;             // LPC version
-   short sizeOfReturn;        // return data size
-   short error;               // any error codes
-   short noRet;               // number of returns
-   char  Data[1];             // data
+	short	version;		// LPC version
+	short	sizeOfReturn;	// return data size
+	short	error;			// any error codes
+	short	noRet;			// number of returns
+	char	Data[1];		// data
 } LPCReturn;
 
 //#include "services.h"
 #define  MAXSOCKETS  20
 
 // services
-#define LPC_SOCKBIND        4
-#define LPC_SOCKGETHOSTBYNAME   5
-#define LPC_SOCKGETHOSTNAME     6
-#define LPC_SOCKGETHOSTBYADDR   7
-#define LPC_SOCKCLOSE           8
-#define LPC_SOCKSOCKET          9
-#define LPC_SOCKRECVFROM        10
-#define LPC_SOCKSENDTO          11
-#define LPC_SOCKIOCTL           12
-#define LPC_SOCKGETSOCKNAME     13
-#define LPC_SOCKFLUSH           14
-#define LPC_SOCKSETOPT          15
-#define LPC_SOCKGETLASTERROR    16
-#define LPC_SOCKINETADDR        17
+#define LPC_SOCKBIND			4
+#define LPC_SOCKGETHOSTBYNAME	5
+#define LPC_SOCKGETHOSTNAME		6
+#define LPC_SOCKGETHOSTBYADDR	7
+#define LPC_SOCKCLOSE			8
+#define LPC_SOCKSOCKET			9
+#define LPC_SOCKRECVFROM		10
+#define LPC_SOCKSENDTO			11
+#define LPC_SOCKIOCTL			12
+#define LPC_SOCKGETSOCKNAME		13
+#define LPC_SOCKFLUSH			14
+#define LPC_SOCKSETOPT			15
+#define LPC_SOCKGETLASTERROR	16
+#define LPC_SOCKINETADDR		17
 
 // htons, ntohs, htonl, ntohl implemented locally
 
 // errors
-#define LPC_UNRECOGNIZED_SERVICE  -1
-#define LPC_NOERROR                0
+#define LPC_UNRECOGNIZED_SERVICE	-1
+#define LPC_NOERROR					0
 
 // structures for support
 typedef struct {
-   SOCKET s;
-   int    namelen;
-   char   name[1];
+	SOCKET	s;
+	int		namelen;
+	char	name[1];
 } BindArgs;
 
 typedef struct {
-   SOCKET s;
-   long   cmd;
-   char   data[1];
+	SOCKET	s;
+	long	cmd;
+	char	data[1];
 } IoctlArgs;
 
 typedef struct {
-   int retVal;
-   int namelen;
-   char name[1];
+	int		retVal;
+	int		namelen;
+	char	name[1];
 } GetSockNameRet;
 
 typedef GetSockNameRet GetHostNameRet;
 
 typedef struct {
-   int   retVal;
-   int   h_addr_0;    // that's the only important value
+	int		retVal;
+	int		h_addr_0;	// that's the only important value
 } GetHostByNameRet;
 
 typedef struct {
-   int   len;
-   int   type;
-   char  addr[1];
+	int		len;
+	int		type;
+	char	addr[1];
 } GetHostByAddrArgs;
 
 typedef struct {
-   int   retVal;
-   char  h_name[1];  // h_name is the only important value
+	int		retVal;
+	char	h_name[1];	// h_name is the only important value
 } GetHostByAddrRet;
 
 typedef struct {
-   SOCKET s;
-   int flags;
+	SOCKET	s;
+	int		flags;
 } RecvFromArgs;
 
 typedef struct {
-   int  retVal;
-   int  errCode;
-   int  len;   // message len
-   struct sockaddr    sockaddr;
-   int  sockaddrlen;
-   char Data[1];
+	int		retVal;
+	int		errCode;
+	int		len;	// message len
+	struct sockaddr	sockaddr;
+	int		sockaddrlen;
+	char	Data[1];
 } RecvFromRet;
 
 typedef struct {
-   SOCKET s;
-   int    flags;
-   int    len;
-   struct sockaddr sockaddr;
-   int    sockaddrlen;
-   char   Data[1];
+	SOCKET	s;
+	int		flags;
+	int		len;
+	struct sockaddr	sockaddr;
+	int		sockaddrlen;
+	char	Data[1];
 } SendToArgs;
 
 typedef struct {
-   int   retVal;
-   int   errCode;
+	int		retVal;
+	int		errCode;
 } SendToRet;
 
 typedef struct {
-   int     bufflen;
-   SOCKET  s;
-   int     len;
-   int     sockaddrlen;
-   struct sockaddr    address;
-   char               data[1];
+	int	bufflen;
+	SOCKET	s;
+	int	len;
+	int	sockaddrlen;
+	struct sockaddr	address;
+	char	data[1];
 } SocketChannelData;
 
 typedef struct {
@@ -171,24 +171,24 @@ typedef struct {
 #define RTQ_NODE struct rtq_node
 
 RTQ_NODE
-   {
-      RTQ_NODE *self; // Ring zero address of this node
-      RTQ_NODE *left; // Ring zero address of preceding node
-      RTQ_NODE *right; // Ring zero address of succeding node
-      BYTE *      rtqDatum;  // Ring 3 Datum of Buffer (start of preface)
-      BYTE *      rtqInsert; // Ring 3 insertion position
-      WORD     rtqLen; // Length of buffer, excluding preface
-      WORD     rtqUpCtr;  // Up Counter of bytes used so far
-      WORD     rtqQCtr;   // number of nodes attached
-      WORD     padding;   // DWORD alignment
-   };
+{
+	RTQ_NODE	*self;		// Ring zero address of this node
+	RTQ_NODE	*left;		// Ring zero address of preceding node
+	RTQ_NODE	*right;		// Ring zero address of succeding node
+	BYTE		*rtqDatum;	// Ring 3 Datum of Buffer (start of preface)
+	BYTE		*rtqInsert;	// Ring 3 insertion position
+	WORD		rtqLen;		// Length of buffer, excluding preface
+	WORD		rtqUpCtr;	// Up Counter of bytes used so far
+	WORD		rtqQCtr;	// number of nodes attached
+	WORD		padding;	// DWORD alignment
+};
 
 #define RTQ_PARAM_MOVENODE struct rtq_param_movenode
 RTQ_PARAM_MOVENODE
-   {
-      WORD     rtqFromDQ;
-      WORD     rtqToDQ;
-   };
+{
+	WORD		rtqFromDQ;
+	WORD		rtqToDQ;
+};
 
 RTQ_NODE* rtq_fetch(RTQ_NODE*, RTQ_NODE*); // To, From
 
@@ -229,24 +229,24 @@ extern short flat_selector;
 
 #define SOCKET_MAP_QUEUE  41
 
-#define IDLE_QUEUE    44
-#define REC_QUEUE     45
-#define SEND_QUEUE    46
+#define IDLE_QUEUE	44
+#define REC_QUEUE	45
+#define SEND_QUEUE	46
 
 //  queue sizes
-#define FREEQBASE      58
-#define FREEQ64        58
-#define FREEQ128       59
-#define FREEQ256       60
-#define FREEQ512       61
-#define FREEQ1024      62
-#define FREEQ2048      63
+#define FREEQBASE	58
+#define FREEQ64		58
+#define FREEQ128	59
+#define FREEQ256	60
+#define FREEQ512	61
+#define FREEQ1024	62
+#define FREEQ2048	63
 
-#define NFREEQ         6
+#define NFREEQ		6
 
-#define QLIMIT         10
+#define QLIMIT		10
 
-#define PRIVATEQ       50
+#define PRIVATEQ	50
 
 #define FARPKL(x)  (_farnspeekl((unsigned long) x))
 #define FARPKB(x)  (_farnspeekb((unsigned long) x))
@@ -289,8 +289,8 @@ void
 fstrcpyto(char *to, const char *from)
 {
    while (*from) {
-      FARPOKB(to, *from);
-      to++; from++;
+	  FARPOKB(to, *from);
+	  to++; from++;
    }
    FARPOKB(to, 0);
 }
@@ -299,8 +299,8 @@ void
 fstrncpyto(char *to, const char *from, int len)
 {
    while (*from && len) {
-      FARPOKB(to, *from);
-      to++; from++; len--;
+	  FARPOKB(to, *from);
+	  to++; from++; len--;
    }
    FARPOKB(to, 0);
 }
@@ -309,8 +309,8 @@ void
 fstrcpyfrom(char *to, const char *from)
 {
    while (FARPKB(from)) {
-      *to = FARPKB(from);
-      from++; to++;
+	  *to = FARPKB(from);
+	  from++; to++;
    }
    *to = 0;
 }
@@ -319,8 +319,8 @@ void
 fstrncpyfrom(char *to, const char *from, int len)
 {
    while (FARPKB(from) && len) {
-      *to =  FARPKB(from);
-      from++; to++; len--;
+	  *to =  FARPKB(from);
+	  from++; to++; len--;
    }
    *to = 0;
 }
@@ -339,161 +339,151 @@ GetFreeBufferToQueue(int q, int bufSize)
    int i;
 
    for (i = 0; i < NFREEQ; i++) {
-      if (Qsizes[i] >= bufSize && MGenGetQueueCtr(i+FREEQBASE)) {
-         RTQ_NODE *n = MGenMoveTo(i+FREEQBASE, q);
-         if (!n)
-            continue;
-         FARPOKL(&n->rtqUpCtr, bufSize);
-         return (void *) FARPKL(&n->rtqDatum);
-      }
+	  if (Qsizes[i] >= bufSize && MGenGetQueueCtr(i+FREEQBASE)) {
+		 RTQ_NODE *n = MGenMoveTo(i+FREEQBASE, q);
+		 if (!n)
+			continue;
+		 FARPOKL(&n->rtqUpCtr, bufSize);
+		 return (void *) FARPKL(&n->rtqDatum);
+	  }
    }
 
    return 0;
 }
 
-void
-FreeBufferFromQueue(int q)
+void FreeBufferFromQueue(int q)
 {
-   int i;
-   RTQ_NODE *n = MGenGetNode(q);
+	int	i;
+	RTQ_NODE *n = MGenGetNode(q);
 
-   for (i = 0; i < NFREEQ; i++) {
-      if (Qsizes[i] == FARPKS(&n->rtqLen)) {
-         MGenMoveTo(q, i+FREEQBASE);
-         return;
-      }
-   }
+	for (i = 0; i < NFREEQ; i++) {
+		if (Qsizes[i] == FARPKS(&n->rtqLen)) {
+			MGenMoveTo(q, i+FREEQBASE);
+			return;
+		}
+	}
 }
 
-void
-SetLPCData(LPCData *lpc)
+void SetLPCData(LPCData *lpc)
 {
-
-   FARPOKL(&(lpc->version), 1);
-   FARPOKL(&(lpc->sizeOfArgs), 0);
-   FARPOKL(&(lpc->service), 0);
+	FARPOKL(&(lpc->version), 1);
+	FARPOKL(&(lpc->sizeOfArgs), 0);
+	FARPOKL(&(lpc->service), 0);
 }
 
-int
-bind(SOCKET s, const struct sockaddr *name, int namelen)
+int bind(SOCKET s, const struct sockaddr *name, int namelen)
 {
-   RTQ_NODE *n = MGenGetNode(IDLE_QUEUE);
-   LPCData  *p;
-   LPCReturn *r;
-   BindArgs  *bargs;
-   int       retVal;
+	RTQ_NODE *n = MGenGetNode(IDLE_QUEUE);
+	LPCData  *p;
+	LPCReturn *r;
+	BindArgs  *bargs;
+	int       retVal;
 
-   _farsetsel(flat_selector);
-   SocketError = 0;
-   p = (LPCData *) FARPKL(&n->rtqDatum);
-   SetLPCData(p);
-   FARPOKL(&p->service, LPC_SOCKBIND);
-   bargs = (BindArgs *) p->Data;
-   FARPOKL(&bargs->s, s);
-   FARPOKL(&bargs->namelen, namelen);
-   fmemcpyto(bargs->name, name, namelen);
-   MGenMoveTo(IDLE_QUEUE, SEND_QUEUE);
-   PostWindowsMessage();
+	_farsetsel(flat_selector);
+	SocketError = 0;
+	p = (LPCData *) FARPKL(&n->rtqDatum);
+	SetLPCData(p);
+	FARPOKL(&p->service, LPC_SOCKBIND);
+	bargs = (BindArgs *) p->Data;
+	FARPOKL(&bargs->s, s);
+	FARPOKL(&bargs->namelen, namelen);
+	fmemcpyto(bargs->name, name, namelen);
+	MGenMoveTo(IDLE_QUEUE, SEND_QUEUE);
+	PostWindowsMessage();
 
-   while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	while ((n = MGenGetNode(REC_QUEUE)) == 0)
+		Yield();
 
-   r = (LPCReturn *) FARPKL(&n->rtqDatum);
+	r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
-   if (FARPKS(&r->error) != LPC_NOERROR) {
-      return -1;
-   }
+	if (FARPKS(&r->error) != LPC_NOERROR) {
+		return -1;
+	}
 
-   retVal = FARPKL(r->Data);
+	retVal = FARPKL(r->Data);
 
-   // get ready for next call
-   MGenMoveTo(REC_QUEUE, IDLE_QUEUE);
+	// get ready for next call
+	MGenMoveTo(REC_QUEUE, IDLE_QUEUE);
 
-   return retVal;
+	return retVal;
 }
 
-int
-closesocket(SOCKET s)
+int closesocket(SOCKET s)
 {
-   RTQ_NODE *n = MGenGetNode(IDLE_QUEUE);
-   LPCData  *p;
-   LPCReturn *r;
-   int       retVal;
+	RTQ_NODE *n = MGenGetNode(IDLE_QUEUE);
+	LPCData  *p;
+	LPCReturn *r;
+	int       retVal;
 
-   _farsetsel(flat_selector);
-   SocketError = 0;
-   p = (LPCData *) FARPKL(&n->rtqDatum);
-   SetLPCData(p);
-   FARPOKL(&p->service, LPC_SOCKCLOSE);
-   FARPOKL(p->Data, s);
+	_farsetsel(flat_selector);
+	SocketError = 0;
+	p = (LPCData *) FARPKL(&n->rtqDatum);
+	SetLPCData(p);
+	FARPOKL(&p->service, LPC_SOCKCLOSE);
+	FARPOKL(p->Data, s);
 
-   MGenMoveTo(IDLE_QUEUE, SEND_QUEUE);
-   PostWindowsMessage();
+	MGenMoveTo(IDLE_QUEUE, SEND_QUEUE);
+	PostWindowsMessage();
 
-   while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	while ((n = MGenGetNode(REC_QUEUE)) == 0)
+		Yield();
 
-   r = (LPCReturn *) FARPKL(&n->rtqDatum);
+	r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
-   if (FARPKS(&r->error) != LPC_NOERROR) {
-      return -1;
-   }
+	if (FARPKS(&r->error) != LPC_NOERROR) {
+		return -1;
+	}
 
-   retVal = FARPKL(r->Data);
+	retVal = FARPKL(r->Data);
 
-   // get ready for next call
-   MGenMoveTo(REC_QUEUE, IDLE_QUEUE);
+	// get ready for next call
+	MGenMoveTo(REC_QUEUE, IDLE_QUEUE);
 
-   return retVal;
+	return retVal;
 }
 
-void
-ZapHostEnt()
+void ZapHostEnt()
 {
-   // do nothing
+	// do nothing
 }
 
-void
-ReconstructHostEnt(struct hostent *s, void *flattened)
+void ReconstructHostEnt(struct hostent *s, void *flattened)
 {
-   struct hostent   *old = (struct hostent *) flattened;
-   int i;
-   char **ptr;
+	struct hostent   *old = (struct hostent *) flattened;
+	int i;
+	char **ptr;
 
+	s->h_name = HostEnt_hname;
+	fstrncpyfrom(s->h_name, (char *) FARPKL(&old->h_name), HOSTENT_STRLEN_LIMIT-1);
+	s->h_name[HOSTENT_STRLEN_LIMIT-1] = 0;
 
-   s->h_name = HostEnt_hname;
-   fstrncpyfrom(s->h_name, (char *) FARPKL(&old->h_name), HOSTENT_STRLEN_LIMIT-1);
-   s->h_name[HOSTENT_STRLEN_LIMIT-1] = 0;
+	s->h_aliases = HostEnt_h_aliases;
+	ptr = (char **) FARPKL(&old->h_aliases);
+	for (i = 0; i < (HOSTENT_ALIAS_LIMIT-1) && FARPKL(ptr); i++, ptr++) {
+		s->h_aliases[i] = HostEnt_names[i];
+		// fstrncpyfrom(s->h_aliases[i], (void *) FARPKL(ptr), HOSTENT_STRLEN_LIMIT-1);
+		s->h_aliases[i][HOSTENT_STRLEN_LIMIT-1] = 0;
+	}
+	s->h_aliases[i] = 0;
 
-   s->h_aliases = HostEnt_h_aliases;
-   ptr = (char **) FARPKL(&old->h_aliases);
-   for (i = 0; i < (HOSTENT_ALIAS_LIMIT-1) && FARPKL(ptr); i++, ptr++) {
-      s->h_aliases[i] = HostEnt_names[i];
-      // fstrncpyfrom(s->h_aliases[i], (void *) FARPKL(ptr), HOSTENT_STRLEN_LIMIT-1);
-      s->h_aliases[i][HOSTENT_STRLEN_LIMIT-1] = 0;
-   }
-   s->h_aliases[i] = 0;
+	s->h_addrtype = FARPKS(&old->h_addrtype);
+	s->h_length = FARPKS(&old->h_length);
 
-   s->h_addrtype = FARPKS(&old->h_addrtype);
-   s->h_length = FARPKS(&old->h_length);
+	if (FARPKS(&old->h_length) != sizeof(struct in_addr)) {
+		printf("Error!\n");
+		exit(0);
+	}
 
-   if (FARPKS(&old->h_length) != sizeof(struct in_addr)) {
-      printf("Error!\n");
-      exit(0);
-   }
-
-   s->h_addr_list = (char **) HostEnt_addr_list;
-   ptr = (char **) FARPKL(&old->h_addr_list);
-   for (i = 0; i < (HOSTENT_ADDR_LIST_LIMIT - 1) && FARPKL(ptr); i++, ptr++) {
-      s->h_addr_list[i] = (char *) &(HostEnt_addrs[i]);
-      fmemcpyfrom(s->h_addr_list[i], (void *) FARPKL(ptr), s->h_length);
-   }
-   s->h_addr_list[i] = 0;
+	s->h_addr_list = (char **) HostEnt_addr_list;
+	ptr = (char **) FARPKL(&old->h_addr_list);
+	for (i = 0; i < (HOSTENT_ADDR_LIST_LIMIT - 1) && FARPKL(ptr); i++, ptr++) {
+		s->h_addr_list[i] = (char *) &(HostEnt_addrs[i]);
+		fmemcpyfrom(s->h_addr_list[i], (void *) FARPKL(ptr), s->h_length);
+	}
+	s->h_addr_list[i] = 0;
 }
 
-
-int
-getsockname(SOCKET s, struct sockaddr *name, int *namelen)
+int getsockname(SOCKET s, struct sockaddr *name, int *namelen)
 {
    RTQ_NODE *n = MGenGetNode(IDLE_QUEUE);
    LPCData  *p;
@@ -512,13 +502,13 @@ getsockname(SOCKET s, struct sockaddr *name, int *namelen)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
    if (FARPKS(&r->error) != LPC_NOERROR) {
-      return -1;
+	  return -1;
    }
 
    ret = (GetSockNameRet *) r->Data;
@@ -552,12 +542,12 @@ gethostname(char *name, int namelen)
    PostWindowsMessage();
 
    while ((n = (RTQ_NODE *) (MGenGetNode(REC_QUEUE))) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
    if (FARPKS(&r->error) != LPC_NOERROR) {
-      return -1;
+	  return -1;
    }
 
    ret = (GetHostNameRet *) r->Data;
@@ -572,9 +562,9 @@ gethostname(char *name, int namelen)
    len = strlen(ret->name);
 
    if (len > namelen)
-      memcpy(name, ret->name, ret->namelen);
+	  memcpy(name, ret->name, ret->namelen);
    else
-      strcpy(name, ret->name);
+	  strcpy(name, ret->name);
 #endif
 
    // get ready for next call
@@ -602,17 +592,17 @@ gethostbyname(const char *name)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
    retVal = (struct hostent *) r->Data;
 
    if (FARPKL(&retVal->h_name) == 0) {
-      retVal = 0;
+	  retVal = 0;
    } else {
-      ZapHostEnt();
-      ReconstructHostEnt(&HostEnt, (void *) retVal);
-      retVal = &HostEnt;
+	  ZapHostEnt();
+	  ReconstructHostEnt(&HostEnt, (void *) retVal);
+	  retVal = &HostEnt;
    }
 
    // get ready for next call
@@ -644,17 +634,17 @@ gethostbyaddr(const char *addr, int len, int type)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
    retVal = (struct hostent *) r->Data;
 
    if (FARPKL(&retVal->h_name) == 0) {
-      retVal = 0;
+	  retVal = 0;
    } else {
-      ZapHostEnt();
+	  ZapHostEnt();
 
-      ReconstructHostEnt(&HostEnt, (void *) retVal);
-      retVal = &HostEnt;
+	  ReconstructHostEnt(&HostEnt, (void *) retVal);
+	  retVal = &HostEnt;
    }
 
    // get ready for next call
@@ -687,13 +677,13 @@ socket(int af, int type, int protocol)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
 
    if (FARPKS(&r->error) != LPC_NOERROR) {
-      return -1;
+	  return -1;
    }
 
    retVal = FARPKL(r->Data);
@@ -719,14 +709,14 @@ sockets_flush(void)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    MGenMoveTo(REC_QUEUE, IDLE_QUEUE);
 }
 
 int
 recvfrom(SOCKET s, char *buf, int len, int flags, struct sockaddr *from,
-         int *fromlen)
+		 int *fromlen)
 {
    int i;
    RTQ_NODE *n;
@@ -736,38 +726,38 @@ recvfrom(SOCKET s, char *buf, int len, int flags, struct sockaddr *from,
    SocketError = 0;
    _farsetsel(flat_selector);
    if (!SockMap)
-      GetSocketMap();
+	  GetSocketMap();
 
    for (i = 0; i < MAXSOCKETS; i++) {
-      if (FARPKL(&(SockMap->sock[i])) == s)
-         break;
+	  if (FARPKL(&(SockMap->sock[i])) == s)
+		 break;
    }
 
    if (i == MAXSOCKETS)
-      return SOCKET_ERROR;
+	  return SOCKET_ERROR;
 
    // pick up node
    n = MGenGetNode(i);
    if (n == 0) {
-      SocketError = WSAEWOULDBLOCK;
-      return -1;
+	  SocketError = WSAEWOULDBLOCK;
+	  return -1;
    }
 
    data = (WinSockData *) FARPKL(&n->rtqDatum);
    bytesRead = FARPKL(&data->len);
 
    if (from) {
-      fmemcpyfrom(from, &data->addr, sizeof(struct sockaddr));
+	  fmemcpyfrom(from, &data->addr, sizeof(struct sockaddr));
    }
 
    if (fromlen) {
-      *fromlen = FARPKL(&data->addrlen);
+	  *fromlen = FARPKL(&data->addrlen);
    }
 
    fmemcpyfrom(buf, data->data, len > bytesRead ? bytesRead : len);
 
    if ((flags & MSG_PEEK) == 0) {
-      FreeBufferFromQueue(i);
+	  FreeBufferFromQueue(i);
    }
 
    return bytesRead;
@@ -783,40 +773,40 @@ sendto(SOCKET s, const char *buf, int len, int flags, const struct sockaddr *to,
    SocketError = 0;
    _farsetsel(flat_selector);
    if (!SockMap)
-      GetSocketMap();
+	  GetSocketMap();
 
    for (i = 0; i < MAXSOCKETS; i++) {
-      if (FARPKL(&SockMap->sock[i]) == s) {
-         break;
-      }
+	  if (FARPKL(&SockMap->sock[i]) == s) {
+		 break;
+	  }
    }
 
    if (i == MAXSOCKETS) {
-      SocketError = WSAENOTSOCK;
-      return SOCKET_ERROR;
+	  SocketError = WSAENOTSOCK;
+	  return SOCKET_ERROR;
    }
 
    outQ = i + MAXSOCKETS;
 
    if (MGenGetQueueCtr(outQ) >= QLIMIT) {
-      SocketError = WSAEWOULDBLOCK;
-      return SOCKET_ERROR;
+	  SocketError = WSAEWOULDBLOCK;
+	  return SOCKET_ERROR;
    }
 
    data = GetFreeBufferToQueue(PRIVATEQ, len + sizeof(WinSockData));
 
    if (!data) {
-      SocketError = WSAEWOULDBLOCK;
-      return SOCKET_ERROR;
+	  SocketError = WSAEWOULDBLOCK;
+	  return SOCKET_ERROR;
    }
 
    FARPOKL(&data->s, s);
    FARPOKL(&data->len, len);
    if (to) {
-      fmemcpyto(&data->addr, to, tolen);
-      FARPOKL(&data->addrlen, tolen);
+	  fmemcpyto(&data->addr, to, tolen);
+	  FARPOKL(&data->addrlen, tolen);
    } else {
-      FARPOKL(&data->addrlen, 0);
+	  FARPOKL(&data->addrlen, 0);
    }
 
    FARPOKL(&data->flags, flags);
@@ -848,17 +838,17 @@ ioctlsocket(SOCKET s, long cmd, unsigned long *argp)
 
    switch(cmd) {
    case FIONBIO:
-      FARPOKL(args->data, *argp);
-      break;
+	  FARPOKL(args->data, *argp);
+	  break;
    default:
-      return SOCKET_ERROR;
+	  return SOCKET_ERROR;
    }
 
    MGenMoveTo(IDLE_QUEUE, SEND_QUEUE);
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
@@ -896,7 +886,7 @@ setsockopt(SOCKET s, int level, int optname, const char *optval, int optlen)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
@@ -919,10 +909,10 @@ WSAGetLastError(void)
 
    _farsetsel(flat_selector);
    if (SocketError) {
-      int err = SocketError;
+	  int err = SocketError;
 
-      SocketError = 0;
-      return err;
+	  SocketError = 0;
+	  return err;
    }
 
    p = (LPCData *) FARPKL(&n->rtqDatum);
@@ -933,7 +923,7 @@ WSAGetLastError(void)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
@@ -975,12 +965,12 @@ unsigned long inet_addr(const char *cp)
    PostWindowsMessage();
 
    while ((n = MGenGetNode(REC_QUEUE)) == 0)
-      Yield();
+	  Yield();
 
    r = (LPCReturn *) FARPKL(&n->rtqDatum);
 
    if (FARPKS(&r->error) != LPC_NOERROR) {
-      return -1;
+	  return -1;
    }
 
    retVal = FARPKL(r->Data);

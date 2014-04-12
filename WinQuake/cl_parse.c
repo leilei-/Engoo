@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -35,7 +35,7 @@ char *svc_strings[] =
 	"svc_stufftext",		// [string] stuffed into client's console buffer
 						// the string should be \n terminated
 	"svc_setangle",		// [vec3] set the view angle to this absolute value
-	
+
 	"svc_serverinfo",		// [long] version
 						// [string] signon string
 						// [string]..[0]model cache [string]...[0]sounds cache
@@ -48,11 +48,11 @@ char *svc_strings[] =
 	"svc_updatecolors",	// [byte] [byte]
 	"svc_particle",		// [vec3] <variable>
 	"svc_damage",			// [byte] impact [byte] blood [vec3] from
-	
+
 	"svc_spawnstatic",
 	"OBSOLETE svc_spawnbinary",
 	"svc_spawnbaseline",
-	
+
 	"svc_temp_entity",		// <variable>
 	"svc_setpause",
 	"svc_signonnum",
@@ -64,7 +64,22 @@ char *svc_strings[] =
 	"svc_finale",			// [string] music [string] text
 	"svc_cdtrack",			// [byte] track [byte] looptrack
 	"svc_sellscreen",
-	"svc_cutscene"
+	"svc_cutscene",			// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes
+							// added commata
+	"svc 35", "svc 36", "svc 37", "svc 38", "svc 39",
+	"svc 40", "svc 41", "svc 42", "svc 43", "svc 44", "svc 45", "svc 46", "svc 47", "svc 48", "svc 49",
+	"svc 50", "svc 51", "svc 52", "svc 53", "svc 54", "svc 55", "svc 56", "svc 57", "svc 58", "svc 59",
+	"svc 60", "svc 61", "svc 62", "svc 63", "svc 64", "svc 65", "svc 66", "svc 67", "svc 68", "svc 69",
+	"svc 70", "svc 71", "svc 72", "svc 73", "svc 74", "svc 75", "svc 76", "svc 77", "svc 78", "svc 79",
+	"svc 80", "svc 81", "svc 82", "svc 83", "svc 84", "svc 85", "svc 86", "svc 87", "svc 88", "svc 89",
+	"svc 90", "svc 91", "svc 92", "svc 93", "svc 94", "svc 95", "svc 96", "svc 97", "svc 98", "svc 99",
+	"svc 100", "svc 101", "svc 102", "svc 103", "svc 104", "svc 105", "svc 106", "svc 107", "svc 108", "svc 109",
+	"svc 110", "svc 111", "svc 112", "svc 113", "svc 114", "svc 115", "svc 116", "svc 117", "svc 118", "svc 119",
+	"svc 120", "svc 121", "svc 122", "svc 123", "svc 124", "svc 125",
+	"svc_limit",			// 2001-09-20 Configurable limits by Maddes
+							// <variable>
+	"svc_extra_version",	// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes
+							// [float] SSVC [float] CSVC [float] CCLC
 };
 
 //=============================================================================
@@ -78,9 +93,28 @@ This error checks and tracks the total number of entities
 */
 entity_t	*CL_EntityNum (int num)
 {
+// 2001-09-20 Configurable entity limits by Maddes  start
+	if (!cl_entities)
+	{
+		Cvar_Set(cl_entities_min, cl_entities_min->string);	// do rangecheck
+		if (cl.max_edicts < cl_entities_min->value)
+		{
+			cl.max_edicts = cl_entities_min->value;
+		}
+		Con_DPrintf("Allocating memory for %i entities.\n", cl.max_edicts);
+
+		cl_entities = Hunk_AllocName (cl.max_edicts*sizeof(entity_t), "cl_edicts");
+		memset (cl_entities, 0, cl.max_edicts*sizeof(entity_t));
+		cl_entities[0].model = cl.worldmodel;
+	}
+// 2001-09-20 Configurable entity limits by Maddes  end
+
 	if (num >= cl.num_entities)
 	{
-		if (num >= MAX_EDICTS)
+// 2001-09-20 Configurable entity limits by Maddes  start
+//		if (num >= MAX_EDICTS)
+		if (num >= cl.max_edicts)
+// 2001-09-20 Configurable entity limits by Maddes  end
 			Host_Error ("CL_EntityNum: %i is an invalid number",num);
 		while (cl.num_entities<=num)
 		{
@@ -88,7 +122,7 @@ entity_t	*CL_EntityNum (int num)
 			cl.num_entities++;
 		}
 	}
-		
+
 	return &cl_entities[num];
 }
 
@@ -100,40 +134,43 @@ CL_ParseStartSoundPacket
 */
 void CL_ParseStartSoundPacket(void)
 {
-    vec3_t  pos;
-    int 	channel, ent;
-    int 	sound_num;
-    int 	volume;
-    int 	field_mask;
-    float 	attenuation;  
- 	int		i;
-	           
-    field_mask = MSG_ReadByte(); 
+	vec3_t  pos;
+	int 	channel, ent;
+	int 	sound_num;
+	int 	volume;
+	int 	field_mask;
+	float 	attenuation;
+	int		i;
 
-    if (field_mask & SND_VOLUME)
+	field_mask = MSG_ReadByte();
+
+	if (field_mask & SND_VOLUME)
 		volume = MSG_ReadByte ();
 	else
 		volume = DEFAULT_SOUND_PACKET_VOLUME;
-	
-    if (field_mask & SND_ATTENUATION)
+
+	if (field_mask & SND_ATTENUATION)
 		attenuation = MSG_ReadByte () / 64.0;
 	else
 		attenuation = DEFAULT_SOUND_PACKET_ATTENUATION;
-	
+
 	channel = MSG_ReadShort ();
 	sound_num = MSG_ReadByte ();
 
 	ent = channel >> 3;
 	channel &= 7;
 
-	if (ent > MAX_EDICTS)
+// 2001-09-20 Configurable entity limits by Maddes  start
+//	if (ent > MAX_EDICTS)
+	if (ent > cl.max_edicts)
+// 2001-09-20 Configurable entity limits by Maddes  end
 		Host_Error ("CL_ParseStartSoundPacket: ent = %i", ent);
-	
+
 	for (i=0 ; i<3 ; i++)
 		pos[i] = MSG_ReadCoord ();
- 
-    S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
-}       
+
+	S_StartSound (ent, channel, cl.sound_precache[sound_num], pos, volume/255.0, attenuation);
+}
 
 /*
 ==================
@@ -150,7 +187,7 @@ void CL_KeepaliveMessage (void)
 	int		ret;
 	sizebuf_t	old;
 	byte		olddata[8192];
-	
+
 	if (sv.active)
 		return;		// no need if server is local
 	if (cls.demoplayback)
@@ -159,14 +196,14 @@ void CL_KeepaliveMessage (void)
 // read messages from server, should just be nops
 	old = net_message;
 	memcpy (olddata, net_message.data, net_message.cursize);
-	
+
 	do
 	{
 		ret = CL_GetMessage ();
 		switch (ret)
 		{
 		default:
-			Host_Error ("CL_KeepaliveMessage: CL_GetMessage failed");		
+			Host_Error ("CL_KeepaliveMessage: CL_GetMessage failed");
 		case 0:
 			break;	// nothing waiting
 		case 1:
@@ -208,7 +245,7 @@ void CL_ParseServerInfo (void)
 	int		nummodels, numsounds;
 	char	model_precache[MAX_MODELS][MAX_QPATH];
 	char	sound_precache[MAX_SOUNDS][MAX_QPATH];
-	
+
 	Con_DPrintf ("Serverinfo packet received.\n");
 //
 // wipe the client_state_t struct
@@ -219,7 +256,7 @@ void CL_ParseServerInfo (void)
 	i = MSG_ReadLong ();
 	if (i != PROTOCOL_VERSION)
 	{
-		Con_Printf ("Server returned version %i, not %i", i, PROTOCOL_VERSION);
+		Con_Printf ("Server returned version %i, not %i\n", i, PROTOCOL_VERSION);	// 2000-01-08 Missing linefeeds fix by Maddes
 		return;
 	}
 
@@ -306,13 +343,16 @@ void CL_ParseServerInfo (void)
 
 
 // local state
-	cl_entities[0].model = cl.worldmodel = cl.model_precache[1];
-	
+// 2001-09-20 Configurable entity limits by Maddes  start
+//	cl_entities[0].model =
+	cl.worldmodel = cl.model_precache[1];
+// 2001-09-20 Configurable entity limits by Maddes  end
+
 	R_NewMap ();
 
 	Hunk_Check ();		// make sure nothing is hurt
-	
-	noclip_anglehack = false;		// noclip is turned off at start	
+
+	noclip_anglehack = false;		// noclip is turned off at start
 }
 
 
@@ -335,7 +375,9 @@ void CL_ParseUpdate (int bits)
 	qboolean	forcelink;
 	entity_t	*ent;
 	int			num;
+#ifdef GLQUAKE		// 2000-07-16 General variable definition for GLQuake-only variable fix
 	int			skin;
+#endif			// 2000-07-16 General variable definition for GLQuake-only variable fix
 
 	if (cls.signon == SIGNONS - 1)
 	{	// first update is the final signon stage
@@ -349,16 +391,16 @@ void CL_ParseUpdate (int bits)
 		bits |= (i<<8);
 	}
 
-	if (bits & U_LONGENTITY)	
+	if (bits & U_LONGENTITY)
 		num = MSG_ReadShort ();
 	else
 		num = MSG_ReadByte ();
 
 	ent = CL_EntityNum (num);
 
-for (i=0 ; i<16 ; i++)
-if (bits&(1<<i))
-	bitcounts[i]++;
+	for (i=0 ; i<16 ; i++)
+		if (bits&(1<<i))
+			bitcounts[i]++;
 
 	if (ent->msgtime != cl.mtime[1])
 		forcelink = true;	// no previous frame to lerp from
@@ -366,7 +408,7 @@ if (bits&(1<<i))
 		forcelink = false;
 
 	ent->msgtime = cl.mtime[0];
-	
+
 	if (bits & U_MODEL)
 	{
 		modnum = MSG_ReadByte ();
@@ -375,7 +417,7 @@ if (bits&(1<<i))
 	}
 	else
 		modnum = ent->baseline.modelindex;
-		
+
 	model = cl.model_precache[modnum];
 	if (model != ent->model)
 	{
@@ -391,12 +433,13 @@ if (bits&(1<<i))
 		}
 		else
 			forcelink = true;	// hack to make null model players work
+
 #ifdef GLQUAKE
 		if (num > 0 && num <= cl.maxclients)
 			R_TranslatePlayerSkin (num - 1);
 #endif
 	}
-	
+
 	if (bits & U_FRAME)
 		ent->frame = MSG_ReadByte ();
 	else
@@ -411,7 +454,13 @@ if (bits&(1<<i))
 	else
 	{
 		if (i > cl.maxclients)
-			Sys_Error ("i >= cl.maxclients");
+// 2001-12-16 Various crashes changed to host errors by Maddes  start
+//			Sys_Error ("i >= cl.maxclients");
+		{
+			Host_Error ("CL_ParseUpdate: i > cl.maxclients: %i > %i", i, cl.maxclients);
+			return;
+		}
+// 2001-12-16 Various crashes changed to host errors by Maddes  end
 		ent->colormap = cl.scores[i-1].translations;
 	}
 
@@ -491,7 +540,7 @@ CL_ParseBaseline
 void CL_ParseBaseline (entity_t *ent)
 {
 	int			i;
-	
+
 	ent->baseline.modelindex = MSG_ReadByte ();
 	ent->baseline.frame = MSG_ReadByte ();
 	ent->baseline.colormap = MSG_ReadByte();
@@ -514,7 +563,7 @@ Server information pertaining to this client only
 void CL_ParseClientdata (int bits)
 {
 	int		i, j;
-	
+
 	if (bits & SU_VIEWHEIGHT)
 		cl.viewheight = MSG_ReadChar ();
 	else
@@ -524,7 +573,7 @@ void CL_ParseClientdata (int bits)
 		cl.idealpitch = MSG_ReadChar ();
 	else
 		cl.idealpitch = 0;
-	
+
 	VectorCopy (cl.mvelocity[0], cl.mvelocity[1]);
 	for (i=0 ; i<3 ; i++)
 	{
@@ -549,7 +598,7 @@ void CL_ParseClientdata (int bits)
 				cl.item_gettime[j] = cl.time;
 		cl.items = i;
 	}
-		
+
 	cl.onground = (bits & SU_ONGROUND) != 0;
 	cl.inwater = (bits & SU_INWATER) != 0;
 
@@ -577,7 +626,7 @@ void CL_ParseClientdata (int bits)
 		cl.stats[STAT_WEAPON] = i;
 		Sbar_Changed ();
 	}
-	
+
 	i = MSG_ReadShort ();
 	if (cl.stats[STAT_HEALTH] != i)
 	{
@@ -632,9 +681,15 @@ void CL_NewTranslation (int slot)
 	int		i, j;
 	int		top, bottom;
 	byte	*dest, *source;
-	
+
 	if (slot > cl.maxclients)
-		Sys_Error ("CL_NewTranslation: slot > cl.maxclients");
+// 2001-12-16 Various crashes changed to host errors by Maddes  start
+//		Sys_Error ("CL_NewTranslation: slot > cl.maxclients");
+	{
+		Host_Error ("CL_NewTranslation: slot > cl.maxclients: %i > %i", slot, cl.maxclients);
+		return;
+	}
+// 2001-12-16 Various crashes changed to host errors by Maddes  end
 	dest = cl.scores[slot].translations;
 	source = vid.colormap;
 	memcpy (dest, vid.colormap, sizeof(cl.scores[slot].translations));
@@ -651,12 +706,12 @@ void CL_NewTranslation (int slot)
 		else
 			for (j=0 ; j<16 ; j++)
 				dest[TOP_RANGE+j] = source[top+15-j];
-				
+
 		if (bottom < 128)
 			memcpy (dest + BOTTOM_RANGE, source + bottom, 16);
 		else
 			for (j=0 ; j<16 ; j++)
-				dest[BOTTOM_RANGE+j] = source[bottom+15-j];		
+				dest[BOTTOM_RANGE+j] = source[bottom+15-j];
 	}
 }
 
@@ -669,10 +724,29 @@ void CL_ParseStatic (void)
 {
 	entity_t *ent;
 	int		i;
-		
+
+// 2001-09-20 Configurable entity limits by Maddes  start
+	if (!cl_static_entities)
+	{
+		Cvar_Set(cl_entities_min_static, cl_entities_min_static->string);	// do rangecheck
+		if (cl.max_static_edicts < cl_entities_min_static->value)
+		{
+			cl.max_static_edicts = cl_entities_min_static->value;
+		}
+		Con_DPrintf("Allocating memory for %i static entities.\n", cl.max_static_edicts);
+
+		cl_static_entities = Hunk_AllocName (cl.max_static_edicts*sizeof(entity_t), "cl_ed_static");
+		memset (cl_static_entities, 0, cl.max_static_edicts*sizeof(entity_t));
+	}
+// 2001-09-20 Configurable entity limits by Maddes  end
+
 	i = cl.num_statics;
-	if (i >= MAX_STATIC_ENTITIES)
-		Host_Error ("Too many static entities");
+// 2001-09-20 Configurable entity limits by Maddes  start
+//	if (i >= MAX_STATIC_ENTITIES)
+//		Host_Error ("Too many static entities");
+	if (i >= cl.max_static_edicts)
+		Host_Error ("Too many static entities, max is %i", cl.max_static_edicts);
+// 2001-09-20 Configurable entity limits by Maddes  end
 	ent = &cl_static_entities[i];
 	cl.num_statics++;
 	CL_ParseBaseline (ent);
@@ -685,7 +759,7 @@ void CL_ParseStatic (void)
 	ent->effects = ent->baseline.effects;
 
 	VectorCopy (ent->baseline.origin, ent->origin);
-	VectorCopy (ent->baseline.angles, ent->angles);	
+	VectorCopy (ent->baseline.angles, ent->angles);
 	R_AddEfrags (ent);
 }
 
@@ -699,18 +773,93 @@ void CL_ParseStaticSound (void)
 	vec3_t		org;
 	int			sound_num, vol, atten;
 	int			i;
-	
+
 	for (i=0 ; i<3 ; i++)
 		org[i] = MSG_ReadCoord ();
 	sound_num = MSG_ReadByte ();
 	vol = MSG_ReadByte ();
 	atten = MSG_ReadByte ();
-	
+
 	S_StaticSound (cl.sound_precache[sound_num], org, vol, atten);
 }
 
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  start
+/*
+=================
+CL_ParseVersion
+=================
+*/
+void CL_ParseVersion (void)
+{
+	int		type;
+	float	f;
 
-#define SHOWNET(x) if(cl_shownet.value==2)Con_Printf ("%3i:%s\n", msg_readcount-1, x);
+	type = MSG_ReadByte ();
+	switch (type)
+	{
+		case VERSION_NVS:
+			// read SSVC version
+			f = MSG_ReadFloat ();
+			if (!sv.active)		// not necessary on listen server
+			{
+				nvs_current_ssvc->rangecheck = NULL;					//deactivate, as server can run with a much higher version
+				Cvar_SetValue (nvs_current_ssvc, f);
+				nvs_current_ssvc->rangecheck = Cvar_RangecheckFloat;	//reactivate
+			}
+
+			// read CSVC version
+			f = MSG_ReadFloat ();
+			Cvar_SetValue (nvs_current_csvc, f);
+
+			// read CCLC version
+			f = MSG_ReadFloat ();
+			Cvar_SetValue (nvs_current_cclc, f);
+
+			break;
+
+		default:
+			Host_Error ("CL_ParseVersion: bad type %i", type);
+			break;
+	}
+}
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  end
+
+// 2001-09-20 Configurable limits by Maddes  start
+/*
+=================
+CL_ParseLimit
+=================
+*/
+void CL_ParseLimit (void)
+{
+	int		type;
+
+	type = MSG_ReadByte ();
+	switch (type)
+	{
+// 2001-09-20 Configurable entity limits by Maddes  start
+		case LIM_ENTITIES:
+			cl.max_edicts = MSG_ReadShort ();
+			cl.max_static_edicts = MSG_ReadShort ();
+			cl.max_temp_edicts = MSG_ReadShort ();
+			Con_DPrintf("Server runs with %i normal, %i static and %i temp edicts.\n", cl.max_edicts, cl.max_static_edicts, cl.max_temp_edicts);
+			// check values: only the normal entities are send with their index number, the others are send without indexes
+			if (cl.max_edicts > MAX_EDICTS)
+			{
+				Host_Error ("CL_ParseLimit: %i entities can not be handled, max is %i", cl.max_edicts, MAX_EDICTS);
+			}
+			break;
+// 2001-09-20 Configurable entity limits by Maddes  end
+
+		default:
+			Host_Error ("CL_ParseLimit: bad type %i", type);
+			break;
+	}
+}
+// 2001-09-20 Configurable limits by Maddes  end
+
+
+#define SHOWNET(x) if(cl_shownet->value==2)Con_Printf ("%3i:%s\n", msg_readcount-1, x);
 
 /*
 =====================
@@ -721,21 +870,21 @@ void CL_ParseServerMessage (void)
 {
 	int			cmd;
 	int			i;
-	
+
 //
 // if recording demos, copy the message out
 //
-	if (cl_shownet.value == 1)
+	if (cl_shownet->value == 1)
 		Con_Printf ("%i ",net_message.cursize);
-	else if (cl_shownet.value == 2)
+	else if (cl_shownet->value == 2)
 		Con_Printf ("------------------\n");
-	
-	cl.onground = false;	// unless the server says otherwise	
+
+	cl.onground = false;	// unless the server says otherwise
 //
 // parse the message
 //
 	MSG_BeginReading ();
-	
+
 	while (1)
 	{
 		if (msg_badread)
@@ -758,84 +907,100 @@ void CL_ParseServerMessage (void)
 		}
 
 		SHOWNET(svc_strings[cmd]);
-	
+
 	// other commands
 		switch (cmd)
 		{
 		default:
-			Host_Error ("CL_ParseServerMessage: Illegible server message\n");
+			Host_Error ("CL_ParseServerMessage: Illegible server message");
 			break;
-			
+
 		case svc_nop:
 //			Con_Printf ("svc_nop\n");
 			break;
-			
+
 		case svc_time:
 			cl.mtime[1] = cl.mtime[0];
-			cl.mtime[0] = MSG_ReadFloat ();			
+			cl.mtime[0] = MSG_ReadFloat ();
 			break;
-			
+
 		case svc_clientdata:
 			i = MSG_ReadShort ();
 			CL_ParseClientdata (i);
 			break;
-		
+
 		case svc_version:
 			i = MSG_ReadLong ();
 			if (i != PROTOCOL_VERSION)
-				Host_Error ("CL_ParseServerMessage: Server is protocol %i instead of %i\n", i, PROTOCOL_VERSION);
+				Host_Error ("CL_ParseServerMessage: Server is protocol %i instead of %i", i, PROTOCOL_VERSION);
 			break;
-			
+
 		case svc_disconnect:
 			Host_EndGame ("Server disconnected\n");
 
 		case svc_print:
 			Con_Printf ("%s", MSG_ReadString ());
 			break;
-			
+
 		case svc_centerprint:
 			SCR_CenterPrint (MSG_ReadString ());
 			break;
-			
+
 		case svc_stufftext:
 			Cbuf_AddText (MSG_ReadString ());
 			break;
-			
+
 		case svc_damage:
 			V_ParseDamage ();
 			break;
-			
+
 		case svc_serverinfo:
 			CL_ParseServerInfo ();
 			vid.recalc_refdef = true;	// leave intermission full screen
 			break;
-			
+
 		case svc_setangle:
-			for (i=0 ; i<3 ; i++)
-				cl.viewangles[i] = MSG_ReadAngle ();
+// 2000-05-02 NVS SVC_setangle by Maddes  start
+			if ((nvs_current_csvc->value >= 0.50) && (cls.signon > 1))
+			{
+				for (i=0 ; i<3 ; i++)
+					cl.viewangles[i] = MSG_ReadFloat ();
+			}
+			else
+			{
+// 2000-05-02 NVS SVC_setangle by Maddes  end
+				for (i=0 ; i<3 ; i++)
+					cl.viewangles[i] = MSG_ReadAngle ();
+			}				// 2000-05-02 NVS SVC_setangle by Maddes
 			break;
-			
+
 		case svc_setview:
 			cl.viewentity = MSG_ReadShort ();
 			break;
-					
+
 		case svc_lightstyle:
 			i = MSG_ReadByte ();
 			if (i >= MAX_LIGHTSTYLES)
-				Sys_Error ("svc_lightstyle > MAX_LIGHTSTYLES");
-			Q_strcpy (cl_lightstyle[i].map,  MSG_ReadString());
-			cl_lightstyle[i].length = Q_strlen(cl_lightstyle[i].map);
+// 2001-12-16 Various crashes changed to host errors by Maddes  start
+//				Sys_Error ("svc_lightstyle >= MAX_LIGHTSTYLES");
+			{
+				Host_Error ("svc_lightstyle >= MAX_LIGHTSTYLES: %i >= %i", i, MAX_LIGHTSTYLES);
+				break;
+			}
+// 2001-12-16 Various crashes changed to host errors by Maddes  end
+			strcpy (cl_lightstyle[i].map, MSG_ReadString());
+			cl_lightstyle[i].length = strlen(cl_lightstyle[i].map);
 			break;
-			
+
 		case svc_sound:
 			CL_ParseStartSoundPacket();
 			break;
-			
+
 		case svc_stopsound:
 			i = MSG_ReadShort();
 			S_StopSound(i>>3, i&7);
 			break;
-		
+
 		case svc_updatename:
 			Sbar_Changed ();
 			i = MSG_ReadByte ();
@@ -843,14 +1008,14 @@ void CL_ParseServerMessage (void)
 				Host_Error ("CL_ParseServerMessage: svc_updatename > MAX_SCOREBOARD");
 			strcpy (cl.scores[i].name, MSG_ReadString ());
 			break;
-			
+
 		case svc_updatefrags:
 			Sbar_Changed ();
 			i = MSG_ReadByte ();
 			if (i >= cl.maxclients)
 				Host_Error ("CL_ParseServerMessage: svc_updatefrags > MAX_SCOREBOARD");
 			cl.scores[i].frags = MSG_ReadShort ();
-			break;			
+			break;
 
 		case svc_updatecolors:
 			Sbar_Changed ();
@@ -860,7 +1025,7 @@ void CL_ParseServerMessage (void)
 			cl.scores[i].colors = MSG_ReadByte ();
 			CL_NewTranslation (i);
 			break;
-			
+
 		case svc_particle:
 			R_ParseParticleEffect ();
 			break;
@@ -872,7 +1037,7 @@ void CL_ParseServerMessage (void)
 			break;
 		case svc_spawnstatic:
 			CL_ParseStatic ();
-			break;			
+			break;
 		case svc_temp_entity:
 			CL_ParseTEnt ();
 			break;
@@ -897,7 +1062,7 @@ void CL_ParseServerMessage (void)
 				}
 			}
 			break;
-			
+
 		case svc_signonnum:
 			i = MSG_ReadByte ();
 			if (i <= cls.signon)
@@ -917,10 +1082,16 @@ void CL_ParseServerMessage (void)
 		case svc_updatestat:
 			i = MSG_ReadByte ();
 			if (i < 0 || i >= MAX_CL_STATS)
-				Sys_Error ("svc_updatestat: %i is invalid", i);
+// 2001-12-16 Various crashes changed to host errors by Maddes  start
+//				Sys_Error ("svc_updatestat: %i is invalid", i);
+			{
+				Host_Error ("svc_updatestat: %i is invalid (0-%i)", i, MAX_CL_STATS);
+				break;
+			}
+// 2001-12-16 Various crashes changed to host errors by Maddes  end
 			cl.stats[i] = MSG_ReadLong ();;
 			break;
-			
+
 		case svc_spawnstaticsound:
 			CL_ParseStaticSound ();
 			break;
@@ -944,20 +1115,31 @@ void CL_ParseServerMessage (void)
 			cl.intermission = 2;
 			cl.completed_time = cl.time;
 			vid.recalc_refdef = true;	// go to full screen
-			SCR_CenterPrint (MSG_ReadString ());			
+			SCR_CenterPrint (MSG_ReadString ());
 			break;
 
 		case svc_cutscene:
 			cl.intermission = 3;
 			cl.completed_time = cl.time;
 			vid.recalc_refdef = true;	// go to full screen
-			SCR_CenterPrint (MSG_ReadString ());			
+			SCR_CenterPrint (MSG_ReadString ());
 			break;
 
 		case svc_sellscreen:
 			Cmd_ExecuteString ("help", src_command);
 			break;
+
+// 2001-09-20 Configurable limits by Maddes  start
+		case svc_limit:
+			CL_ParseLimit();
+			break;
+// 2001-09-20 Configurable limits by Maddes  end
+
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  start
+		case svc_extra_version:
+			CL_ParseVersion();
+			break;
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  end
 		}
 	}
 }
-

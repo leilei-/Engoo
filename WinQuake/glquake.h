@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma warning(disable : 4244)     // MIPS
 #pragma warning(disable : 4136)     // X86
 #pragma warning(disable : 4051)     // ALPHA
-  
+
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -184,39 +184,40 @@ extern	int	playertextures;
 
 extern	int	skytexturenum;		// index in cl.loadmodel, not gl texture object
 
-extern	cvar_t	r_norefresh;
-extern	cvar_t	r_drawentities;
-extern	cvar_t	r_drawworld;
-extern	cvar_t	r_drawviewmodel;
-extern	cvar_t	r_speeds;
-extern	cvar_t	r_waterwarp;
-extern	cvar_t	r_fullbright;
-extern	cvar_t	r_lightmap;
-extern	cvar_t	r_shadows;
-extern	cvar_t	r_mirroralpha;
-extern	cvar_t	r_wateralpha;
-extern	cvar_t	r_dynamic;
-extern	cvar_t	r_novis;
+extern	cvar_t	*r_norefresh;
+extern	cvar_t	*r_drawentities;
+extern	cvar_t	*r_drawworld;
+extern	cvar_t	*r_drawviewmodel;
+extern	cvar_t	*r_speeds;
+extern	cvar_t	*r_waterwarp;
+extern	cvar_t	*r_fullbright;
+extern	cvar_t	*r_lightmap;
+extern	cvar_t	*r_shadows;
+extern	cvar_t	*r_mirroralpha;
+extern	cvar_t	*r_wateralpha;
+extern	cvar_t	*r_dynamic;
+extern	cvar_t	*r_novis;
 
-extern	cvar_t	gl_clear;
-extern	cvar_t	gl_cull;
-extern	cvar_t	gl_poly;
-extern	cvar_t	gl_texsort;
-extern	cvar_t	gl_smoothmodels;
-extern	cvar_t	gl_affinemodels;
-extern	cvar_t	gl_polyblend;
-extern	cvar_t	gl_keeptjunctions;
-extern	cvar_t	gl_reporttjunctions;
-extern	cvar_t	gl_flashblend;
-extern	cvar_t	gl_nocolors;
-extern	cvar_t	gl_doubleeyes;
+extern	cvar_t	*gl_clear;
+extern	cvar_t	*gl_cull;
+extern	cvar_t	*gl_poly;
+extern	cvar_t	*gl_texsort;
+extern	cvar_t	*gl_smoothmodels;
+extern	cvar_t	*gl_affinemodels;
+extern	cvar_t	*gl_polyblend;
+extern	cvar_t	*gl_keeptjunctions;
+extern	cvar_t	*gl_reporttjunctions;
+extern	cvar_t	*gl_flashblend;
+extern	cvar_t	*gl_nocolors;
+extern	cvar_t	*gl_doubleeyes;
+extern	cvar_t	*gl_maxdepth;	// 2002-01-31 GLQuake HOM fix by Matador
 
 extern	int		gl_lightmap_format;
 extern	int		gl_solid_format;
 extern	int		gl_alpha_format;
 
-extern	cvar_t	gl_max_size;
-extern	cvar_t	gl_playermip;
+extern	cvar_t	*gl_max_size;
+extern	cvar_t	*gl_playermip;
 
 extern	int			mirrortexturenum;	// quake texturenum, not gltexturenum
 extern	qboolean	mirror;
@@ -249,3 +250,33 @@ extern qboolean gl_mtexable;
 
 void GL_DisableMultitexture(void);
 void GL_EnableMultitexture(void);
+
+// 2001-12-10 Reduced compiler warnings by Jeff Ford  start
+int GL_LoadPicTexture (qpic_t *pic);
+void GL_SubdivideSurface (msurface_t *fa);
+void GL_MakeAliasModelDisplayLists (model_t *m, aliashdr_t *hdr);
+void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha);
+void GL_BuildLightmaps (void);
+void GL_Set2D (void);
+void EmitWaterPolys (msurface_t *fa);
+void EmitSkyPolys (msurface_t *fa);
+void EmitBothSkyLayers (msurface_t *fa);
+qboolean VID_Is8bit();
+int R_LightPoint (vec3_t p);
+void R_DrawBrushModel (entity_t *e);
+void R_AnimateLight (void);
+void V_CalcBlend (void);
+void R_DrawWorld (void);
+void R_RenderDlights (void);
+void R_DrawParticles (void);
+void R_DrawWaterSurfaces (void);
+void R_RenderBrushPoly (msurface_t *fa);
+void R_DrawWaterSurfaces (void);
+void R_InitParticles (void);
+void R_ClearParticles (void);
+void R_DrawSkyChain (msurface_t *s);
+qboolean R_CullBox (vec3_t mins, vec3_t maxs);
+void R_MarkLights (dlight_t *light, int bit, mnode_t *node);
+void R_RotateForEntity (entity_t *e);
+void R_StoreEfrags (efrag_t **ppefrag);
+// 2001-12-10 Reduced compiler warnings by Jeff Ford  end

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -30,13 +30,16 @@ FILE IO
 ===============================================================================
 */
 
-#define MAX_HANDLES             10
+// 1999-12-23 More PAK files support by Maddes  start
+//#define	MAX_HANDLES		10
+#define	MAX_HANDLES		64
+// 1999-12-23 More PAK files support by Maddes  end
 FILE    *sys_handles[MAX_HANDLES];
 
 int             findhandle (void)
 {
 	int             i;
-	
+
 	for (i=1 ; i<MAX_HANDLES ; i++)
 		if (!sys_handles[i])
 			return i;
@@ -66,7 +69,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 {
 	FILE    *f;
 	int             i;
-	
+
 	i = findhandle ();
 
 	f = fopen(path, "rb");
@@ -77,7 +80,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
 	}
 	sys_handles[i] = f;
 	*hndl = i;
-	
+
 	return filelength(f);
 }
 
@@ -85,14 +88,14 @@ int Sys_FileOpenWrite (char *path)
 {
 	FILE    *f;
 	int             i;
-	
+
 	i = findhandle ();
 
 	f = fopen(path, "wb");
 	if (!f)
 		Sys_Error ("Error opening %s: %s", path,strerror(errno));
 	sys_handles[i] = f;
-	
+
 	return i;
 }
 
@@ -120,14 +123,14 @@ int Sys_FileWrite (int handle, void *data, int count)
 int     Sys_FileTime (char *path)
 {
 	FILE    *f;
-	
+
 	f = fopen(path, "rb");
 	if (f)
 	{
 		fclose(f);
 		return 1;
 	}
-	
+
 	return -1;
 }
 
@@ -153,7 +156,7 @@ void Sys_Error (char *error, ...)
 {
 	va_list         argptr;
 
-	printf ("Sys_Error: ");   
+	printf ("Sys_Error: ");
 	va_start (argptr,error);
 	vprintf (error,argptr);
 	va_end (argptr);
@@ -165,7 +168,7 @@ void Sys_Error (char *error, ...)
 void Sys_Printf (char *fmt, ...)
 {
 	va_list         argptr;
-	
+
 	va_start (argptr,fmt);
 	vprintf (fmt,argptr);
 	va_end (argptr);
@@ -179,9 +182,9 @@ void Sys_Quit (void)
 double Sys_FloatTime (void)
 {
 	static double t;
-	
+
 	t += 0.1;
-	
+
 	return t;
 }
 

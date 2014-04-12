@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -25,28 +25,44 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // references them even when on a unix system.
 
 // these two are not intended to be set directly
-cvar_t	cl_name = {"_cl_name", "player", true};
-cvar_t	cl_color = {"_cl_color", "0", true};
+cvar_t	*cl_name;
+cvar_t	*cl_color;
 
-cvar_t	cl_shownet = {"cl_shownet","0"};	// can be 0, 1, or 2
-cvar_t	cl_nolerp = {"cl_nolerp","0"};
+cvar_t	*cl_shownet;	// can be 0, 1, or 2
+cvar_t	*cl_nolerp;
 
-cvar_t	lookspring = {"lookspring","0", true};
-cvar_t	lookstrafe = {"lookstrafe","0", true};
-cvar_t	sensitivity = {"sensitivity","3", true};
+cvar_t	*lookspring;
+cvar_t	*lookstrafe;
+cvar_t	*sensitivity;
 
-cvar_t	m_pitch = {"m_pitch","0.022", true};
-cvar_t	m_yaw = {"m_yaw","0.022", true};
-cvar_t	m_forward = {"m_forward","1", true};
-cvar_t	m_side = {"m_side","0.8", true};
+cvar_t	*m_pitch;
+cvar_t	*m_yaw;
+cvar_t	*m_forward;
+cvar_t	*m_side;
+cvar_t	*m_look;	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 
+cvar_t	*cl_showfps;	// 2001-11-31 FPS display by QuakeForge/Muff
+
+cvar_t	*cl_compatibility;	// 2001-12-24 Keeping full backwards compatibility by Maddes
+
+// 2001-09-20 Configurable entity limits by Maddes  start
+cvar_t	*cl_entities_min;
+cvar_t	*cl_entities_min_static;
+cvar_t	*cl_entities_min_temp;
+// 2001-09-20 Configurable entity limits by Maddes  end
 
 client_static_t	cls;
 client_state_t	cl;
 // FIXME: put these on hunk?
 efrag_t			cl_efrags[MAX_EFRAGS];
+// 2001-09-20 Configurable entity limits by Maddes  start
+/*
 entity_t		cl_entities[MAX_EDICTS];
 entity_t		cl_static_entities[MAX_STATIC_ENTITIES];
+*/
+entity_t		*cl_entities;
+entity_t		*cl_static_entities;
+// 2001-09-20 Configurable entity limits by Maddes  end
 lightstyle_t	cl_lightstyle[MAX_LIGHTSTYLES];
 dlight_t		cl_dlights[MAX_DLIGHTS];
 
@@ -71,12 +87,12 @@ void CL_ClearState (void)
 
 	SZ_Clear (&cls.message);
 
-// clear other arrays	
+// clear other arrays
 	memset (cl_efrags, 0, sizeof(cl_efrags));
-	memset (cl_entities, 0, sizeof(cl_entities));
+//	memset (cl_entities, 0, sizeof(cl_entities));	// 2001-09-20 Configurable entity limits by Maddes
 	memset (cl_dlights, 0, sizeof(cl_dlights));
 	memset (cl_lightstyle, 0, sizeof(cl_lightstyle));
-	memset (cl_temp_entities, 0, sizeof(cl_temp_entities));
+//	memset (cl_temp_entities, 0, sizeof(cl_temp_entities));	// 2001-09-20 Configurable entity limits by Maddes
 	memset (cl_beams, 0, sizeof(cl_beams));
 
 //
@@ -100,7 +116,7 @@ void CL_Disconnect (void)
 {
 // stop sounds (especially looping!)
 	S_StopAllSounds (true);
-	
+
 // bring the console down and fade the colors back to normal
 //	SCR_BringDownConsole ();
 
@@ -157,9 +173,9 @@ void CL_EstablishConnection (char *host)
 
 	cls.netcon = NET_Connect (host);
 	if (!cls.netcon)
-		Host_Error ("CL_Connect: connect failed\n");
+		Host_Error ("CL_Connect: connect failed");
 	Con_DPrintf ("CL_EstablishConnection: connected to %s\n", host);
-	
+
 	cls.demonum = -1;			// not in the demo loop now
 	cls.state = ca_connected;
 	cls.signon = 0;				// need all the signon messages before playing
@@ -176,33 +192,67 @@ void CL_SignonReply (void)
 {
 	char 	str[8192];
 
-Con_DPrintf ("CL_SignonReply: %i\n", cls.signon);
+	Con_DPrintf ("CL_SignonReply: %i\n", cls.signon);
 
 	switch (cls.signon)
 	{
 	case 1:
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  start
+		if (!sv.active)
+		{
+			Cvar_Set(nvs_current_ssvc, "0");
+		}
+		Cvar_Set(nvs_current_csvc, "0");
+		Cvar_Set(nvs_current_cclc, "0");
+// 2001-12-24 Keeping full backwards compatibility by Maddes  start
+		if (!(cl_compatibility->value))	// request, unlike the original Quake executable
+		{
+// 2001-12-24 Keeping full backwards compatibility by Maddes  end
+			MSG_WriteByte (&cls.message, clc_stringcmd);
+			MSG_WriteString (&cls.message, va("nvs_request %1.2f\n", nvs_current_cclc->maxvalue));
+		}	// 2001-12-24 Keeping full backwards compatibility by Maddes
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  end
+
+// 2001-09-20 Configurable limits by Maddes  start
+// 2001-09-20 Configurable entity limits by Maddes  start
+		cl.max_edicts = 0;
+		cl.max_static_edicts = 0;
+		cl.max_temp_edicts = 0;
+		cl_entities = NULL;
+		cl_static_entities = NULL;
+		cl_temp_entities = NULL;
+// 2001-09-20 Configurable entity limits by Maddes  end
+// 2001-12-24 Keeping full backwards compatibility by Maddes  start
+		if (!(cl_compatibility->value))	// request, unlike the original Quake executable
+		{
+// 2001-12-24 Keeping full backwards compatibility by Maddes  end
+			MSG_WriteByte (&cls.message, clc_stringcmd);
+			MSG_WriteString (&cls.message, "limit_request\n");
+		}	// 2001-12-24 Keeping full backwards compatibility by Maddes
+// 2001-09-20 Configurable limits by Maddes  end
+
 		MSG_WriteByte (&cls.message, clc_stringcmd);
-		MSG_WriteString (&cls.message, "prespawn");
+		MSG_WriteString (&cls.message, "prespawn\n");
 		break;
-		
-	case 2:		
+
+	case 2:
 		MSG_WriteByte (&cls.message, clc_stringcmd);
-		MSG_WriteString (&cls.message, va("name \"%s\"\n", cl_name.string));
-	
+		MSG_WriteString (&cls.message, va("name \"%s\"\n", cl_name->string));
+
 		MSG_WriteByte (&cls.message, clc_stringcmd);
-		MSG_WriteString (&cls.message, va("color %i %i\n", ((int)cl_color.value)>>4, ((int)cl_color.value)&15));
-	
+		MSG_WriteString (&cls.message, va("color %i %i\n", ((int)cl_color->value)>>4, ((int)cl_color->value)&15));
+
 		MSG_WriteByte (&cls.message, clc_stringcmd);
-		sprintf (str, "spawn %s", cls.spawnparms);
+		sprintf (str, "spawn %s\n", cls.spawnparms);
 		MSG_WriteString (&cls.message, str);
 		break;
-		
-	case 3:	
+
+	case 3:
 		MSG_WriteByte (&cls.message, clc_stringcmd);
-		MSG_WriteString (&cls.message, "begin");
+		MSG_WriteString (&cls.message, "begin\n");
 		Cache_Report ();		// print remaining memory
 		break;
-		
+
 	case 4:
 		SCR_EndLoadingPlaque ();		// allow normal screen updates
 		break;
@@ -250,7 +300,7 @@ void CL_PrintEntities_f (void)
 {
 	entity_t	*ent;
 	int			i;
-	
+
 	for (i=0,ent=cl_entities ; i<cl.num_entities ; i++,ent++)
 	{
 		Con_Printf ("%3i:",i);
@@ -278,7 +328,7 @@ void SetPal (int i)
 	static int old;
 	byte	pal[768];
 	int		c;
-	
+
 	if (i == old)
 		return;
 	old = i;
@@ -329,6 +379,13 @@ dlight_t *CL_AllocDlight (int key)
 			{
 				memset (dl, 0, sizeof(*dl));
 				dl->key = key;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+				dl->color[0] = dl->color[1] = dl->color[2] = 1.0f;
+				dl->flashcolor[0] = 1.0f;
+				dl->flashcolor[1] = 0.5f;
+				dl->flashcolor[2] = 0.0f;
+				dl->flashcolor[3] = 0.2f;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 				return dl;
 			}
 		}
@@ -342,6 +399,13 @@ dlight_t *CL_AllocDlight (int key)
 		{
 			memset (dl, 0, sizeof(*dl));
 			dl->key = key;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+			dl->color[0] = dl->color[1] = dl->color[2] = 1.0f;
+			dl->flashcolor[0] = 1.0f;
+			dl->flashcolor[1] = 0.5f;
+			dl->flashcolor[2] = 0.0f;
+			dl->flashcolor[3] = 0.2f;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 			return dl;
 		}
 	}
@@ -349,6 +413,13 @@ dlight_t *CL_AllocDlight (int key)
 	dl = &cl_dlights[0];
 	memset (dl, 0, sizeof(*dl));
 	dl->key = key;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+	dl->color[0] = dl->color[1] = dl->color[2] = 1.0f;
+	dl->flashcolor[0] = 1.0f;
+	dl->flashcolor[1] = 0.5f;
+	dl->flashcolor[2] = 0.0f;
+	dl->flashcolor[3] = 0.2f;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 	return dl;
 }
 
@@ -364,7 +435,7 @@ void CL_DecayLights (void)
 	int			i;
 	dlight_t	*dl;
 	float		time;
-	
+
 	time = cl.time - cl.oldtime;
 
 	dl = cl_dlights;
@@ -372,7 +443,7 @@ void CL_DecayLights (void)
 	{
 		if (dl->die < cl.time || !dl->radius)
 			continue;
-		
+
 		dl->radius -= time*dl->decay;
 		if (dl->radius < 0)
 			dl->radius = 0;
@@ -393,13 +464,13 @@ float	CL_LerpPoint (void)
 	float	f, frac;
 
 	f = cl.mtime[0] - cl.mtime[1];
-	
-	if (!f || cl_nolerp.value || cls.timedemo || sv.active)
+
+	if (!f || cl_nolerp->value || cls.timedemo || sv.active)
 	{
 		cl.time = cl.mtime[0];
 		return 1;
 	}
-		
+
 	if (f > 0.1)
 	{	// dropped packet, or start of demo
 		cl.mtime[1] = cl.mtime[0] - 0.1;
@@ -429,7 +500,7 @@ SetPal(2);
 	}
 	else
 		SetPal(0);
-		
+
 	return frac;
 }
 
@@ -449,7 +520,7 @@ void CL_RelinkEntities (void)
 	vec3_t		oldorg;
 	dlight_t	*dl;
 
-// determine partial update time	
+// determine partial update time
 	frac = CL_LerpPoint ();
 
 	cl_numvisedicts = 0;
@@ -458,12 +529,12 @@ void CL_RelinkEntities (void)
 // interpolate player info
 //
 	for (i=0 ; i<3 ; i++)
-		cl.velocity[i] = cl.mvelocity[1][i] + 
+		cl.velocity[i] = cl.mvelocity[1][i] +
 			frac * (cl.mvelocity[0][i] - cl.mvelocity[1][i]);
 
 	if (cls.demoplayback)
 	{
-	// interpolate the angles	
+	// interpolate the angles
 		for (j=0 ; j<3 ; j++)
 		{
 			d = cl.mviewangles[0][j] - cl.mviewangles[1][j];
@@ -474,9 +545,9 @@ void CL_RelinkEntities (void)
 			cl.viewangles[j] = cl.mviewangles[1][j] + frac*d;
 		}
 	}
-	
+
 	bobjrotate = anglemod(100*cl.time);
-	
+
 // start on the entity after the world
 	for (i=1,ent=cl_entities+1 ; i<cl.num_entities ; i++,ent++)
 	{
@@ -524,7 +595,7 @@ void CL_RelinkEntities (void)
 					d += 360;
 				ent->angles[j] = ent->msg_angles[1][j] + f*d;
 			}
-			
+
 		}
 
 // rotate binary objects locally
@@ -545,14 +616,14 @@ void CL_RelinkEntities (void)
 			VectorCopy (ent->origin,  dl->origin);
 			dl->origin[2] += 16;
 			AngleVectors (ent->angles, fv, rv, uv);
-			 
+
 			VectorMA (dl->origin, 18, fv, dl->origin);
 			dl->radius = 200 + (rand()&31);
 			dl->minlight = 32;
 			dl->die = cl.time + 0.1;
 		}
 		if (ent->effects & EF_BRIGHTLIGHT)
-		{			
+		{
 			dl = CL_AllocDlight (i);
 			VectorCopy (ent->origin,  dl->origin);
 			dl->origin[2] += 16;
@@ -560,7 +631,7 @@ void CL_RelinkEntities (void)
 			dl->die = cl.time + 0.001;
 		}
 		if (ent->effects & EF_DIMLIGHT)
-		{			
+		{
 			dl = CL_AllocDlight (i);
 			VectorCopy (ent->origin,  dl->origin);
 			dl->radius = 200 + (rand()&31);
@@ -568,7 +639,7 @@ void CL_RelinkEntities (void)
 		}
 #ifdef QUAKE2
 		if (ent->effects & EF_DARKLIGHT)
-		{			
+		{
 			dl = CL_AllocDlight (i);
 			VectorCopy (ent->origin,  dl->origin);
 			dl->radius = 200.0 + (rand()&31);
@@ -576,7 +647,7 @@ void CL_RelinkEntities (void)
 			dl->dark = true;
 		}
 		if (ent->effects & EF_LIGHT)
-		{			
+		{
 			dl = CL_AllocDlight (i);
 			VectorCopy (ent->origin,  dl->origin);
 			dl->radius = 200;
@@ -607,7 +678,7 @@ void CL_RelinkEntities (void)
 
 		ent->forcelink = false;
 
-		if (i == cl.viewentity && !chase_active.value)
+		if (i == cl.viewentity && !chase_active->value)
 			continue;
 
 #ifdef QUAKE2
@@ -637,7 +708,7 @@ int CL_ReadFromServer (void)
 
 	cl.oldtime = cl.time;
 	cl.time += host_frametime;
-	
+
 	do
 	{
 		ret = CL_GetMessage ();
@@ -645,12 +716,12 @@ int CL_ReadFromServer (void)
 			Host_Error ("CL_ReadFromServer: lost server connection");
 		if (!ret)
 			break;
-		
+
 		cl.last_received_message = realtime;
 		CL_ParseServerMessage ();
 	} while (ret && cls.state == ca_connected);
-	
-	if (cl_shownet.value)
+
+	if (cl_shownet->value)
 		Con_Printf ("\n");
 
 	CL_RelinkEntities ();
@@ -678,13 +749,13 @@ void CL_SendCmd (void)
 	{
 	// get basic movement from keyboard
 		CL_BaseMove (&cmd);
-	
+
 	// allow mice or other external controllers to add to the move
 		IN_Move (&cmd);
-	
+
 	// send the unreliable message
 		CL_SendMove (&cmd);
-	
+
 	}
 
 	if (cls.demoplayback)
@@ -692,11 +763,11 @@ void CL_SendCmd (void)
 		SZ_Clear (&cls.message);
 		return;
 	}
-	
+
 // send the reliable message
 	if (!cls.message.cursize)
 		return;		// no message at all
-	
+
 	if (!NET_CanSendMessage (cls.netcon))
 	{
 		Con_DPrintf ("CL_WriteToServer: can't send\n");
@@ -709,44 +780,130 @@ void CL_SendCmd (void)
 	SZ_Clear (&cls.message);
 }
 
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
+void Callback_M_Look (cvar_t *var)
+{
+	if ( !((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && lookspring->value)
+		V_StartPitchDrift();
+}
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+=================
+CL_Init_Cvars
+=================
+*/
+void CL_Init_Cvars (void)
+{
+	cl_name = Cvar_Get ("_cl_name", "player", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	cl_color = Cvar_Get ("_cl_color", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+
+	cl_upspeed = Cvar_Get ("cl_upspeed", "200", CVAR_ORIGINAL);
+	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	cl_backspeed = Cvar_Get ("cl_backspeed", "200", CVAR_ARCHIVE|CVAR_ORIGINAL);
+ 	cl_sidespeed = Cvar_Get ("cl_sidespeed", "350", CVAR_ORIGINAL);
+ 	cl_movespeedkey = Cvar_Get ("cl_movespeedkey", "2.0", CVAR_ORIGINAL);
+ 	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", CVAR_ORIGINAL);
+ 	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "150", CVAR_ORIGINAL);
+ 	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", CVAR_ORIGINAL);
+	cl_shownet = Cvar_Get ("cl_shownet", "0", CVAR_ORIGINAL);
+// 2001-09-18 New cvar system by Maddes  start
+	Cvar_SetRangecheck (cl_shownet, Cvar_RangecheckInt, 0, 2);
+	Cvar_Set(cl_shownet, cl_shownet->string);	// do rangecheck
+// 2001-09-18 New cvar system by Maddes  end
+	cl_nolerp = Cvar_Get ("cl_nolerp", "0", CVAR_ORIGINAL);
+	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	sensitivity = Cvar_Get ("sensitivity", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+
+	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_yaw = Cvar_Get ("m_yaw", "0.022", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_forward = Cvar_Get ("m_forward", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_side = Cvar_Get ("m_side", "0.8", CVAR_ARCHIVE|CVAR_ORIGINAL);
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
+	m_look = Cvar_Get ("m_look", "0", CVAR_ARCHIVE);
+	Cvar_SetRangecheck (m_look, Cvar_RangecheckBool, 0, 1);
+	Cvar_SetCallback (m_look, Callback_M_Look);
+	Cvar_Set(m_look, m_look->string);	// do rangecheck
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
+
+// 2001-11-31 FPS display by QuakeForge/Muff  start
+	cl_showfps = Cvar_Get ("cl_showfps", "0", CVAR_NONE);
+	Cvar_SetRangecheck (cl_showfps, Cvar_RangecheckBool, 0, 1);
+	Cvar_Set(cl_showfps, cl_showfps->string);	// do rangecheck
+// 2001-11-31 FPS display by QuakeForge/Muff  end
+
+// 2001-12-24 Keeping full backwards compatibility by Maddes  start
+	cl_compatibility = Cvar_Get ("cl_compatibility", "0", CVAR_ARCHIVE);
+	Cvar_SetRangecheck (cl_compatibility, Cvar_RangecheckBool, 0, 1);
+	Cvar_SetDescription (cl_compatibility, "When set to 1, this client will not request enhanced information from the server (server's entity limit, NVS handshake, etc.) and disables enhanced client messages (precise client aiming, etc.). This is necessary for recording demos that shall run on all Quake executables. Also see SV_COMPATIBILITY.");
+	Cvar_Set(cl_compatibility, cl_compatibility->string);	// do rangecheck
+// 2001-12-24 Keeping full backwards compatibility by Maddes  end
+
+// 2001-09-20 Configurable entity limits by Maddes  start
+	cl_entities_min = Cvar_Get ("cl_entities_min", "0", CVAR_NONE);
+	Cvar_SetRangecheck (cl_entities_min, Cvar_RangecheckInt, MIN_EDICTS, MAX_EDICTS);
+	Cvar_Set(cl_entities_min, cl_entities_min->string);	// do rangecheck
+
+	cl_entities_min_static = Cvar_Get ("cl_entities_min_static", "0", CVAR_NONE);
+	Cvar_SetRangecheck (cl_entities_min_static, Cvar_RangecheckInt, MIN_STATIC_ENTITIES, MAX_EDICTS);
+	Cvar_Set(cl_entities_min_static, cl_entities_min_static->string);	// do rangecheck
+
+	cl_entities_min_temp = Cvar_Get ("cl_entities_min_temp", "0", CVAR_NONE);
+	Cvar_SetRangecheck (cl_entities_min_temp, Cvar_RangecheckInt, MIN_TEMP_ENTITIES, MAX_EDICTS);
+	Cvar_Set(cl_entities_min_temp, cl_entities_min_temp->string);	// do rangecheck
+// 2001-09-20 Configurable entity limits by Maddes  end
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 /*
 =================
 CL_Init
 =================
 */
 void CL_Init (void)
-{	
+{
 	SZ_Alloc (&cls.message, 1024);
 
 	CL_InitInput ();
 	CL_InitTEnts ();
-	
+
 //
 // register our commands
 //
-	Cvar_RegisterVariable (&cl_name);
-	Cvar_RegisterVariable (&cl_color);
-	Cvar_RegisterVariable (&cl_upspeed);
-	Cvar_RegisterVariable (&cl_forwardspeed);
-	Cvar_RegisterVariable (&cl_backspeed);
-	Cvar_RegisterVariable (&cl_sidespeed);
-	Cvar_RegisterVariable (&cl_movespeedkey);
-	Cvar_RegisterVariable (&cl_yawspeed);
-	Cvar_RegisterVariable (&cl_pitchspeed);
-	Cvar_RegisterVariable (&cl_anglespeedkey);
-	Cvar_RegisterVariable (&cl_shownet);
-	Cvar_RegisterVariable (&cl_nolerp);
-	Cvar_RegisterVariable (&lookspring);
-	Cvar_RegisterVariable (&lookstrafe);
-	Cvar_RegisterVariable (&sensitivity);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	cl_name = Cvar_Get ("_cl_name", "player", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	cl_color = Cvar_Get ("_cl_color", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&m_pitch);
-	Cvar_RegisterVariable (&m_yaw);
-	Cvar_RegisterVariable (&m_forward);
-	Cvar_RegisterVariable (&m_side);
+	cl_upspeed = Cvar_Get ("cl_upspeed", "200", CVAR_ORIGINAL);
+	cl_forwardspeed = Cvar_Get ("cl_forwardspeed", "200", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	cl_backspeed = Cvar_Get ("cl_backspeed", "200", CVAR_ARCHIVE|CVAR_ORIGINAL);
+ 	cl_sidespeed = Cvar_Get ("cl_sidespeed", "350", CVAR_ORIGINAL);
+ 	cl_movespeedkey = Cvar_Get ("cl_movespeedkey", "2.0", CVAR_ORIGINAL);
+ 	cl_yawspeed = Cvar_Get ("cl_yawspeed", "140", CVAR_ORIGINAL);
+ 	cl_pitchspeed = Cvar_Get ("cl_pitchspeed", "150", CVAR_ORIGINAL);
+ 	cl_anglespeedkey = Cvar_Get ("cl_anglespeedkey", "1.5", CVAR_ORIGINAL);
+	cl_shownet = Cvar_Get ("cl_shownet", "0", CVAR_ORIGINAL);
+// 2001-09-18 New cvar system by Maddes  start
+	Cvar_SetRangecheck (cl_shownet, Cvar_RangecheckInt, 0, 2);
+	Cvar_Set(cl_shownet, cl_shownet->string);	// do rangecheck
+// 2001-09-18 New cvar system by Maddes  end
+	cl_nolerp = Cvar_Get ("cl_nolerp", "0", CVAR_ORIGINAL);
+	lookspring = Cvar_Get ("lookspring", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	lookstrafe = Cvar_Get ("lookstrafe", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	sensitivity = Cvar_Get ("sensitivity", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+
+	m_pitch = Cvar_Get ("m_pitch", "0.022", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_yaw = Cvar_Get ("m_yaw", "0.022", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_forward = Cvar_Get ("m_forward", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_side = Cvar_Get ("m_side", "0.8", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 //	Cvar_RegisterVariable (&cl_autofire);
-	
+
 	Cmd_AddCommand ("entities", CL_PrintEntities_f);
 	Cmd_AddCommand ("disconnect", CL_Disconnect_f);
 	Cmd_AddCommand ("record", CL_Record_f);
@@ -754,4 +911,3 @@ void CL_Init (void)
 	Cmd_AddCommand ("playdemo", CL_PlayDemo_f);
 	Cmd_AddCommand ("timedemo", CL_TimeDemo_f);
 }
-

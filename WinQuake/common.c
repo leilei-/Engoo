@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -23,28 +23,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define NUM_SAFE_ARGVS  7
 
-static char     *largv[MAX_NUM_ARGVS + NUM_SAFE_ARGVS + 1];
-static char     *argvdummy = " ";
+static char	*largv[MAX_NUM_ARGVS + NUM_SAFE_ARGVS + 1];
+static char	*argvdummy = " ";
 
-static char     *safeargvs[NUM_SAFE_ARGVS] =
+static char	*safeargvs[NUM_SAFE_ARGVS] =
 	{"-stdvid", "-nolan", "-nosound", "-nocdaudio", "-nojoy", "-nomouse", "-dibonly"};
 
-cvar_t  registered = {"registered","0"};
-cvar_t  cmdline = {"cmdline","0", false, true};
+cvar_t  *registered;
+cvar_t  *cmdline;
 
-qboolean        com_modified;   // set true if using non-id files
+qboolean	com_modified;	// set true if using non-id files
 
-qboolean		proghack;
+qboolean	proghack;
 
-int             static_registered = 1;  // only for startup check, then set
+int			static_registered = 1;  // only for startup check, then set
 
-qboolean		msg_suppress_1 = 0;
+qboolean	msg_suppress_1 = 0;
 
 void COM_InitFilesystem (void);
 
 // if a packfile directory differs from this, it is assumed to be hacked
-#define PAK0_COUNT              339
-#define PAK0_CRC                32981
+#define PAK0_COUNT	339
+#define PAK0_CRC	32981
 
 char	com_token[1024];
 int		com_argc;
@@ -54,6 +54,8 @@ char	**com_argv;
 char	com_cmdline[CMDLINE_LENGTH];
 
 qboolean		standard_quake = true, rogue, hipnotic;
+
+qboolean		nouse = false;	// 1999-10-29 +USE fix by Maddes
 
 // this graphic needs to be in the pak file to use registered features
 unsigned short pop[] =
@@ -94,7 +96,7 @@ into the cache directory, then opened there.
 
 FIXME:
 The file "parms.txt" will be read out of the game directory and appended to the current command line arguments to allow different games to initialize startup parms differently.  This could be used to add a "-sspeed 22050" for the high quality sound edition.  Because they are added at the end, they will not override an explicit setting on the original command line.
-	
+
 */
 
 //============================================================================
@@ -137,8 +139,8 @@ void InsertLinkAfter (link_t *l, link_t *after)
 
 void Q_memset (void *dest, int fill, int count)
 {
-	int             i;
-	
+	int	i;
+
 	if ( (((long)dest | count) & 3) == 0)
 	{
 		count >>= 2;
@@ -153,8 +155,8 @@ void Q_memset (void *dest, int fill, int count)
 
 void Q_memcpy (void *dest, void *src, int count)
 {
-	int             i;
-	
+	int	i;
+
 	if (( ( (long)dest | (long)src | count) & 3) == 0 )
 	{
 		count>>=2;
@@ -166,6 +168,8 @@ void Q_memcpy (void *dest, void *src, int count)
 			((byte *)dest)[i] = ((byte *)src)[i];
 }
 
+// 2001-10-25 Replaced Quake functions with ANSI functions by Maddes  start
+/*
 int Q_memcmp (void *m1, void *m2, int count)
 {
 	while(count)
@@ -198,8 +202,8 @@ void Q_strncpy (char *dest, char *src, int count)
 
 int Q_strlen (char *str)
 {
-	int             count;
-	
+	int	count;
+
 	count = 0;
 	while (str[count])
 		count++;
@@ -209,17 +213,17 @@ int Q_strlen (char *str)
 
 char *Q_strrchr(char *s, char c)
 {
-    int len = Q_strlen(s);
-    s += len;
-    while (len--)
+	int	len = strlen(s);
+	s += len;
+	while (len--)
 	if (*--s == c) return s;
-    return 0;
+	return 0;
 }
 
 void Q_strcat (char *dest, char *src)
 {
-	dest += Q_strlen(dest);
-	Q_strcpy (dest, src);
+	dest += strlen(dest);
+	strcpy (dest, src);
 }
 
 int Q_strcmp (char *s1, char *s2)
@@ -227,13 +231,13 @@ int Q_strcmp (char *s1, char *s2)
 	while (1)
 	{
 		if (*s1 != *s2)
-			return -1;              // strings not equal    
+			return -1;	// strings not equal
 		if (!*s1)
-			return 0;               // strings are equal
+			return 0;	// strings are equal
 		s1++;
 		s2++;
 	}
-	
+
 	return -1;
 }
 
@@ -244,28 +248,30 @@ int Q_strncmp (char *s1, char *s2, int count)
 		if (!count--)
 			return 0;
 		if (*s1 != *s2)
-			return -1;              // strings not equal    
+			return -1;	// strings not equal
 		if (!*s1)
-			return 0;               // strings are equal
+			return 0;	// strings are equal
 		s1++;
 		s2++;
 	}
-	
+
 	return -1;
 }
+*/
+// 2001-10-25 Replaced Quake functions with ANSI functions by Maddes  end
 
 int Q_strncasecmp (char *s1, char *s2, int n)
 {
-	int             c1, c2;
-	
+	int	c1, c2;
+
 	while (1)
 	{
 		c1 = *s1++;
 		c2 = *s2++;
 
 		if (!n--)
-			return 0;               // strings are equal until end point
-		
+			return 0;	// strings are equal until end point
+
 		if (c1 != c2)
 		{
 			if (c1 >= 'a' && c1 <= 'z')
@@ -273,28 +279,40 @@ int Q_strncasecmp (char *s1, char *s2, int n)
 			if (c2 >= 'a' && c2 <= 'z')
 				c2 -= ('a' - 'A');
 			if (c1 != c2)
-				return -1;              // strings not equal
+				return -1;	// strings not equal
 		}
 		if (!c1)
-			return 0;               // strings are equal
-//              s1++;
-//              s2++;
+			return 0;		// strings are equal
+//		s1++;
+//		s2++;
 	}
-	
+
 	return -1;
 }
 
 int Q_strcasecmp (char *s1, char *s2)
 {
-	return Q_strncasecmp (s1, s2, 99999);
+// 2001-10-25 Q_strcasecmp fix by Maddes  start
+//	return Q_strncasecmp (s1, s2, 99999);
+	int	len1, len2;
+
+	len1 = strlen(s1);
+	len2 = strlen(s2);
+	if (len2 > len1)
+	{
+		len1 = len2;
+	}
+
+	return Q_strncasecmp (s1, s2, len1);
+// 2001-10-25 Q_strcasecmp fix by Maddes  end
 }
 
 int Q_atoi (char *str)
 {
-	int             val;
-	int             sign;
-	int             c;
-	
+	int	val;
+	int	sign;
+	int	c;
+
 	if (*str == '-')
 	{
 		sign = -1;
@@ -302,7 +320,7 @@ int Q_atoi (char *str)
 	}
 	else
 		sign = 1;
-		
+
 	val = 0;
 
 //
@@ -324,7 +342,7 @@ int Q_atoi (char *str)
 				return val*sign;
 		}
 	}
-	
+
 //
 // check for character
 //
@@ -332,7 +350,7 @@ int Q_atoi (char *str)
 	{
 		return sign * str[1];
 	}
-	
+
 //
 // assume decimal
 //
@@ -343,18 +361,25 @@ int Q_atoi (char *str)
 			return val*sign;
 		val = val*10 + c - '0';
 	}
-	
+
 	return 0;
 }
 
 
 float Q_atof (char *str)
 {
-	double			val;
-	int             sign;
-	int             c;
-	int             decimal, total;
-	
+	double	val;
+	int		sign;
+	int		c;
+	int		decimal, total;
+
+// 1999-12-27 ATOF problems with leading spaces fix by Maddes  start
+	while ((*str) && (*str<=' '))
+	{
+		str++;
+	}
+// 1999-12-27 ATOF problems with leading spaces fix by Maddes  end
+
 	if (*str == '-')
 	{
 		sign = -1;
@@ -362,7 +387,7 @@ float Q_atof (char *str)
 	}
 	else
 		sign = 1;
-		
+
 	val = 0;
 
 //
@@ -384,7 +409,7 @@ float Q_atof (char *str)
 				return val*sign;
 		}
 	}
-	
+
 //
 // check for character
 //
@@ -392,7 +417,7 @@ float Q_atof (char *str)
 	{
 		return sign * str[1];
 	}
-	
+
 //
 // assume decimal
 //
@@ -419,7 +444,7 @@ float Q_atof (char *str)
 		val /= 10;
 		total--;
 	}
-	
+
 	return val*sign;
 }
 
@@ -431,18 +456,18 @@ float Q_atof (char *str)
 ============================================================================
 */
 
-qboolean        bigendien;
+qboolean	bigendien;
 
-short   (*BigShort) (short l);
-short   (*LittleShort) (short l);
-int     (*BigLong) (int l);
-int     (*LittleLong) (int l);
-float   (*BigFloat) (float l);
-float   (*LittleFloat) (float l);
+short (*BigShort) (short l);
+short (*LittleShort) (short l);
+int (*BigLong) (int l);
+int (*LittleLong) (int l);
+float (*BigFloat) (float l);
+float (*LittleFloat) (float l);
 
-short   ShortSwap (short l)
+short ShortSwap (short l)
 {
-	byte    b1,b2;
+	byte	b1,b2;
 
 	b1 = l&255;
 	b2 = (l>>8)&255;
@@ -450,14 +475,14 @@ short   ShortSwap (short l)
 	return (b1<<8) + b2;
 }
 
-short   ShortNoSwap (short l)
+short ShortNoSwap (short l)
 {
 	return l;
 }
 
-int    LongSwap (int l)
+int LongSwap (int l)
 {
-	byte    b1,b2,b3,b4;
+	byte	b1,b2,b3,b4;
 
 	b1 = l&255;
 	b2 = (l>>8)&255;
@@ -467,7 +492,7 @@ int    LongSwap (int l)
 	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
 }
 
-int     LongNoSwap (int l)
+int LongNoSwap (int l)
 {
 	return l;
 }
@@ -476,11 +501,11 @@ float FloatSwap (float f)
 {
 	union
 	{
-		float   f;
-		byte    b[4];
+		float	f;
+		byte	b[4];
 	} dat1, dat2;
-	
-	
+
+
 	dat1.f = f;
 	dat2.b[0] = dat1.b[3];
 	dat2.b[1] = dat1.b[2];
@@ -509,8 +534,8 @@ Handles byte ordering and avoids alignment errors
 
 void MSG_WriteChar (sizebuf_t *sb, int c)
 {
-	byte    *buf;
-	
+	byte	*buf;
+
 #ifdef PARANOID
 	if (c < -128 || c > 127)
 		Sys_Error ("MSG_WriteChar: range error");
@@ -522,8 +547,8 @@ void MSG_WriteChar (sizebuf_t *sb, int c)
 
 void MSG_WriteByte (sizebuf_t *sb, int c)
 {
-	byte    *buf;
-	
+	byte	*buf;
+
 #ifdef PARANOID
 	if (c < 0 || c > 255)
 		Sys_Error ("MSG_WriteByte: range error");
@@ -535,8 +560,8 @@ void MSG_WriteByte (sizebuf_t *sb, int c)
 
 void MSG_WriteShort (sizebuf_t *sb, int c)
 {
-	byte    *buf;
-	
+	byte	*buf;
+
 #ifdef PARANOID
 	if (c < ((short)0x8000) || c > (short)0x7fff)
 		Sys_Error ("MSG_WriteShort: range error");
@@ -549,8 +574,8 @@ void MSG_WriteShort (sizebuf_t *sb, int c)
 
 void MSG_WriteLong (sizebuf_t *sb, int c)
 {
-	byte    *buf;
-	
+	byte	*buf;
+
 	buf = SZ_GetSpace (sb, 4);
 	buf[0] = c&0xff;
 	buf[1] = (c>>8)&0xff;
@@ -562,14 +587,14 @@ void MSG_WriteFloat (sizebuf_t *sb, float f)
 {
 	union
 	{
-		float   f;
-		int     l;
+		float	f;
+		int		l;
 	} dat;
-	
-	
+
+
 	dat.f = f;
 	dat.l = LittleLong (dat.l);
-	
+
 	SZ_Write (sb, &dat.l, 4);
 }
 
@@ -578,7 +603,7 @@ void MSG_WriteString (sizebuf_t *sb, char *s)
 	if (!s)
 		SZ_Write (sb, "", 1);
 	else
-		SZ_Write (sb, s, Q_strlen(s)+1);
+		SZ_Write (sb, s, strlen(s)+1);
 }
 
 void MSG_WriteCoord (sizebuf_t *sb, float f)
@@ -594,8 +619,8 @@ void MSG_WriteAngle (sizebuf_t *sb, float f)
 //
 // reading functions
 //
-int                     msg_readcount;
-qboolean        msg_badread;
+int	msg_readcount;
+qboolean	msg_badread;
 
 void MSG_BeginReading (void)
 {
@@ -606,71 +631,71 @@ void MSG_BeginReading (void)
 // returns -1 and sets msg_badread if no more characters are available
 int MSG_ReadChar (void)
 {
-	int     c;
-	
+	int	c;
+
 	if (msg_readcount+1 > net_message.cursize)
 	{
 		msg_badread = true;
 		return -1;
 	}
-		
+
 	c = (signed char)net_message.data[msg_readcount];
 	msg_readcount++;
-	
+
 	return c;
 }
 
 int MSG_ReadByte (void)
 {
-	int     c;
-	
+	int	c;
+
 	if (msg_readcount+1 > net_message.cursize)
 	{
 		msg_badread = true;
 		return -1;
 	}
-		
+
 	c = (unsigned char)net_message.data[msg_readcount];
 	msg_readcount++;
-	
+
 	return c;
 }
 
 int MSG_ReadShort (void)
 {
-	int     c;
-	
+	int	c;
+
 	if (msg_readcount+2 > net_message.cursize)
 	{
 		msg_badread = true;
 		return -1;
 	}
-		
+
 	c = (short)(net_message.data[msg_readcount]
 	+ (net_message.data[msg_readcount+1]<<8));
-	
+
 	msg_readcount += 2;
-	
+
 	return c;
 }
 
 int MSG_ReadLong (void)
 {
-	int     c;
-	
+	int	c;
+
 	if (msg_readcount+4 > net_message.cursize)
 	{
 		msg_badread = true;
 		return -1;
 	}
-		
+
 	c = net_message.data[msg_readcount]
 	+ (net_message.data[msg_readcount+1]<<8)
 	+ (net_message.data[msg_readcount+2]<<16)
 	+ (net_message.data[msg_readcount+3]<<24);
-	
+
 	msg_readcount += 4;
-	
+
 	return c;
 }
 
@@ -678,27 +703,27 @@ float MSG_ReadFloat (void)
 {
 	union
 	{
-		byte    b[4];
-		float   f;
-		int     l;
+		byte	b[4];
+		float	f;
+		int		l;
 	} dat;
-	
-	dat.b[0] =      net_message.data[msg_readcount];
-	dat.b[1] =      net_message.data[msg_readcount+1];
-	dat.b[2] =      net_message.data[msg_readcount+2];
-	dat.b[3] =      net_message.data[msg_readcount+3];
+
+	dat.b[0] = net_message.data[msg_readcount];
+	dat.b[1] = net_message.data[msg_readcount+1];
+	dat.b[2] = net_message.data[msg_readcount+2];
+	dat.b[3] = net_message.data[msg_readcount+3];
 	msg_readcount += 4;
-	
+
 	dat.l = LittleLong (dat.l);
 
-	return dat.f;   
+	return dat.f;
 }
 
 char *MSG_ReadString (void)
 {
-	static char     string[2048];
-	int             l,c;
-	
+	static char	string[2048];
+	int			l,c;
+
 	l = 0;
 	do
 	{
@@ -708,9 +733,9 @@ char *MSG_ReadString (void)
 		string[l] = c;
 		l++;
 	} while (l < sizeof(string)-1);
-	
+
 	string[l] = 0;
-	
+
 	return string;
 }
 
@@ -740,9 +765,9 @@ void SZ_Alloc (sizebuf_t *buf, int startsize)
 
 void SZ_Free (sizebuf_t *buf)
 {
-//      Z_Free (buf->data);
-//      buf->data = NULL;
-//      buf->maxsize = 0;
+//	Z_Free (mainzone, buf->data);	// 2001-09-20 Enhanced zone handling by Maddes
+//	buf->data = NULL;
+//	buf->maxsize = 0;
 	buf->cursize = 0;
 }
 
@@ -753,37 +778,37 @@ void SZ_Clear (sizebuf_t *buf)
 
 void *SZ_GetSpace (sizebuf_t *buf, int length)
 {
-	void    *data;
-	
+	void	*data;
+
 	if (buf->cursize + length > buf->maxsize)
 	{
 		if (!buf->allowoverflow)
 			Sys_Error ("SZ_GetSpace: overflow without allowoverflow set");
-		
+
 		if (length > buf->maxsize)
 			Sys_Error ("SZ_GetSpace: %i is > full buffer size", length);
-			
+
 		buf->overflowed = true;
 		Con_Printf ("SZ_GetSpace: overflow");
-		SZ_Clear (buf); 
+		SZ_Clear (buf);
 	}
 
 	data = buf->data + buf->cursize;
 	buf->cursize += length;
-	
+
 	return data;
 }
 
 void SZ_Write (sizebuf_t *buf, void *data, int length)
 {
-	Q_memcpy (SZ_GetSpace(buf,length),data,length);         
+	Q_memcpy (SZ_GetSpace(buf,length),data,length);
 }
 
 void SZ_Print (sizebuf_t *buf, char *data)
 {
-	int             len;
-	
-	len = Q_strlen(data)+1;
+	int	len;
+
+	len = strlen(data)+1;
 
 // byte * cast to keep VC++ happy
 	if (buf->data[buf->cursize-1])
@@ -803,8 +828,8 @@ COM_SkipPath
 */
 char *COM_SkipPath (char *pathname)
 {
-	char    *last;
-	
+	char	*last;
+
 	last = pathname;
 	while (*pathname)
 	{
@@ -835,7 +860,7 @@ COM_FileExtension
 char *COM_FileExtension (char *in)
 {
 	static char exten[8];
-	int             i;
+	int	i;
 
 	while (*in && *in != '.')
 		in++;
@@ -856,15 +881,15 @@ COM_FileBase
 void COM_FileBase (char *in, char *out)
 {
 	char *s, *s2;
-	
+
 	s = in + strlen(in) - 1;
-	
+
 	while (s != in && *s != '.')
 		s--;
-	
+
 	for (s2 = s ; *s2 && *s2 != '/' ; s2--)
 	;
-	
+
 	if (s-s2 < 2)
 		strcpy (out,"?model?");
 	else
@@ -883,7 +908,7 @@ COM_DefaultExtension
 */
 void COM_DefaultExtension (char *path, char *extension)
 {
-	char    *src;
+	char	*src;
 //
 // if path doesn't have a .EXT, append extension
 // (extension should include the .)
@@ -893,7 +918,7 @@ void COM_DefaultExtension (char *path, char *extension)
 	while (*src != '/' && src != path)
 	{
 		if (*src == '.')
-			return;                 // it has an extension
+			return;	// it has an extension
 		src--;
 	}
 
@@ -910,24 +935,24 @@ Parse a token out of a string
 */
 char *COM_Parse (char *data)
 {
-	int             c;
-	int             len;
-	
+	int	c;
+	int	len;
+
 	len = 0;
 	com_token[0] = 0;
-	
+
 	if (!data)
 		return NULL;
-		
+
 // skip whitespace
 skipwhite:
 	while ( (c = *data) <= ' ')
 	{
 		if (c == 0)
-			return NULL;                    // end of file;
+			return NULL;	// end of file;
 		data++;
 	}
-	
+
 // skip // comments
 	if (c=='/' && data[1] == '/')
 	{
@@ -935,7 +960,7 @@ skipwhite:
 			data++;
 		goto skipwhite;
 	}
-	
+
 
 // handle quoted strings specially
 	if (c == '\"')
@@ -973,7 +998,7 @@ skipwhite:
 	if (c=='{' || c=='}'|| c==')'|| c=='(' || c=='\'' || c==':')
 			break;
 	} while (c>32);
-	
+
 	com_token[len] = 0;
 	return data;
 }
@@ -989,18 +1014,45 @@ where the given parameter apears, or 0 if not present
 */
 int COM_CheckParm (char *parm)
 {
-	int             i;
-	
+	int	i;
+
 	for (i=1 ; i<com_argc ; i++)
 	{
 		if (!com_argv[i])
-			continue;               // NEXTSTEP sometimes clears appkit vars.
-		if (!Q_strcmp (parm,com_argv[i]))
+			continue;	// NEXTSTEP sometimes clears appkit vars.
+		if (!strcmp (parm,com_argv[i]))
 			return i;
 	}
-		
+
 	return 0;
 }
+
+
+// 1999-12-23 Multiple "-data" parameters by Maddes  start
+/*
+================
+COM_CheckParmOffset
+
+Returns the position (1 to argc-1) in the program's argument list
+where the given parameter apears, or 0 if not present
+================
+*/
+int COM_CheckParmOffset (char *parm, int offset)
+{
+	int	i;
+
+	for (i=offset ; i<com_argc ; i++)
+	{
+		if (!com_argv[i])
+			continue;	// NEXTSTEP sometimes clears appkit vars.
+		if (!strcmp (parm,com_argv[i]))
+			return i;
+	}
+
+	return 0;
+}
+// 1999-12-23 Multiple "-data" parameters by Maddes  end
+
 
 /*
 ================
@@ -1014,11 +1066,11 @@ being registered.
 */
 void COM_CheckRegistered (void)
 {
-	int             h;
-	unsigned short  check[128];
-	int                     i;
+	int				h;
+	unsigned short	check[128];
+	int				i;
 
-	COM_OpenFile("gfx/pop.lmp", &h);
+	COM_OpenFile("gfx/pop.lmp", &h, NULL);	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 	static_registered = 0;
 
 	if (h == -1)
@@ -1034,13 +1086,13 @@ void COM_CheckRegistered (void)
 
 	Sys_FileRead (h, check, sizeof(check));
 	COM_CloseFile (h);
-	
+
 	for (i=0 ; i<128 ; i++)
 		if (pop[i] != (unsigned short)BigShort (check[i]))
 			Sys_Error ("Corrupted data file.");
-	
-	Cvar_Set ("cmdline", com_cmdline);
-	Cvar_Set ("registered", "1");
+
+	Cvar_Set (cmdline, com_cmdline);
+	Cvar_Set (registered, "1");
 	static_registered = 1;
 	Con_Printf ("Playing registered version.\n");
 }
@@ -1056,8 +1108,8 @@ COM_InitArgv
 */
 void COM_InitArgv (int argc, char **argv)
 {
-	qboolean        safe;
-	int             i, j, n;
+	qboolean	safe;
+	int			i, j, n;
 
 // reconstitute the command line for the cmdline externally visible cvar
 	n = 0;
@@ -1085,7 +1137,7 @@ void COM_InitArgv (int argc, char **argv)
 		 com_argc++)
 	{
 		largv[com_argc] = argv[com_argc];
-		if (!Q_strcmp ("-safe", argv[com_argc]))
+		if (!strcmp ("-safe", argv[com_argc]))
 			safe = true;
 	}
 
@@ -1114,8 +1166,27 @@ void COM_InitArgv (int argc, char **argv)
 		hipnotic = true;
 		standard_quake = false;
 	}
+
+// 1999-10-29 +USE fix by Maddes  start
+	if (COM_CheckParm ("-nouse"))
+	{
+		nouse = true;
+	}
+// 1999-10-29 +USE fix by Maddes  end
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+================
+COM_Init_Cvars
+================
+*/
+void COM_Init_Cvars (void)
+{
+	registered = Cvar_Get ("registered", "0", CVAR_ORIGINAL);
+	cmdline = Cvar_Get ("cmdline", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 ================
@@ -1124,9 +1195,9 @@ COM_Init
 */
 void COM_Init (char *basedir)
 {
-	byte    swaptest[2] = {1,0};
+	byte	swaptest[2] = {1,0};
 
-// set the byte swapping variables in a portable manner 
+// set the byte swapping variables in a portable manner
 	if ( *(short *)swaptest == 1)
 	{
 		bigendien = false;
@@ -1148,8 +1219,12 @@ void COM_Init (char *basedir)
 		LittleFloat = FloatSwap;
 	}
 
-	Cvar_RegisterVariable (&registered);
-	Cvar_RegisterVariable (&cmdline);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	registered = Cvar_Get ("registered", "0", CVAR_ORIGINAL);
+	cmdline = Cvar_Get ("cmdline", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 	Cmd_AddCommand ("path", COM_Path_f);
 
 	COM_InitFilesystem ();
@@ -1166,24 +1241,24 @@ varargs versions of all text functions.
 FIXME: make this buffer size safe someday
 ============
 */
-char    *va(char *format, ...)
+char *va(char *format, ...)
 {
-	va_list         argptr;
-	static char             string[1024];
-	
+	va_list		argptr;
+	static char	string[1024];
+
 	va_start (argptr, format);
 	vsprintf (string, format,argptr);
 	va_end (argptr);
 
-	return string;  
+	return string;
 }
 
 
 /// just for debugging
-int     memsearch (byte *start, int count, int search)
+int memsearch (byte *start, int count, int search)
 {
-	int             i;
-	
+	int	i;
+
 	for (i=0 ; i<count ; i++)
 		if (start[i] == search)
 			return i;
@@ -1198,25 +1273,25 @@ QUAKE FILESYSTEM
 =============================================================================
 */
 
-int     com_filesize;
+int	com_filesize;
 
-
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  start
+/*
 //
 // in memory
 //
-
 typedef struct
 {
-	char    name[MAX_QPATH];
-	int             filepos, filelen;
+	char	name[MAX_QPATH];
+	int		filepos, filelen;
 } packfile_t;
 
 typedef struct pack_s
 {
-	char    filename[MAX_OSPATH];
-	int             handle;
-	int             numfiles;
-	packfile_t      *files;
+	char		filename[MAX_OSPATH];
+	int			handle;
+	int			numfiles;
+	packfile_t	*files;
 } pack_t;
 
 //
@@ -1224,30 +1299,36 @@ typedef struct pack_s
 //
 typedef struct
 {
-	char    name[56];
-	int             filepos, filelen;
+	char	name[56];
+	int		filepos, filelen;
 } dpackfile_t;
 
 typedef struct
 {
-	char    id[4];
-	int             dirofs;
-	int             dirlen;
+	char	id[4];
+	int		dirofs;
+	int		dirlen;
 } dpackheader_t;
 
-#define MAX_FILES_IN_PACK       2048
+#define MAX_FILES_IN_PACK	2048
+*/
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  end
 
-char    com_cachedir[MAX_OSPATH];
-char    com_gamedir[MAX_OSPATH];
+char	com_cachedir[MAX_OSPATH];
+char	com_gamedir[MAX_OSPATH];
 
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  start
+/*
 typedef struct searchpath_s
 {
-	char    filename[MAX_OSPATH];
-	pack_t  *pack;          // only one of filename / pack will be used
-	struct searchpath_s *next;
+	char	filename[MAX_OSPATH];
+	pack_t	*pack;	// only one of filename / pack will be used
+	struct searchpath_s	*next;
 } searchpath_t;
+*/
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  end
 
-searchpath_t    *com_searchpaths;
+searchpath_t	*com_searchpaths;
 
 /*
 ============
@@ -1257,8 +1338,8 @@ COM_Path_f
 */
 void COM_Path_f (void)
 {
-	searchpath_t    *s;
-	
+	searchpath_t	*s;
+
 	Con_Printf ("Current search path:\n");
 	for (s=com_searchpaths ; s ; s=s->next)
 	{
@@ -1280,9 +1361,9 @@ The filename will be prefixed by the current game directory
 */
 void COM_WriteFile (char *filename, void *data, int len)
 {
-	int             handle;
-	char    name[MAX_OSPATH];
-	
+	int	handle;
+	char	name[MAX_OSPATH];
+
 	sprintf (name, "%s/%s", com_gamedir, filename);
 
 	handle = Sys_FileOpenWrite (name);
@@ -1291,7 +1372,7 @@ void COM_WriteFile (char *filename, void *data, int len)
 		Sys_Printf ("COM_WriteFile: failed on %s\n", name);
 		return;
 	}
-	
+
 	Sys_Printf ("COM_WriteFile: %s\n", name);
 	Sys_FileWrite (handle, data, len);
 	Sys_FileClose (handle);
@@ -1305,14 +1386,14 @@ COM_CreatePath
 Only used for CopyFile
 ============
 */
-void    COM_CreatePath (char *path)
+void COM_CreatePath (char *path)
 {
-	char    *ofs;
-	
+	char	*ofs;
+
 	for (ofs = path+1 ; *ofs ; ofs++)
 	{
 		if (*ofs == '/')
-		{       // create the directory
+		{	// create the directory
 			*ofs = 0;
 			Sys_mkdir (path);
 			*ofs = '/';
@@ -1331,14 +1412,14 @@ needed.  This is for the convenience of developers using ISDN from home.
 */
 void COM_CopyFile (char *netpath, char *cachepath)
 {
-	int             in, out;
-	int             remaining, count;
-	char    buf[4096];
-	
-	remaining = Sys_FileOpenRead (netpath, &in);            
-	COM_CreatePath (cachepath);     // create directories up to the cache file
+	int	in, out;
+	int	remaining, count;
+	char	buf[4096];
+
+	remaining = Sys_FileOpenRead (netpath, &in);
+	COM_CreatePath (cachepath);	// create directories up to the cache file
 	out = Sys_FileOpenWrite (cachepath);
-	
+
 	while (remaining)
 	{
 		if (remaining < sizeof(buf))
@@ -1351,7 +1432,7 @@ void COM_CopyFile (char *netpath, char *cachepath)
 	}
 
 	Sys_FileClose (in);
-	Sys_FileClose (out);    
+	Sys_FileClose (out);
 }
 
 /*
@@ -1362,20 +1443,20 @@ Finds the file in the search path.
 Sets com_filesize and one of handle or file
 ===========
 */
-int COM_FindFile (char *filename, int *handle, FILE **file)
+int COM_FindFile (char *filename, int *handle, FILE **file, searchpath_t **foundpath)	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 {
-	searchpath_t    *search;
-	char            netpath[MAX_OSPATH];
-	char            cachepath[MAX_OSPATH];
-	pack_t          *pak;
-	int                     i;
-	int                     findtime, cachetime;
+	searchpath_t	*search;
+	char			netpath[MAX_OSPATH];
+	char			cachepath[MAX_OSPATH];
+	pack_t			*pak;
+	int				i;
+	int				findtime, cachetime;
 
 	if (file && handle)
 		Sys_Error ("COM_FindFile: both handle and file set");
 	if (!file && !handle)
 		Sys_Error ("COM_FindFile: neither handle or file set");
-		
+
 //
 // search through the path, one element at a time
 //
@@ -1395,7 +1476,7 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 			pak = search->pack;
 			for (i=0 ; i<pak->numfiles ; i++)
 				if (!strcmp (pak->files[i].name, filename))
-				{       // found it!
+				{	// found it!
 					Sys_Printf ("PackFile: %s : %s\n",pak->filename, filename);
 					if (handle)
 					{
@@ -1403,35 +1484,43 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 						Sys_FileSeek (pak->handle, pak->files[i].filepos);
 					}
 					else
-					{       // open a new file on the pakfile
+					{	// open a new file on the pakfile
 						*file = fopen (pak->filename, "rb");
 						if (*file)
 							fseek (*file, pak->files[i].filepos, SEEK_SET);
 					}
+
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  start
+					if ( foundpath )
+					{
+						*foundpath = search;
+					}
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  end
+
 					com_filesize = pak->files[i].filelen;
 					return com_filesize;
 				}
 		}
 		else
-		{               
+		{
 	// check a file in the directory tree
 			if (!static_registered)
-			{       // if not a registered version, don't ever go beyond base
+			{	// if not a registered version, don't ever go beyond base
 				if ( strchr (filename, '/') || strchr (filename,'\\'))
 					continue;
 			}
-			
+
 			sprintf (netpath, "%s/%s",search->filename, filename);
-			
+
 			findtime = Sys_FileTime (netpath);
 			if (findtime == -1)
 				continue;
-				
+
 		// see if the file needs to be updated in the cache
 			if (!com_cachedir[0])
 				strcpy (cachepath, netpath);
 			else
-			{	
+			{
 #if defined(_WIN32)
 				if ((strlen(netpath) < 2) || (netpath[1] != ':'))
 					sprintf (cachepath,"%s%s", com_cachedir, netpath);
@@ -1442,11 +1531,11 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 #endif
 
 				cachetime = Sys_FileTime (cachepath);
-			
+
 				if (cachetime < findtime)
 					COM_CopyFile (netpath, cachepath);
 				strcpy (netpath, cachepath);
-			}	
+			}
 
 			Sys_Printf ("FindFile: %s\n",netpath);
 			com_filesize = Sys_FileOpenRead (netpath, &i);
@@ -1457,13 +1546,21 @@ int COM_FindFile (char *filename, int *handle, FILE **file)
 				Sys_FileClose (i);
 				*file = fopen (netpath, "rb");
 			}
+
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  start
+			if ( foundpath )
+			{
+				*foundpath = search;
+			}
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  end
+
 			return com_filesize;
 		}
-		
+
 	}
-	
+
 	Sys_Printf ("FindFile: can't find %s\n", filename);
-	
+
 	if (handle)
 		*handle = -1;
 	else
@@ -1482,9 +1579,9 @@ returns a handle and a length
 it may actually be inside a pak file
 ===========
 */
-int COM_OpenFile (char *filename, int *handle)
+int COM_OpenFile (char *filename, int *handle, searchpath_t **foundpath)	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 {
-	return COM_FindFile (filename, handle, NULL);
+	return COM_FindFile (filename, handle, NULL, foundpath);	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 }
 
 /*
@@ -1495,9 +1592,9 @@ If the requested file is inside a packfile, a new FILE * will be opened
 into the file.
 ===========
 */
-int COM_FOpenFile (char *filename, FILE **file)
+int COM_FOpenFile (char *filename, FILE **file, searchpath_t **foundpath)	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 {
-	return COM_FindFile (filename, NULL, file);
+	return COM_FindFile (filename, NULL, file, foundpath);	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 }
 
 /*
@@ -1509,12 +1606,12 @@ If it is a pak file handle, don't really close it
 */
 void COM_CloseFile (int h)
 {
-	searchpath_t    *s;
-	
+	searchpath_t	*s;
+
 	for (s = com_searchpaths ; s ; s=s->next)
 		if (s->pack && s->pack->handle == h)
 			return;
-			
+
 	Sys_FileClose (h);
 }
 
@@ -1524,41 +1621,73 @@ void COM_CloseFile (int h)
 COM_LoadFile
 
 Filename are reletive to the quake directory.
-Allways appends a 0 byte.
+always appends a 0 byte.
 ============
 */
-cache_user_t *loadcache;
-byte    *loadbuf;
-int             loadsize;
-byte *COM_LoadFile (char *path, int usehunk)
+cache_user_t	*loadcache;
+byte	*loadbuf;
+int		loadsize;
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//byte *COM_LoadFile (char *path, int usehunk)
+loadedfile_t *COM_LoadFile (char *path, int usehunk)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 {
-	int             h;
-	byte    *buf;
-	char    base[32];
-	int             len;
+	int		h;
+	byte	*buf;
+	char	base[32];
+	int		len;
+// 2001-09-12 Returning information about loaded file by Maddes  start
+	int		bufsize;
+	loadedfile_t	*fileinfo;
+	searchpath_t	*foundpath;	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
+// 2001-09-12 Returning information about loaded file by Maddes  end
 
-	buf = NULL;     // quiet compiler warning
+	buf = NULL;	// quiet compiler warning
 
 // look for it in the filesystem or pack files
-	len = COM_OpenFile (path, &h);
+	len = COM_OpenFile (path, &h, &foundpath);	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
 	if (h == -1)
 		return NULL;
-	
+
+	bufsize = ((len+1+3)&~3) + sizeof(struct loadedfile_s);	// 2001-09-12 Returning information about loaded file by Maddes
+
 // extract the filename base name for hunk tag
-	COM_FileBase (path, base);
-	
+// 2001-12-28 Use full filename for hunk allocation by Maddes  start
+//	COM_FileBase (path, base);
+	strncpy(base, COM_SkipPath(path), sizeof(base));
+	base[sizeof(base)-1] = 0;
+// 2001-12-28 Use full filename for hunk allocation by Maddes  end
+
 	if (usehunk == 1)
-		buf = Hunk_AllocName (len+1, base);
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//		buf = Hunk_AllocName (len+1, base);
+		buf = Hunk_AllocName (bufsize, base);
+// 2001-09-12 Returning information about loaded file by Maddes  end
 	else if (usehunk == 2)
-		buf = Hunk_TempAlloc (len+1);
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//		buf = Hunk_TempAlloc (len+1);
+		buf = Hunk_TempAlloc (bufsize);
+// 2001-09-12 Returning information about loaded file by Maddes  end
 	else if (usehunk == 0)
-		buf = Z_Malloc (len+1);
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//		buf = Z_Malloc (mainzone, len+1);	// 2001-09-20 Enhanced zone handling by Maddes
+		buf = Z_Malloc (mainzone, bufsize);	// 2001-09-20 Enhanced zone handling by Maddes
+// 2001-09-12 Returning information about loaded file by Maddes  end
 	else if (usehunk == 3)
-		buf = Cache_Alloc (loadcache, len+1, base);
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//		buf = Cache_Alloc (loadcache, len+1, base);
+		buf = Cache_Alloc (loadcache, bufsize, base);
+// 2001-09-12 Returning information about loaded file by Maddes  end
 	else if (usehunk == 4)
 	{
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
 		if (len+1 > loadsize)
 			buf = Hunk_TempAlloc (len+1);
+*/
+		if (bufsize > loadsize)
+			buf = Hunk_TempAlloc (bufsize);
+// 2001-09-12 Returning information about loaded file by Maddes  end
 		else
 			buf = loadbuf;
 	}
@@ -1567,43 +1696,70 @@ byte *COM_LoadFile (char *path, int usehunk)
 
 	if (!buf)
 		Sys_Error ("COM_LoadFile: not enough space for %s", path);
-		
+
 	((byte *)buf)[len] = 0;
 
+// 2001-09-12 Returning information about loaded file by Maddes  start
+	fileinfo = (loadedfile_t *)(buf + ((len+1+3)&~3));
+	fileinfo->data = buf;
+	fileinfo->filelen = len;
+	fileinfo->path = foundpath;	// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
+// 2001-09-12 Returning information about loaded file by Maddes  end
+
 	Draw_BeginDisc ();
-	Sys_FileRead (h, buf, len);                     
+	Sys_FileRead (h, buf, len);
 	COM_CloseFile (h);
 	Draw_EndDisc ();
 
-	return buf;
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//	return buf;
+	return fileinfo;
+// 2001-09-12 Returning information about loaded file by Maddes  end
 }
 
-byte *COM_LoadHunkFile (char *path)
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//byte *COM_LoadHunkFile (char *path)
+loadedfile_t *COM_LoadHunkFile (char *path)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 {
 	return COM_LoadFile (path, 1);
 }
 
-byte *COM_LoadTempFile (char *path)
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//byte *COM_LoadTempFile (char *path)
+loadedfile_t *COM_LoadTempFile (char *path)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 {
 	return COM_LoadFile (path, 2);
 }
 
-void COM_LoadCacheFile (char *path, struct cache_user_s *cu)
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//void COM_LoadCacheFile (char *path, struct cache_user_s *cu)
+loadedfile_t *COM_LoadCacheFile (char *path, struct cache_user_s *cu)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 {
 	loadcache = cu;
-	COM_LoadFile (path, 3);
+	return COM_LoadFile (path, 3);	// 2001-09-12 Returning information about loaded file by Maddes
 }
 
 // uses temp hunk if larger than bufsize
-byte *COM_LoadStackFile (char *path, void *buffer, int bufsize)
+// 2001-09-12 Returning information about loaded file by Maddes  start
+//byte *COM_LoadStackFile (char *path, void *buffer, int bufsize)
+loadedfile_t *COM_LoadStackFile (char *path, void *buffer, int bufsize)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 {
-	byte    *buf;
-	
+//	byte	*buf;	// 2001-09-12 Returning information about loaded file by Maddes
+
 	loadbuf = (byte *)buffer;
 	loadsize = bufsize;
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
 	buf = COM_LoadFile (path, 4);
-	
+
 	return buf;
+*/
+	return COM_LoadFile (path, 4);
+// 2001-09-12 Returning information about loaded file by Maddes  end
 }
 
 /*
@@ -1618,18 +1774,18 @@ of the list so they override previous pack files.
 */
 pack_t *COM_LoadPackFile (char *packfile)
 {
-	dpackheader_t   header;
-	int                             i;
-	packfile_t              *newfiles;
-	int                             numpackfiles;
-	pack_t                  *pack;
-	int                             packhandle;
-	dpackfile_t             info[MAX_FILES_IN_PACK];
-	unsigned short          crc;
+	dpackheader_t	header;
+	int				i;
+	packfile_t		*newfiles;
+	int				numpackfiles;
+	pack_t			*pack;
+	int				packhandle;
+	dpackfile_t		info[MAX_FILES_IN_PACK];
+	unsigned short	crc;
 
 	if (Sys_FileOpenRead (packfile, &packhandle) == -1)
 	{
-//              Con_Printf ("Couldn't open %s\n", packfile);
+//		Con_Printf ("Couldn't open %s\n", packfile);
 		return NULL;
 	}
 	Sys_FileRead (packhandle, (void *)&header, sizeof(header));
@@ -1645,7 +1801,7 @@ pack_t *COM_LoadPackFile (char *packfile)
 		Sys_Error ("%s has %i files", packfile, numpackfiles);
 
 	if (numpackfiles != PAK0_COUNT)
-		com_modified = true;    // not the original file
+		com_modified = true;	// not the original file
 
 	newfiles = Hunk_AllocName (numpackfiles * sizeof(packfile_t), "packfile");
 
@@ -1672,7 +1828,7 @@ pack_t *COM_LoadPackFile (char *packfile)
 	pack->handle = packhandle;
 	pack->numfiles = numpackfiles;
 	pack->files = newfiles;
-	
+
 	Con_Printf ("Added packfile %s (%i files)\n", packfile, numpackfiles);
 	return pack;
 }
@@ -1683,15 +1839,15 @@ pack_t *COM_LoadPackFile (char *packfile)
 COM_AddGameDirectory
 
 Sets com_gamedir, adds the directory to the head of the path,
-then loads and adds pak1.pak pak2.pak ... 
+then loads and adds pak1.pak pak2.pak ...
 ================
 */
 void COM_AddGameDirectory (char *dir)
 {
-	int                             i;
-	searchpath_t    *search;
-	pack_t                  *pak;
-	char                    pakfile[MAX_OSPATH];
+	int				i;
+	searchpath_t	*search;
+	pack_t			*pak;
+	char			pakfile[MAX_OSPATH];
 
 	strcpy (com_gamedir, dir);
 
@@ -1713,9 +1869,10 @@ void COM_AddGameDirectory (char *dir)
 		if (!pak)
 			break;
 		search = Hunk_Alloc (sizeof(searchpath_t));
+		strcpy (search->filename, dir);	// 2001-09-12 Finding the last searchpath of a directory by Maddes
 		search->pack = pak;
 		search->next = com_searchpaths;
-		com_searchpaths = search;               
+		com_searchpaths = search;
 	}
 
 //
@@ -1731,9 +1888,9 @@ COM_InitFilesystem
 */
 void COM_InitFilesystem (void)
 {
-	int             i, j;
-	char    basedir[MAX_OSPATH];
-	searchpath_t    *search;
+	int		i, j;
+	char	basedir[MAX_OSPATH];
+	searchpath_t	*search;
 
 //
 // -basedir <path>
@@ -1781,6 +1938,26 @@ void COM_InitFilesystem (void)
 	if (COM_CheckParm ("-hipnotic"))
 		COM_AddGameDirectory (va("%s/hipnotic", basedir) );
 
+// 1999-12-23 Multiple "-data" parameters by Maddes  start
+//
+// -data <datadir>
+// Adds datadirs similar to "-game"
+//
+	i = 1;
+// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa  start
+//	while(i = COM_CheckParmOffset ("-data", i))
+	while((i = COM_CheckParmOffset ("-data", i)))
+// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa  end
+	{
+		if (i && i < com_argc-1)
+		{
+			com_modified = true;
+			COM_AddGameDirectory (va("%s/%s", basedir, com_argv[i+1]));
+		}
+		i++;
+	}
+// 1999-12-23 Multiple "-data" parameters by Maddes  end
+
 //
 // -game <gamedir>
 // Adds basedir/gamedir as an override game
@@ -1794,7 +1971,7 @@ void COM_InitFilesystem (void)
 
 //
 // -path <dir or packfile> [<dir or packfile>] ...
-// Fully specifies the exact serach path, overriding the generated one
+// Fully specifies the exact search path, overriding the generated one
 //
 	i = COM_CheckParm ("-path");
 	if (i)
@@ -1805,7 +1982,7 @@ void COM_InitFilesystem (void)
 		{
 			if (!com_argv[i] || com_argv[i][0] == '+' || com_argv[i][0] == '-')
 				break;
-			
+
 			search = Hunk_Alloc (sizeof(searchpath_t));
 			if ( !strcmp(COM_FileExtension(com_argv[i]), "pak") )
 			{
@@ -1824,4 +2001,29 @@ void COM_InitFilesystem (void)
 		proghack = true;
 }
 
+// 2001-09-12 Finding the last searchpath of a directory  start
+/*
+============
+COM_GetDirSearchPath
 
+Find the last searchpath entry of the same directory of the given searchpath
+============
+*/
+searchpath_t *COM_GetDirSearchPath(searchpath_t *startsearch)
+{
+	searchpath_t *search, *lastsearch;
+
+	lastsearch = startsearch;
+
+	while ( (search = lastsearch->next) )
+	{
+		if (strcmp(search->filename, startsearch->filename))	// different directories, then stop here
+		{
+			break;
+		}
+		lastsearch = search;
+	}
+
+	return lastsearch;
+}
+// 2001-09-12 Finding the last searchpath of a directory  end

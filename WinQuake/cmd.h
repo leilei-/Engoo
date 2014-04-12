@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -96,7 +96,7 @@ char	*Cmd_Argv (int arg);
 char	*Cmd_Args (void);
 // The functions that execute commands get their parameters with these
 // functions. Cmd_Argv () will return an empty string, not a NULL
-// if arg > argc, so string operations are allways safe.
+// if arg > argc, so string operations are always safe.
 
 int Cmd_CheckParm (char *parm);
 // Returns the position (1 to argc-1) in the command's argument list
@@ -119,3 +119,13 @@ void	Cmd_Print (char *text);
 // used by command functions to send output to either the graphics console or
 // passed as a print message to the client
 
+// 2001-12-15 Enhanced console command completion by Fett/Maddes  start
+char *Pad_CompletePrint(char *input);
+
+int Cmd_CompleteCountPossible (char *partial);
+void Cmd_CompletePrintPossible (char *partial);
+
+char *Cmd_CompleteAlias (char *partial);
+int Cmd_CompleteAliasCountPossible (char *partial);
+void Cmd_CompleteAliasPrintPossible (char *partial);
+// 2001-12-15 Enhanced console command completion by Fett/Maddes  end

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -123,6 +123,8 @@ float MSG_ReadAngle (void);
 
 void Q_memset (void *dest, int fill, int count);
 void Q_memcpy (void *dest, void *src, int count);
+// 2001-10-25 Replaced Quake functions with ANSI functions by Maddes  start
+/*
 int Q_memcmp (void *m1, void *m2, int count);
 void Q_strcpy (char *dest, char *src);
 void Q_strncpy (char *dest, char *src, int count);
@@ -131,6 +133,8 @@ char *Q_strrchr (char *s, char c);
 void Q_strcat (char *dest, char *src);
 int Q_strcmp (char *s1, char *s2);
 int Q_strncmp (char *s1, char *s2, int count);
+*/
+// 2001-10-25 Replaced Quake functions with ANSI functions by Maddes  end
 int Q_strcasecmp (char *s1, char *s2);
 int Q_strncasecmp (char *s1, char *s2, int n);
 int	Q_atoi (char *str);
@@ -162,22 +166,96 @@ char	*va(char *format, ...);
 
 //============================================================================
 
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  start
+// copied from common.c
+/*
+=============================================================================
+
+QUAKE FILESYSTEM
+
+=============================================================================
+*/
+
+//
+// in memory
+//
+typedef struct
+{
+	char	name[MAX_QPATH];
+	int		filepos, filelen;
+} packfile_t;
+
+typedef struct pack_s
+{
+	char	filename[MAX_OSPATH];
+	int		handle;
+	int		numfiles;
+	packfile_t	*files;
+} pack_t;
+
+//
+// on disk
+//
+typedef struct
+{
+	char	name[56];
+	int		filepos, filelen;
+} dpackfile_t;
+
+typedef struct
+{
+	char	id[4];
+	int		dirofs;
+	int		dirlen;
+} dpackheader_t;
+
+#define MAX_FILES_IN_PACK	2048
+
+typedef struct searchpath_s
+{
+	char	filename[MAX_OSPATH];
+	pack_t	*pack;	// only one of filename / pack will be used
+	struct searchpath_s	*next;
+} searchpath_t;
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  end
+
+// 2001-09-12 Returning information about loaded file by Maddes  start
+// new structure for passing back a loaded file
+typedef struct loadedfile_s
+{
+	byte			*data;		// memory the file is loaded to (directly before this structure)
+	int				filelen;	// length of the file
+	searchpath_t	*path;		// 2001-09-12 Returning from which searchpath a file was loaded by Maddes
+} loadedfile_t;
+// 2001-09-12 Returning information about loaded file by Maddes  end
+
 extern int com_filesize;
 struct cache_user_s;
 
 extern	char	com_gamedir[MAX_OSPATH];
 
 void COM_WriteFile (char *filename, void *data, int len);
-int COM_OpenFile (char *filename, int *hndl);
-int COM_FOpenFile (char *filename, FILE **file);
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  start
+int COM_OpenFile (char *filename, int *hndl, searchpath_t **foundpath);
+int COM_FOpenFile (char *filename, FILE **file, searchpath_t **foundpath);
+// 2001-09-12 Returning from which searchpath a file was loaded by Maddes  end
 void COM_CloseFile (int h);
 
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
 byte *COM_LoadStackFile (char *path, void *buffer, int bufsize);
 byte *COM_LoadTempFile (char *path);
 byte *COM_LoadHunkFile (char *path);
 void COM_LoadCacheFile (char *path, struct cache_user_s *cu);
+*/
+loadedfile_t *COM_LoadStackFile (char *path, void *buffer, int bufsize);
+loadedfile_t *COM_LoadTempFile (char *path);
+loadedfile_t *COM_LoadHunkFile (char *path);
+loadedfile_t *COM_LoadCacheFile (char *path, struct cache_user_s *cu);
+// 2001-09-12 Returning information about loaded file by Maddes  end
 
+extern struct cvar_s	*registered;
 
-extern	struct cvar_s	registered;
+extern qboolean	standard_quake, rogue, hipnotic;
 
-extern qboolean		standard_quake, rogue, hipnotic;
+searchpath_t *COM_GetDirSearchPath(searchpath_t *startsearch);	// 2001-09-12 Finding the last searchpath of a directory  end

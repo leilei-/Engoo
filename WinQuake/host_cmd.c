@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -20,11 +20,121 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-extern cvar_t	pausable;
+extern cvar_t	*pausable;
+
+extern cvar_t	*contact;		// 2000-01-31 Contact cvar by Maddes
 
 int	current_skill;
 
 void Mod_Print (void);
+
+// 2000-01-09 QCExec by FrikaC/Maddes  start
+/*
+==================
+Host_QC_Exec_f
+
+Execute QC commands from the console
+==================
+*/
+void Host_QC_Exec_f (void)
+{
+	dfunction_t	*f;
+	int			num;
+	edict_t		*e;
+	void	(*print) (char *fmt, ...);
+
+	if (cmd_source == src_command)
+	{
+		if (cls.state != ca_dedicated)	// not a dedicated server
+		{
+			Cmd_ForwardToServer ();	// client forgot to add "cmd", so forward to server
+			return;			// this a server only command, sorry
+		}
+		print = Con_Printf;		// directly print to dedicated server console
+	}
+	else
+	{
+		print = SV_ClientPrintf;	// print to client's console
+	}
+
+	if (!developer->value)
+	{
+		print ("Developer only functionality\n");
+		return;
+	}
+
+	if (Cmd_Argc() < 2)
+	{
+		print ("Syntax: qcexec <qc function> [self [other]]\n-1 is this client\n%i Entities available\n", sv.num_edicts);
+		return;
+	}
+
+	f = 0;
+	if ((f = ED_FindFunction(Cmd_Argv(1))) != NULL)
+	{
+		pr_global_struct->self = EDICT_TO_PROG(sv.edicts);	// initialize with world
+		pr_global_struct->other = EDICT_TO_PROG(sv.edicts);	// initialize with world
+
+		if (Cmd_Argc() > 2)
+		{
+			num = Q_atoi(Cmd_Argv(2));
+			if (num == -1)
+			{
+				if (cmd_source == src_command)	// called from dedicated server console
+				{
+					print ("Parameter -1 only valid from clients\n", num);
+					return;
+				}
+
+				pr_global_struct->self = EDICT_TO_PROG(sv_player);
+			}
+			else if (num < 0 || num >= sv.num_edicts)
+			{
+				print ("Entity %i for self does not exist\n", num);
+				return;
+			}
+			else
+			{
+				e = EDICT_NUM(num);
+				pr_global_struct->self = EDICT_TO_PROG(e);
+			}
+		}
+
+		if (Cmd_Argc() > 3)
+		{
+			num = Q_atoi(Cmd_Argv(3));
+			if (num == -1)
+			{
+				if (cmd_source == src_command)	// called from dedicated server console
+				{
+					print ("Parameter -1 only valid from clients\n", num);
+					return;
+				}
+
+				pr_global_struct->other = EDICT_TO_PROG(sv_player);
+			}
+			else if (num < 0 || num >= sv.num_edicts)
+			{
+				print ("Entity %i for other does not exist\n", num);
+				return;
+			}
+			else
+			{
+				e = EDICT_NUM(num);
+				pr_global_struct->other = EDICT_TO_PROG(e);
+			}
+		}
+
+		print ("Executing QuakeC function...\n");	// 2000-07-30 compiler warning fix by Norberto Alfredo Bensa/Maddes
+		PR_ExecuteProgram ((func_t)(f - pr_functions));
+		print ("...QuakeC function done\n");		// 2000-07-30 compiler warning fix by Norberto Alfredo Bensa/Maddes
+	}
+	else
+	{
+		print ("QuakeC function \"%s\" does not exist\n", Cmd_Argv(1));
+	}
+}
+// 2000-01-09 QCExec by FrikaC/Maddes  end
 
 /*
 ==================
@@ -42,7 +152,7 @@ void Host_Quit_f (void)
 		return;
 	}
 	CL_Disconnect ();
-	Host_ShutdownServer(false);		
+	Host_ShutdownServer(false);
 
 	Sys_Quit ();
 }
@@ -61,7 +171,7 @@ void Host_Status_f (void)
 	int			hours = 0;
 	int			j;
 	void		(*print) (char *fmt, ...);
-	
+
 	if (cmd_source == src_command)
 	{
 		if (!sv.active)
@@ -74,14 +184,14 @@ void Host_Status_f (void)
 	else
 		print = SV_ClientPrintf;
 
-	print ("host:    %s\n", Cvar_VariableString ("hostname"));
-	print ("version: %4.2f\n", VERSION);
+	print ("Host:    %s\n", hostname->string);	// 2001-09-18 New cvar system by Maddes
+	print ("Version: %1.2f (%s)\n", VERSION, QIP_VERSION);	// 2001-10-25 QIP version in the console background by Maddes
 	if (tcpipAvailable)
-		print ("tcp/ip:  %s\n", my_tcpip_address);
+		print ("TCP/IP:  %s\n", my_tcpip_address);
 	if (ipxAvailable)
-		print ("ipx:     %s\n", my_ipx_address);
-	print ("map:     %s\n", sv.name);
-	print ("players: %i active (%i max)\n\n", net_activeconnections, svs.maxclients);
+		print ("IPX:     %s\n", my_ipx_address);
+	print ("Map:     %s\n", sv.name);
+	print ("Players: %i active (%i max)\n\n", net_activeconnections, svs.maxclients);
 	for (j=0, client = svs.clients ; j<svs.maxclients ; j++, client++)
 	{
 		if (!client->active)
@@ -97,7 +207,10 @@ void Host_Status_f (void)
 		}
 		else
 			hours = 0;
-		print ("#%-2u %-16.16s  %3i  %2i:%02i:%02i\n", j+1, client->name, (int)client->edict->v.frags, hours, minutes, seconds);
+// 2000-04-30 NVS COMMON by Maddes  start
+//		print ("#%-2u %-16.16s  %3i  %2i:%02i:%02i\n", j+1, client->name, (int)client->edict->v.frags, hours, minutes, seconds);
+		print ("#%-2u %-16.16s %3i %2i:%02i:%02i %1.2f/%1.2f/%1.2f\n", j+1, client->name, (int)client->edict->v.frags, hours, minutes, seconds, client->nvs_csvc, client->nvs_cclc, client->nvs_cmax);
+// 2000-04-30 NVS COMMON by Maddes  end
 		print ("   %s\n", client->netconnection->address);
 	}
 }
@@ -215,7 +328,7 @@ void Host_Ping_f (void)
 	int		i, j;
 	float	total;
 	client_t	*client;
-	
+
 	if (cmd_source == src_command)
 	{
 		Cmd_ForwardToServer ();
@@ -248,7 +361,7 @@ SERVER TRANSITIONS
 ======================
 Host_Map_f
 
-handle a 
+handle a
 map <servername>
 command from the console.  Active clients are kicked off.
 ======================
@@ -264,7 +377,7 @@ void Host_Map_f (void)
 	cls.demonum = -1;		// stop demo loop in case this fails
 
 	CL_Disconnect ();
-	Host_ShutdownServer(false);		
+	Host_ShutdownServer(false);
 
 	key_dest = key_game;			// remove console or menu
 	SCR_BeginLoadingPlaque ();
@@ -286,7 +399,7 @@ void Host_Map_f (void)
 #endif
 	if (!sv.active)
 		return;
-	
+
 	if (cls.state != ca_dedicated)
 	{
 		strcpy (cls.spawnparms, "");
@@ -296,9 +409,9 @@ void Host_Map_f (void)
 			strcat (cls.spawnparms, Cmd_Argv(i));
 			strcat (cls.spawnparms, " ");
 		}
-		
+
 		Cmd_ExecuteString ("connect local", src_command);
-	}	
+	}
 }
 
 /*
@@ -409,7 +522,7 @@ User command to connect to server
 void Host_Connect_f (void)
 {
 	char	name[MAX_QPATH];
-	
+
 	cls.demonum = -1;		// stop demo loop in case this fails
 	if (cls.demoplayback)
 	{
@@ -436,7 +549,7 @@ LOAD / SAVE GAME
 ===============
 Host_SavegameComment
 
-Writes a SAVEGAME_COMMENT_LENGTH character comment describing the current 
+Writes a SAVEGAME_COMMENT_LENGTH character comment describing the current
 ===============
 */
 void Host_SavegameComment (char *text)
@@ -501,7 +614,7 @@ void Host_Savegame_f (void)
 		Con_Printf ("Relative pathnames are not allowed.\n");
 		return;
 	}
-		
+
 	for (i=0 ; i<svs.maxclients ; i++)
 	{
 		if (svs.clients[i].active && (svs.clients[i].edict->v.health <= 0) )
@@ -513,7 +626,7 @@ void Host_Savegame_f (void)
 
 	sprintf (name, "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_DefaultExtension (name, ".sav");
-	
+
 	Con_Printf ("Saving game to %s...\n", name);
 	f = fopen (name, "w");
 	if (!f)
@@ -521,7 +634,7 @@ void Host_Savegame_f (void)
 		Con_Printf ("ERROR: couldn't open.\n");
 		return;
 	}
-	
+
 	fprintf (f, "%i\n", SAVEGAME_VERSION);
 	Host_SavegameComment (comment);
 	fprintf (f, "%s\n", comment);
@@ -584,7 +697,7 @@ void Host_Loadgame_f (void)
 
 	sprintf (name, "%s/%s", com_gamedir, Cmd_Argv(1));
 	COM_DefaultExtension (name, ".sav");
-	
+
 // we can't call SCR_BeginLoadingPlaque, because too much stack space has
 // been used.  The menu calls it before stuffing loadgame command
 //	SCR_BeginLoadingPlaque ();
@@ -610,19 +723,19 @@ void Host_Loadgame_f (void)
 // this silliness is so we can load 1.06 save files, which have float skill values
 	fscanf (f, "%f\n", &tfloat);
 	current_skill = (int)(tfloat + 0.1);
-	Cvar_SetValue ("skill", (float)current_skill);
+	Cvar_SetValue (skill, (float)current_skill);
 
-#ifdef QUAKE2
-	Cvar_SetValue ("deathmatch", 0);
-	Cvar_SetValue ("coop", 0);
-	Cvar_SetValue ("teamplay", 0);
-#endif
+//#ifdef QUAKE2		// 2000-07-16 Loadgame initialization fix by Norberto Alfredo Bensa
+	Cvar_Set (deathmatch, "0");
+	Cvar_Set (coop, "0");
+	Cvar_Set (teamplay, "0");
+//#endif		// 2000-07-16 Loadgame initialization fix by Norberto Alfredo Bensa
 
 	fscanf (f, "%s\n",mapname);
 	fscanf (f, "%f\n",&time);
 
 	CL_Disconnect_f ();
-	
+
 #ifdef QUAKE2
 	SV_SpawnServer (mapname, NULL);
 #else
@@ -670,7 +783,7 @@ void Host_Loadgame_f (void)
 			break;		// end of file
 		if (strcmp(com_token,"{"))
 			Sys_Error ("First token isn't a brace");
-			
+
 		if (entnum == -1)
 		{	// parse the global vars
 			ED_ParseGlobals (start);
@@ -682,7 +795,7 @@ void Host_Loadgame_f (void)
 			memset (&ent->v, 0, progs->entityfields * 4);
 			ent->free = false;
 			ED_ParseEdict (start, ent);
-	
+
 		// link it into the bsp tree
 			if (!ent->free)
 				SV_LinkEdict (ent, false);
@@ -690,7 +803,7 @@ void Host_Loadgame_f (void)
 
 		entnum++;
 	}
-	
+
 	sv.num_edicts = entnum;
 	sv.time = time;
 
@@ -716,7 +829,7 @@ void SaveGamestate()
 	edict_t	*ent;
 
 	sprintf (name, "%s/%s.gip", com_gamedir, sv.name);
-	
+
 	Con_Printf ("Saving game to %s...\n", name);
 	f = fopen (name, "w");
 	if (!f)
@@ -724,13 +837,13 @@ void SaveGamestate()
 		Con_Printf ("ERROR: couldn't open.\n");
 		return;
 	}
-	
+
 	fprintf (f, "%i\n", SAVEGAME_VERSION);
 	Host_SavegameComment (comment);
 	fprintf (f, "%s\n", comment);
 //	for (i=0 ; i<NUM_SPAWN_PARMS ; i++)
 //		fprintf (f, "%f\n", svs.clients->spawn_parms[i]);
-	fprintf (f, "%f\n", skill.value);
+	fprintf (f, "%f\n", skill->value);
 	fprintf (f, "%s\n", sv.name);
 	fprintf (f, "%f\n", sv.time);
 
@@ -772,7 +885,7 @@ int LoadGamestate(char *level, char *startspot)
 //	float	spawn_parms[NUM_SPAWN_PARMS];
 
 	sprintf (name, "%s/%s.gip", com_gamedir, level);
-	
+
 	Con_Printf ("Loading game from %s...\n", name);
 	f = fopen (name, "r");
 	if (!f)
@@ -792,7 +905,7 @@ int LoadGamestate(char *level, char *startspot)
 //	for (i=0 ; i<NUM_SPAWN_PARMS ; i++)
 //		fscanf (f, "%f\n", &spawn_parms[i]);
 	fscanf (f, "%f\n", &sk);
-	Cvar_SetValue ("skill", sk);
+	Cvar_SetValue (skill, sk);
 
 	fscanf (f, "%s\n",mapname);
 	fscanf (f, "%f\n",&time);
@@ -838,19 +951,19 @@ int LoadGamestate(char *level, char *startspot)
 			break;		// end of file
 		if (strcmp(com_token,"{"))
 			Sys_Error ("First token isn't a brace");
-			
+
 		// parse an edict
 
 		ent = EDICT_NUM(entnum);
 		memset (&ent->v, 0, progs->entityfields * 4);
 		ent->free = false;
 		ED_ParseEdict (start, ent);
-	
+
 		// link it into the bsp tree
 		if (!ent->free)
 			SV_LinkEdict (ent, false);
 	}
-	
+
 //	sv.num_edicts = entnum;
 	sv.time = time;
 	fclose (f);
@@ -910,46 +1023,105 @@ Host_Name_f
 void Host_Name_f (void)
 {
 	char	*newName;
+	int		i;	// 2001-09-09 Names with carriage return fix by Charles "Psykotik" Pence
 
 	if (Cmd_Argc () == 1)
 	{
-		Con_Printf ("\"name\" is \"%s\"\n", cl_name.string);
+		Con_Printf ("\"name\" is \"%s\"\n", cl_name->string);
 		return;
 	}
 	if (Cmd_Argc () == 2)
-		newName = Cmd_Argv(1);	
+		newName = Cmd_Argv(1);
 	else
 		newName = Cmd_Args();
 	newName[15] = 0;
 
+// 2001-09-09 Names with carriage return fix by Charles "Psykotik" Pence
+	for (i = 0 ; i < strlen(newName) ; i++)
+	{
+		if (newName[i] == '\n')
+		{
+			newName[i] = '_';
+		}
+	}
+// 2001-09-09 Names with carriage return fix by Charles "Psykotik" Pence
+
 	if (cmd_source == src_command)
 	{
-		if (Q_strcmp(cl_name.string, newName) == 0)
+		if (strcmp(cl_name->string, newName) == 0)
 			return;
-		Cvar_Set ("_cl_name", newName);
+		Cvar_Set (cl_name, newName);
 		if (cls.state == ca_connected)
 			Cmd_ForwardToServer ();
 		return;
 	}
 
 	if (host_client->name[0] && strcmp(host_client->name, "unconnected") )
-		if (Q_strcmp(host_client->name, newName) != 0)
+		if (strcmp(host_client->name, newName) != 0)
 			Con_Printf ("%s renamed to %s\n", host_client->name, newName);
-	Q_strcpy (host_client->name, newName);
+	strcpy (host_client->name, newName);
 	host_client->edict->v.netname = host_client->name - pr_strings;
-	
+
 // send notification to all clients
-	
+
 	MSG_WriteByte (&sv.reliable_datagram, svc_updatename);
 	MSG_WriteByte (&sv.reliable_datagram, host_client - svs.clients);
 	MSG_WriteString (&sv.reliable_datagram, host_client->name);
 }
 
-	
+
 void Host_Version_f (void)
 {
-	Con_Printf ("Version %4.2f\n", VERSION);
-	Con_Printf ("Exe: "__TIME__" "__DATE__"\n");
+// 2000-01-20 Enhanced version command by Maddes  start
+	void	(*print) (char *fmt, ...);
+
+//	Con_Printf ("Version %4.2f\n", VERSION);
+//	Con_Printf ("Exe: "__TIME__" "__DATE__"\n");
+
+	if (cmd_source == src_command)	// called on this machine
+	{
+		print = Con_Printf;
+	}
+	else				// called from client
+	{
+		print = SV_ClientPrintf;
+		print ("Server ");
+	}
+
+	print ("Version: %1.2f (%s)\n", VERSION, QIP_VERSION);	// 2001-10-25 QIP version in the console background by Maddes
+	print ("Exe: "__TIME__" "__DATE__"\n");
+	print ("Engine homepage: %s\n", QIP_URL);	// 2001-10-25 QIP version in the console background by Maddes
+
+	print ("Highest supported NVS version: %1.2f\n", MAX_NVS_VERSION);	// 2000-04-30 NVS COMMON by Maddes
+
+// 2000-01-31 Contact cvar by Maddes  start
+	if (sv.active)
+	{
+// 2000-04-30 NVS COMMON by Maddes  start
+		if ((nvs_current_ssvc->value) || (nvs_required->value))
+		{
+			print ("\n");
+
+			if (nvs_current_ssvc->value)
+			{
+				print ("Current game (PROGS.DAT) runs with NVS version %1.2f.\n", nvs_current_ssvc->value);
+			}
+
+			if (nvs_required->value)
+			{
+				print ("This server only accepts %1.2f NVS compliant clients and higher.\n", nvs_required->value);
+			}
+		}
+// 2000-04-30 NVS COMMON by Maddes  end
+
+		if (strlen(contact->string))
+		{
+			print ("\nContact server admin through %s\n", contact->string);
+		}
+	}
+// 2000-01-31 Contact cvar by Maddes  end
+
+// 2000-01-20 Enhanced version command by Maddes  end
 }
 
 #ifdef IDGODS
@@ -957,11 +1129,11 @@ void Host_Please_f (void)
 {
 	client_t *cl;
 	int			j;
-	
+
 	if (cmd_source != src_command)
 		return;
 
-	if ((Cmd_Argc () == 3) && Q_strcmp(Cmd_Argv(1), "#") == 0)
+	if ((Cmd_Argc () == 3) && strcmp(Cmd_Argv(1), "#") == 0)
 	{
 		j = Q_atof(Cmd_Argv(2)) - 1;
 		if (j < 0 || j >= svs.maxclients)
@@ -1038,17 +1210,17 @@ void Host_Say(qboolean teamonly)
 	if (*p == '"')
 	{
 		p++;
-		p[Q_strlen(p)-1] = 0;
+		p[strlen(p)-1] = 0;
 	}
 
 // turn on color set 1
 	if (!fromServer)
 		sprintf (text, "%c%s: ", 1, save->name);
 	else
-		sprintf (text, "%c<%s> ", 1, hostname.string);
+		sprintf (text, "%c<%s> ", 1, hostname->string);
 
-	j = sizeof(text) - 2 - Q_strlen(text);  // -2 for /n and null terminator
-	if (Q_strlen(p) > j)
+	j = sizeof(text) - 2 - strlen(text);  // -2 for /n and null terminator
+	if (strlen(p) > j)
 		p[j] = 0;
 
 	strcat (text, p);
@@ -1058,7 +1230,7 @@ void Host_Say(qboolean teamonly)
 	{
 		if (!client || !client->active || !client->spawned)
 			continue;
-		if (teamplay.value && teamonly && client->edict->v.team != save->edict->v.team)
+		if (teamplay->value && teamonly && client->edict->v.team != save->edict->v.team)
 			continue;
 		host_client = client;
 		SV_ClientPrintf("%s", text);
@@ -1083,11 +1255,20 @@ void Host_Say_Team_f(void)
 
 void Host_Tell_f(void)
 {
+// 2001-09-09 Tell command accepts player number by Maddes  start
+	char		*who;
+	char		*message = NULL;
+	qboolean	byNumber = false;
+// 2001-09-09 Tell command accepts player number by Maddes  end
 	client_t *client;
 	client_t *save;
 	int		j;
+// 2001-09-09 Tell command accepts player number by Maddes  start
+/*
 	char	*p;
 	char	text[64];
+*/
+// 2001-09-09 Tell command accepts player number by Maddes  end
 
 	if (cmd_source == src_command)
 	{
@@ -1095,11 +1276,38 @@ void Host_Tell_f(void)
 		return;
 	}
 
+// 2001-09-09 Tell command accepts player number by Maddes  start
 	if (Cmd_Argc () < 3)
+	{
+		SV_ClientPrintf ("Syntax: tell <playername|# playernumber> <message>\n");
 		return;
+	}
 
-	Q_strcpy(text, host_client->name);
-	Q_strcat(text, ": ");
+	if (strcmp(Cmd_Argv(1), "#") == 0)	// user stated a player number
+	{
+		if (Cmd_Argc() < 4)
+		{
+			SV_ClientPrintf ("Syntax: tell # <playernumber> <message>\n");
+			return;
+		}
+		j = Q_atof(Cmd_Argv(2)) - 1;
+		if (j < 0 || j >= svs.maxclients)
+			return;
+		client = &svs.clients[j];
+		if (!client->active || !client->spawned)
+			return;
+		byNumber = true;
+	}
+	else
+	{
+// 2001-09-09 Tell command accepts player number by Maddes  end
+		if (Cmd_Argc () < 3)
+			return;
+
+// 2001-09-09 Tell command accepts player number by Maddes  start
+/*
+	strcpy(text, host_client->name);
+	strcat(text, ": ");
 
 	p = Cmd_Args();
 
@@ -1107,28 +1315,65 @@ void Host_Tell_f(void)
 	if (*p == '"')
 	{
 		p++;
-		p[Q_strlen(p)-1] = 0;
+		p[strlen(p)-1] = 0;
 	}
 
 // check length & truncate if necessary
-	j = sizeof(text) - 2 - Q_strlen(text);  // -2 for /n and null terminator
-	if (Q_strlen(p) > j)
+	j = sizeof(text) - 2 - strlen(text);  // -2 for /n and null terminator
+	if (strlen(p) > j)
 		p[j] = 0;
 
 	strcat (text, p);
 	strcat (text, "\n");
 
 	save = host_client;
-	for (j = 0, client = svs.clients; j < svs.maxclients; j++, client++)
-	{
-		if (!client->active || !client->spawned)
-			continue;
-		if (Q_strcasecmp(client->name, Cmd_Argv(1)))
-			continue;
+*/
+// 2001-09-09 Tell command accepts player number by Maddes  end
+		for (j = 0, client = svs.clients; j < svs.maxclients; j++, client++)
+		{
+			if (!client->active || !client->spawned)
+				continue;
+			if (Q_strcasecmp(client->name, Cmd_Argv(1)))
+				continue;
+// 2001-09-09 Tell command accepts player number by Maddes  start
+/*
 		host_client = client;
 		SV_ClientPrintf("%s", text);
-		break;
+*/
+// 2001-09-09 Tell command accepts player number by Maddes  end
+			break;
+		}
+// 2001-09-09 Tell command accepts player number by Maddes  start
 	}
+
+	if (j >= svs.maxclients)
+	{
+		return;
+	}
+
+	// can't tell yourself!
+	if (host_client == client)
+		return;
+
+	who = host_client->name;
+
+	message = COM_Parse(Cmd_Args());
+	if (byNumber)
+	{
+		message++;							// skip the #
+		while (*message == ' ')				// skip white space
+			message++;
+		message += strlen(Cmd_Argv(2));	// skip the number
+	}
+	while (*message && *message == ' ')
+		message++;
+
+	save = host_client;
+
+	host_client = client;
+	SV_ClientPrintf ("%s: %s\n", who, message);
+// 2001-09-09 Tell command accepts player number by Maddes  end
+
 	host_client = save;
 }
 
@@ -1142,10 +1387,10 @@ void Host_Color_f(void)
 {
 	int		top, bottom;
 	int		playercolor;
-	
+
 	if (Cmd_Argc() == 1)
 	{
-		Con_Printf ("\"color\" is \"%i %i\"\n", ((int)cl_color.value) >> 4, ((int)cl_color.value) & 0x0f);
+		Con_Printf ("\"color\" is \"%i %i\"\n", ((int)cl_color->value) >> 4, ((int)cl_color->value) & 0x0f);
 		Con_Printf ("color <0-13> [0-13]\n");
 		return;
 	}
@@ -1157,19 +1402,19 @@ void Host_Color_f(void)
 		top = atoi(Cmd_Argv(1));
 		bottom = atoi(Cmd_Argv(2));
 	}
-	
+
 	top &= 15;
 	if (top > 13)
 		top = 13;
 	bottom &= 15;
 	if (bottom > 13)
 		bottom = 13;
-	
+
 	playercolor = top*16 + bottom;
 
 	if (cmd_source == src_command)
 	{
-		Cvar_SetValue ("_cl_color", playercolor);
+		Cvar_SetValue (cl_color, playercolor);
 		if (cls.state == ca_connected)
 			Cmd_ForwardToServer ();
 		return;
@@ -1197,12 +1442,15 @@ void Host_Kill_f (void)
 		return;
 	}
 
-	if (sv_player->v.health <= 0)
+// 2001-09-09 Kill command does not work for zombie players fix by Maddes  start
+//	if (sv_player->v.health <= 0)
+	if ((sv_player->v.health <= 0) && (sv_player->v.deadflag != DEAD_NO))
+// 2001-09-09 Kill command does not work for zombie players fix by Maddes  end
 	{
-		SV_ClientPrintf ("Can't suicide -- allready dead!\n");
+		SV_ClientPrintf ("Can't suicide -- already dead!\n");
 		return;
 	}
-	
+
 	pr_global_struct->time = sv.time;
 	pr_global_struct->self = EDICT_TO_PROG(sv_player);
 	PR_ExecuteProgram (pr_global_struct->ClientKill);
@@ -1216,13 +1464,13 @@ Host_Pause_f
 */
 void Host_Pause_f (void)
 {
-	
+
 	if (cmd_source == src_command)
 	{
 		Cmd_ForwardToServer ();
 		return;
 	}
-	if (!pausable.value)
+	if (!pausable->value)
 		SV_ClientPrintf ("Pause not allowed.\n");
 	else
 	{
@@ -1261,10 +1509,18 @@ void Host_PreSpawn_f (void)
 
 	if (host_client->spawned)
 	{
-		Con_Printf ("prespawn not valid -- allready spawned\n");
+		Con_Printf ("prespawn not valid -- already spawned\n");
 		return;
 	}
-	
+
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  start
+	// check client against required version
+	if (NVS_RejectClient())
+	{
+		return;
+	}
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes  end
+
 	SZ_Write (&host_client->message, sv.signon.data, sv.signon.cursize);
 	MSG_WriteByte (&host_client->message, svc_signonnum);
 	MSG_WriteByte (&host_client->message, 2);
@@ -1281,6 +1537,7 @@ void Host_Spawn_f (void)
 	int		i;
 	client_t	*client;
 	edict_t	*ent;
+	eval_t	*val;	// 2000-04-30 NVS HANDSHAKE QC<->CL by Maddes
 
 	if (cmd_source == src_command)
 	{
@@ -1290,13 +1547,13 @@ void Host_Spawn_f (void)
 
 	if (host_client->spawned)
 	{
-		Con_Printf ("Spawn not valid -- allready spawned\n");
+		Con_Printf ("Spawn not valid -- already spawned\n");
 		return;
 	}
 
 // run the entrance script
 	if (sv.loadgame)
-	{	// loaded games are fully inited allready
+	{	// loaded games are fully inited already
 		// if this is the last client to be connected, unpause
 		sv.paused = false;
 	}
@@ -1317,6 +1574,21 @@ void Host_Spawn_f (void)
 
 		// call the spawn function
 
+// 2000-04-30 NVS HANDSHAKE QC<->CL by Maddes  start
+		// let the QuakeC code know the NVS version of the client
+		if (pr_field_nvs_svc)
+		{
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(ent, "nvs_svc");
+			val = GETEDICTFIELDVALUE(ent, pr_field_nvs_svc);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
+			if (val)
+			{
+				val->_float = host_client->nvs_csvc;
+			}
+		}
+// 2000-04-30 NVS HANDSHAKE QC<->CL by Maddes  end
+
 		pr_global_struct->time = sv.time;
 		pr_global_struct->self = EDICT_TO_PROG(sv_player);
 		PR_ExecuteProgram (pr_global_struct->ClientConnect);
@@ -1324,7 +1596,7 @@ void Host_Spawn_f (void)
 		if ((Sys_FloatTime() - host_client->netconnection->connecttime) <= sv.time)
 			Sys_Printf ("%s entered the game\n", host_client->name);
 
-		PR_ExecuteProgram (pr_global_struct->PutClientInServer);	
+		PR_ExecuteProgram (pr_global_struct->PutClientInServer);
 	}
 
 
@@ -1347,7 +1619,7 @@ void Host_Spawn_f (void)
 		MSG_WriteByte (&host_client->message, i);
 		MSG_WriteByte (&host_client->message, client->colors);
 	}
-	
+
 // send all current light styles
 	for (i=0 ; i<MAX_LIGHTSTYLES ; i++)
 	{
@@ -1375,7 +1647,7 @@ void Host_Spawn_f (void)
 	MSG_WriteByte (&host_client->message, STAT_MONSTERS);
 	MSG_WriteLong (&host_client->message, pr_global_struct->killed_monsters);
 
-	
+
 //
 // send a fixangle
 // Never send a roll angle, because savegames can catch the server
@@ -1383,10 +1655,29 @@ void Host_Spawn_f (void)
 // and it won't happen if the game was just loaded, so you wind up
 // with a permanent head tilt
 	ent = EDICT_NUM( 1 + (host_client - svs.clients) );
-	MSG_WriteByte (&host_client->message, svc_setangle);
+
+// 2000-05-02 NVS SVC_setangle by Maddes  start
+//	MSG_WriteByte (&host_client->message, svc_setangle);
+	NVS_InitSVCMsg(MSG_ONE, svc_setangle, 0, host_client);
+	NVS_WriteByte (MSG_ONE, svc_setangle, NULL);
+// 2000-05-02 NVS SVC_setangle by Maddes  end
 	for (i=0 ; i < 2 ; i++)
-		MSG_WriteAngle (&host_client->message, ent->v.angles[i] );
-	MSG_WriteAngle (&host_client->message, 0 );
+// 2000-05-02 NVS SVC_setangle by Maddes  start
+//		MSG_WriteAngle (&host_client->message, ent->v.angles[i] );
+	{
+		NVS_WriteAngle (MSG_ONE, ent->v.angles[i], NULL);
+	}
+//	MSG_WriteAngle (&host_client->message, 0 );
+	NVS_WriteAngle (MSG_ONE, 0, NULL);
+	if (nvs_current_ssvc->value >= 0.50)
+	{
+		for (i=0 ; i < 2 ; i++)
+		{
+			NVS_WriteFloat (MSG_ONE, ent->v.angles[i], NULL);
+		}
+		NVS_WriteFloat (MSG_ONE, 0, NULL);
+	}
+// 2000-05-02 NVS SVC_setangle by Maddes  end
 
 	SV_WriteClientdataToMessage (sv_player, &host_client->message);
 
@@ -1442,7 +1733,7 @@ void Host_Kick_f (void)
 
 	save = host_client;
 
-	if (Cmd_Argc() > 2 && Q_strcmp(Cmd_Argv(1), "#") == 0)
+	if (Cmd_Argc() > 2 && strcmp(Cmd_Argv(1), "#") == 0)
 	{
 		i = Q_atof(Cmd_Argv(2)) - 1;
 		if (i < 0 || i >= svs.maxclients)
@@ -1466,10 +1757,12 @@ void Host_Kick_f (void)
 	if (i < svs.maxclients)
 	{
 		if (cmd_source == src_command)
+		{	// 1999-12-24 explicit brackets by Maddes
 			if (cls.state == ca_dedicated)
 				who = "Console";
 			else
-				who = cl_name.string;
+				who = cl_name->string;
+		}	// 1999-12-24 explicit brackets by Maddes
 		else
 			who = save->name;
 
@@ -1485,7 +1778,7 @@ void Host_Kick_f (void)
 				message++;							// skip the #
 				while (*message == ' ')				// skip white space
 					message++;
-				message += Q_strlen(Cmd_Argv(2));	// skip the number
+				message += strlen(Cmd_Argv(2));	// skip the number
 			}
 			while (*message && *message == ' ')
 				message++;
@@ -1516,7 +1809,10 @@ Host_Give_f
 void Host_Give_f (void)
 {
 	char	*t;
-	int		v, w;
+// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa  start
+//	int	v, w;
+	int	v;
+// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa  end
 	eval_t	*val;
 
 	if (cmd_source == src_command)
@@ -1530,57 +1826,63 @@ void Host_Give_f (void)
 
 	t = Cmd_Argv(1);
 	v = atoi (Cmd_Argv(2));
-	
+
 	switch (t[0])
 	{
-   case '0':
-   case '1':
-   case '2':
-   case '3':
-   case '4':
-   case '5':
-   case '6':
-   case '7':
-   case '8':
-   case '9':
-      // MED 01/04/97 added hipnotic give stuff
-      if (hipnotic)
-      {
-         if (t[0] == '6')
-         {
-            if (t[1] == 'a')
-               sv_player->v.items = (int)sv_player->v.items | HIT_PROXIMITY_GUN;
-            else
-               sv_player->v.items = (int)sv_player->v.items | IT_GRENADE_LAUNCHER;
-         }
-         else if (t[0] == '9')
-            sv_player->v.items = (int)sv_player->v.items | HIT_LASER_CANNON;
-         else if (t[0] == '0')
-            sv_player->v.items = (int)sv_player->v.items | HIT_MJOLNIR;
-         else if (t[0] >= '2')
-            sv_player->v.items = (int)sv_player->v.items | (IT_SHOTGUN << (t[0] - '2'));
-      }
-      else
-      {
-         if (t[0] >= '2')
-            sv_player->v.items = (int)sv_player->v.items | (IT_SHOTGUN << (t[0] - '2'));
-      }
+	case '0':
+	case '1':
+	case '2':
+	case '3':
+	case '4':
+	case '5':
+	case '6':
+	case '7':
+	case '8':
+	case '9':
+		// MED 01/04/97 added hipnotic give stuff
+		if (hipnotic)
+		{
+			if (t[0] == '6')
+			{
+				if (t[1] == 'a')
+					sv_player->v.items = (int)sv_player->v.items | HIT_PROXIMITY_GUN;
+				else
+					sv_player->v.items = (int)sv_player->v.items | IT_GRENADE_LAUNCHER;
+			}
+			else if (t[0] == '9')
+				sv_player->v.items = (int)sv_player->v.items | HIT_LASER_CANNON;
+			else if (t[0] == '0')
+				sv_player->v.items = (int)sv_player->v.items | HIT_MJOLNIR;
+			else if (t[0] >= '2')
+				sv_player->v.items = (int)sv_player->v.items | (IT_SHOTGUN << (t[0] - '2'));
+		}
+		else
+		{
+			if (t[0] >= '2')
+				sv_player->v.items = (int)sv_player->v.items | (IT_SHOTGUN << (t[0] - '2'));
+		}
 		break;
-	
-    case 's':
+
+	case 's':
 		if (rogue)
 		{
-	        val = GetEdictFieldValue(sv_player, "ammo_shells1");
-		    if (val)
-			    val->_float = v;
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_shells1");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_shells1);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
+			if (val)
+				val->_float = v;
 		}
 
-        sv_player->v.ammo_shells = v;
-        break;		
-    case 'n':
+		sv_player->v.ammo_shells = v;
+		break;
+	case 'n':
 		if (rogue)
 		{
-			val = GetEdictFieldValue(sv_player, "ammo_nails1");
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_nails1");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_nails1);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
 			if (val)
 			{
 				val->_float = v;
@@ -1592,11 +1894,14 @@ void Host_Give_f (void)
 		{
 			sv_player->v.ammo_nails = v;
 		}
-        break;		
-    case 'l':
+		break;
+	case 'l':
 		if (rogue)
 		{
-			val = GetEdictFieldValue(sv_player, "ammo_lava_nails");
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_lava_nails");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_lava_nails);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
 			if (val)
 			{
 				val->_float = v;
@@ -1604,11 +1909,14 @@ void Host_Give_f (void)
 					sv_player->v.ammo_nails = v;
 			}
 		}
-        break;
-    case 'r':
+		break;
+	case 'r':
 		if (rogue)
 		{
-			val = GetEdictFieldValue(sv_player, "ammo_rockets1");
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_rockets1");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_rockets1);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
 			if (val)
 			{
 				val->_float = v;
@@ -1620,11 +1928,14 @@ void Host_Give_f (void)
 		{
 			sv_player->v.ammo_rockets = v;
 		}
-        break;		
-    case 'm':
+		break;
+	case 'm':
 		if (rogue)
 		{
-			val = GetEdictFieldValue(sv_player, "ammo_multi_rockets");
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_multi_rockets");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_multi_rockets);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
 			if (val)
 			{
 				val->_float = v;
@@ -1632,14 +1943,17 @@ void Host_Give_f (void)
 					sv_player->v.ammo_rockets = v;
 			}
 		}
-        break;		
-    case 'h':
-        sv_player->v.health = v;
-        break;		
-    case 'c':
+		break;
+	case 'h':
+		sv_player->v.health = v;
+		break;
+	case 'c':
 		if (rogue)
 		{
-			val = GetEdictFieldValue(sv_player, "ammo_cells1");
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_cells1");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_cells1);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
 			if (val)
 			{
 				val->_float = v;
@@ -1651,11 +1965,14 @@ void Host_Give_f (void)
 		{
 			sv_player->v.ammo_cells = v;
 		}
-        break;		
-    case 'p':
+		break;
+	case 'p':
 		if (rogue)
 		{
-			val = GetEdictFieldValue(sv_player, "ammo_plasma");
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  start
+//			val = GetEdictFieldValue(sv_player, "ammo_plasma");
+			val = GETEDICTFIELDVALUE(sv_player, pr_field_ammo_plasma);
+// 2001-11-15 Better GetEdictFieldValue performance by LordHavoc/Maddes  end
 			if (val)
 			{
 				val->_float = v;
@@ -1663,15 +1980,15 @@ void Host_Give_f (void)
 					sv_player->v.ammo_cells = v;
 			}
 		}
-        break;		
-    }
+		break;
+	}
 }
 
 edict_t	*FindViewthing (void)
 {
 	int		i;
 	edict_t	*e;
-	
+
 	for (i=0 ; i<sv.num_edicts ; i++)
 	{
 		e = EDICT_NUM(i);
@@ -1702,7 +2019,7 @@ void Host_Viewmodel_f (void)
 		Con_Printf ("Can't load %s\n", Cmd_Argv(1));
 		return;
 	}
-	
+
 	e->v.frame = 0;
 	cl.model_precache[(int)e->v.modelindex] = m;
 }
@@ -1727,7 +2044,7 @@ void Host_Viewframe_f (void)
 	if (f >= m->numframes)
 		f = m->numframes-1;
 
-	e->v.frame = f;		
+	e->v.frame = f;
 }
 
 
@@ -1740,7 +2057,7 @@ void PrintFrameName (model_t *m, int frame)
 	if (!hdr)
 		return;
 	pframedesc = &hdr->frames[frame];
-	
+
 	Con_Printf ("frame %i: %s\n", frame, pframedesc->name);
 }
 
@@ -1753,7 +2070,7 @@ void Host_Viewnext_f (void)
 {
 	edict_t	*e;
 	model_t	*m;
-	
+
 	e = FindViewthing ();
 	if (!e)
 		return;
@@ -1763,7 +2080,7 @@ void Host_Viewnext_f (void)
 	if (e->v.frame >= m->numframes)
 		e->v.frame = m->numframes - 1;
 
-	PrintFrameName (m, e->v.frame);		
+	PrintFrameName (m, e->v.frame);
 }
 
 /*
@@ -1786,7 +2103,7 @@ void Host_Viewprev_f (void)
 	if (e->v.frame < 0)
 		e->v.frame = 0;
 
-	PrintFrameName (m, e->v.frame);		
+	PrintFrameName (m, e->v.frame);
 }
 
 /*
@@ -1869,6 +2186,48 @@ void Host_Stopdemo_f (void)
 	CL_Disconnect ();
 }
 
+// 2001-09-20 Configurable limits by Maddes  start
+/*
+==================
+Host_Limit_Request_f
+==================
+*/
+void Host_Limit_Request_f (void)
+{
+	if (cmd_source == src_command)	// this a client remote only command
+	{
+		Con_Printf ("%s is not valid from the console\n", Cmd_Argv(0));
+		return;
+	}
+
+	if (host_client->spawned)
+	{
+		SV_ClientPrintf ("%s not valid -- already spawned\n", Cmd_Argv(0));
+		return;
+	}
+
+// 2001-12-24 Keeping full backwards compatibility by Maddes  start
+	if (sv_compatibility->value)	// do not reply, like the original Quake executable
+	{
+		return;
+	}
+// 2001-12-24 Keeping full backwards compatibility by Maddes  end
+
+// 2001-09-20 Configurable entity limits by Maddes  start
+	if (nvs_current_ssvc->value >= 0.00)	// HACK!!! Using version 0.00 for lowest version the
+											// client must now when sending this command on connect
+	{
+		NVS_InitSVCMsg(MSG_ONE, svc_limit, LIM_ENTITIES, host_client);
+		NVS_WriteByte (MSG_ONE, svc_limit, NULL);
+		NVS_WriteByte (MSG_ONE, LIM_ENTITIES, NULL);
+		NVS_WriteShort (MSG_ONE, sv.max_edicts, NULL);
+		NVS_WriteShort (MSG_ONE, sv_entities_static->value, NULL);
+		NVS_WriteShort (MSG_ONE, sv_entities_temp->value, NULL);
+	}
+// 2001-09-20 Configurable entity limits by Maddes  end
+}
+// 2001-09-20 Configurable limits by Maddes  end
+
 //=============================================================================
 
 /*
@@ -1922,4 +2281,8 @@ void Host_InitCommands (void)
 	Cmd_AddCommand ("viewprev", Host_Viewprev_f);
 
 	Cmd_AddCommand ("mcache", Mod_Print);
+
+	Cmd_AddCommand ("qcexec", Host_QC_Exec_f);	// 2000-01-09 QCExec by FrikaC/Maddes
+
+	Cmd_AddCommand ("limit_request", Host_Limit_Request_f);	// 2001-09-20 Configurable limits by Maddes
 }

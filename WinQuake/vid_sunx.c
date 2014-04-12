@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "d_local.h"
 
-cvar_t		m_filter = {"m_filter","0", true};
+cvar_t	*m_filter;
 
 qboolean        mouse_avail;
 int             mouse_buttons=3;
@@ -366,7 +366,7 @@ void TragicDeath(int signal_num)
 
 static Cursor CreateNullCursor(Display *display, Window root)
 {
-    Pixmap cursormask; 
+    Pixmap cursormask;
     XGCValues xgc;
     GC gc;
     XColor dummycolour;
@@ -394,8 +394,8 @@ void ResetFrameBuffer(void)
 
 	if (x_framebuffer[0])
 	{
-		Z_Free(x_framebuffer[0]->data);
-//		Z_Free(d_pzbuffer);
+		Z_Free(mainzone, x_framebuffer[0]->data);	// 2001-09-20 Enhanced zone handling by Maddes
+//		Z_Free(mainzone, d_pzbuffer);	// 2001-09-20 Enhanced zone handling by Maddes
 		free(x_framebuffer[0]);
 	}
 
@@ -403,7 +403,7 @@ void ResetFrameBuffer(void)
 	if (pwidth == 3) pwidth = 4;
 	mem = ((vid.width*pwidth+3)&~3) * vid.height;
 
-//	d_pzbuffer = (unsigned short *) Z_Malloc(vid.width*vid.height*
+//	d_pzbuffer = (unsigned short *) Z_Malloc(mainzone, vid.width*vid.height*	// 2001-09-20 Enhanced zone handling by Maddes
 //		sizeof(*d_pzbuffer));
 	d_pzbuffer = (short *) Hunk_HighAllocName(vid.width*vid.height*
 		sizeof(*d_pzbuffer), "zbuff");
@@ -413,7 +413,7 @@ void ResetFrameBuffer(void)
 		x_visinfo->depth,
 		ZPixmap,
 		0,
-		Z_Malloc(mem),
+		Z_Malloc(mainzone, mem),	// 2001-09-20 Enhanced zone handling by Maddes
 		vid.width, vid.height,
 		32,
 		0);
@@ -432,7 +432,7 @@ void ResetSharedFrameBuffers(void)
 	int frm;
 
 //	if (d_pzbuffer)
-//		Z_Free(d_pzbuffer);
+//		Z_Free(mainzone, d_pzbuffer);	// 2001-09-20 Enhanced zone handling by Maddes
 	d_pzbuffer = Hunk_HighAllocName(vid.width*vid.height*sizeof(*d_pzbuffer),"zbuff");
 
 	for (frm=0 ; frm<2 ; frm++)
@@ -565,6 +565,17 @@ qboolean VID_FullScreen( Window win )
     XConfigureWindow( x_disp, win, CWX | CWY | CWWidth | CWHeight | CWStackMode, &changes);
     return( true );
 }
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 void	VID_Init (unsigned char *palette)
 {
@@ -797,7 +808,7 @@ void	VID_Init (unsigned char *palette)
 	vid.maxwarpheight = WARP_HEIGHT;
 
 	D_InitCaches (surfcache, sizeof(surfcache));
-	
+
 //	XSynchronize(x_disp, False);
 
 	vid_menudrawfn = VID_MenuDraw;
@@ -891,11 +902,11 @@ int XLateKey(XKeyEvent *ev)
 		case XK_Pause:	key = K_PAUSE;		 break;
 		case XK_Shift_L:
 		case XK_Shift_R:		key = K_SHIFT;		break;
-		case XK_Control_L: 
+		case XK_Control_L:
 		case XK_Control_R:	key = K_CTRL;		 break;
-		case XK_Alt_L:	
-		case XK_Meta_L: 
-		case XK_Alt_R:	
+		case XK_Alt_L:
+		case XK_Meta_L:
+		case XK_Alt_R:
 		case XK_Meta_R: key = K_ALT;			break;
 // various other keys on the keyboard
 		case XK_F27: key = K_HOME; break;
@@ -907,7 +918,7 @@ int XLateKey(XKeyEvent *ev)
 		default:
 			key = *buf;
 			break;
-	} 
+	}
 
 	return key;
 
@@ -950,7 +961,7 @@ void GetEvent(void)
 			if (mouse_avail && mouse_grabbed) {
 				mouse_x = (float) ((int)x_event.xmotion.x - (int)(vid.width/2));
 				mouse_y = (float) ((int)x_event.xmotion.y - (int)(vid.height/2));
-	//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n", 
+	//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n",
 	//	x_event.xmotion.x, x_event.xmotion.y, mouse_x, mouse_y);
 
 				/* move the mouse to the window center again */
@@ -972,7 +983,7 @@ void GetEvent(void)
 			config_notify = 1;
 			sb_updates = 0;
 			break;
-		case Expose:	
+		case Expose:
 			sb_updates = 0;
 			break;
 		case ClientMessage:
@@ -989,7 +1000,7 @@ void GetEvent(void)
 			if (doShm && x_event.type == x_shmeventtype)
 				oktodraw = true;
 	}
-   
+
 	if (mouse_avail) {
 		if (key_dest == key_game && !mouse_grabbed && mouse_in_window) {
 			mouse_grabbed = true;
@@ -1060,11 +1071,11 @@ void	VID_Update (vrect_t *rects)
 		{
 printf("update: %d,%d (%d,%d)\n", rects->x, rects->y, rects->width, rects->height);
 			if (x_visinfo->depth == 16)
-				st2_fixup( x_framebuffer[current_framebuffer], 
+				st2_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			else if (x_visinfo->depth == 24)
-				st3_fixup( x_framebuffer[current_framebuffer], 
+				st3_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			if (!XShmPutImage(x_disp, x_win, x_gc,
@@ -1080,18 +1091,18 @@ printf("update: %d,%d (%d,%d)\n", rects->x, rects->y, rects->width, rects->heigh
 		vid.buffer = x_framebuffer[current_framebuffer]->data;
 		vid.conbuffer = vid.buffer;
 		XSync(x_disp, False);
-		
+
 	}
 	else
 	{
 		while (rects)
 		{
 			if (x_visinfo->depth == 16)
-				st2_fixup( x_framebuffer[current_framebuffer], 
+				st2_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			else if (x_visinfo->depth == 24)
-				st3_fixup( x_framebuffer[current_framebuffer], 
+				st3_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			XPutImage(x_disp, x_win, x_gc, x_framebuffer[0], rects->x,
@@ -1184,14 +1195,26 @@ char *Sys_ConsoleInput (void)
 	}
 
 	return 0;
-	
+
 }
 #endif
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void IN_Init (void)
 {
-	Cvar_RegisterVariable (&m_filter);
-	if ( COM_CheckParm ("-nomouse") )
+//	m_filter = Cvar_Get ("m_filter", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes (Init)
+ 	if ( COM_CheckParm ("-nomouse") )
 		return;
 	mouse_x = mouse_y = 0.0;
 	mouse_avail = 1;
@@ -1205,9 +1228,9 @@ void IN_Shutdown (void)
 void IN_Commands (void)
 {
 	int i;
-   
+
 	if (!mouse_avail) return;
-   
+
 	for (i=0 ; i<mouse_buttons ; i++) {
 		if ( (mouse_buttonstate & (1<<i)) && !(mouse_oldbuttonstate & (1<<i)) )
 			Key_Event (K_MOUSE1 + i, true);
@@ -1222,36 +1245,36 @@ void IN_Move (usercmd_t *cmd)
 {
 	if (!mouse_avail)
 		return;
-   
-	if (m_filter.value) {
+
+	if (m_filter->value) {
 		mouse_x = (mouse_x + old_mouse_x) * 0.5;
 		mouse_y = (mouse_y + old_mouse_y) * 0.5;
 	}
 
 	old_mouse_x = mouse_x;
 	old_mouse_y = mouse_y;
-   
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
-   
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
+
+	mouse_x *= sensitivity->value;
+	mouse_y *= sensitivity->value;
+
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-   
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1)) {
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1)) {	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
 			cl.viewangles[PITCH] = -70;
 	} else {
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
+			cmd->upmove -= m_forward->value * mouse_y;
 		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
+			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 	mouse_x = mouse_y = 0.0;
 }

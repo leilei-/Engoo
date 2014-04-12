@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -18,6 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include "quakedef.h"
+// 2001-12-15 Windows Clipboard pasting by FrikaC  start
+#ifdef _WIN32
+#include <windows.h>
+#endif
+// 2001-12-15 Windows Clipboard pasting by FrikaC  end
 
 /*
 
@@ -31,6 +36,8 @@ char	key_lines[32][MAXCMDLINE];
 int		key_linepos;
 int		shift_down=false;
 int		key_lastpress;
+int		key_insert;	// 2000-01-05 Console typing enhancement by Radix
+				// insert key toggle
 
 int		edit_line=0;
 int		history_line=0;
@@ -67,7 +74,7 @@ keyname_t keynames[] =
 	{"ALT", K_ALT},
 	{"CTRL", K_CTRL},
 	{"SHIFT", K_SHIFT},
-	
+
 	{"F1", K_F1},
 	{"F2", K_F2},
 	{"F3", K_F3},
@@ -159,7 +166,16 @@ Interactive line editing and console scrollback
 void Key_Console (int key)
 {
 	char	*cmd;
-	
+	int	history_line_last;	// 2000-01-05 Console typing enhancement by Radix/Maddes
+// 2001-12-15 Windows Clipboard pasting by FrikaC  start
+#ifdef _WIN32
+	char	*s;
+	int		i;
+	HANDLE	th;
+	char	*clipText, *textCopied;
+#endif
+// 2001-12-15 Windows Clipboard pasting by FrikaC  end
+
 	if (key == K_ENTER)
 	{
 		Cbuf_AddText (key_lines[edit_line]+1);	// skip the >
@@ -168,6 +184,8 @@ void Key_Console (int key)
 		edit_line = (edit_line + 1) & 31;
 		history_line = edit_line;
 		key_lines[edit_line][0] = ']';
+		key_lines[edit_line][1] = 0;	// 2000-01-05 Console typing enhancement by Radix
+						// null terminate
 		key_linepos = 1;
 		if (cls.state == ca_disconnected)
 			SCR_UpdateScreen ();	// force an update, because the command
@@ -177,38 +195,174 @@ void Key_Console (int key)
 
 	if (key == K_TAB)
 	{	// command completion
+// 2001-12-15 Enhanced console command completion by Fett/Maddes  start
+/*
 		cmd = Cmd_CompleteCommand (key_lines[edit_line]+1);
 		if (!cmd)
 			cmd = Cvar_CompleteVariable (key_lines[edit_line]+1);
+*/
+		int	c, v, a;
+
+		cmd = NULL;
+
+		// Count the number of possible matches
+		c = Cmd_CompleteCountPossible (key_lines[edit_line]+1);
+		v = Cvar_CompleteCountPossible (key_lines[edit_line]+1);
+		a = Cmd_CompleteAliasCountPossible (key_lines[edit_line]+1);
+
+		if (!(c + v + a))		// No possible matches, don't do anything
+			return;
+
+		if (c + v + a > 1)	// More than a single possible match
+		{
+			// the 'classic' Quakebar
+			Con_Printf("\n\35\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\36\37\n");
+
+			// Print possible commands
+			if (c)
+			{
+				if (c==1)
+					Con_Printf("1 possible command:\n");
+				else
+					Con_Printf("%i possible commands:\n", c);
+
+				Cmd_CompletePrintPossible (key_lines[edit_line]+1);
+			}
+
+			// Print possible variables
+			if (v)
+			{
+				if (v==1)
+					Con_Printf("1 possible variable:\n");
+				else
+					Con_Printf("%i possible variables:\n", v);
+
+				Cvar_CompletePrintPossible (key_lines[edit_line]+1);
+			}
+
+			// Print possible aliases
+			if (a)
+			{
+				if (a==1)
+					Con_Printf("1 possible alias:\n");
+				else
+					Con_Printf("%i possible aliases:\n", a);
+
+				Cmd_CompleteAliasPrintPossible (key_lines[edit_line]+1);
+			}
+
+			return;
+		}
+
+		// We know there's only one match so use the original id functions
+		// to complete the line.
+		if (c)
+			cmd = Cmd_CompleteCommand (key_lines[edit_line]+1);
+
+		if (v)
+			cmd = Cvar_CompleteVariable (key_lines[edit_line]+1);
+
+		if (a)
+			cmd = Cmd_CompleteAlias (key_lines[edit_line]+1);
+// 2001-12-15 Enhanced console command completion by Fett/Maddes  end
+
 		if (cmd)
 		{
-			Q_strcpy (key_lines[edit_line]+1, cmd);
-			key_linepos = Q_strlen(cmd)+1;
+			strcpy (key_lines[edit_line]+1, cmd);
+			key_linepos = strlen(cmd)+1;
 			key_lines[edit_line][key_linepos] = ' ';
 			key_linepos++;
 			key_lines[edit_line][key_linepos] = 0;
 			return;
 		}
 	}
-	
+
+// 2000-01-05 Console typing enhancement by Radix  start
+/*
 	if (key == K_BACKSPACE || key == K_LEFTARROW)
 	{
 		if (key_linepos > 1)
 			key_linepos--;
 		return;
 	}
+*/
+
+	if (key == K_LEFTARROW)
+	{
+		// left arrow will just move left one w/o earsing, backspace will
+		// actually erase charcter
+		if (key_linepos > 1)
+		{
+			key_linepos--;
+		}
+		return;
+	}
+
+	if (key == K_BACKSPACE)
+	{
+		// delete char before cursor
+		if (key_linepos > 1)
+		{
+			strcpy(key_lines[edit_line] + key_linepos - 1, key_lines[edit_line] + key_linepos);
+			key_linepos--;
+		}
+		return;
+	}
+
+	if (key == K_DEL)
+	{
+		// delete char on cursor
+		if (key_linepos < strlen(key_lines[edit_line]))
+		{
+			strcpy(key_lines[edit_line] + key_linepos, key_lines[edit_line] + key_linepos + 1);
+		}
+		return;
+	}
+
+	if (key == K_RIGHTARROW)
+	{
+		// if we're at the end, get one character from previous line,
+		// otherwise just go right one
+		if (strlen(key_lines[edit_line]) == key_linepos)
+		{
+			if (strlen(key_lines[(edit_line + 31) & 31]) <= key_linepos)
+			{
+				return; // no character to get
+			}
+			key_lines[edit_line][key_linepos] = key_lines[(edit_line + 31) & 31][key_linepos];
+			key_linepos++;
+			key_lines[edit_line][key_linepos] = 0;
+		}
+		else
+		{
+			key_linepos++;
+		}
+		return;
+	}
+
+	if (key == K_INS)
+	{
+		// toggle insert mode
+		key_insert ^= 1;
+		return;
+	}
+// 2000-01-05 Console typing enhancement by Radix  end
 
 	if (key == K_UPARROW)
 	{
+		history_line_last = history_line;	// 2000-01-05 Console typing enhancement by Radix/Maddes
 		do
 		{
 			history_line = (history_line - 1) & 31;
 		} while (history_line != edit_line
 				&& !key_lines[history_line][1]);
 		if (history_line == edit_line)
-			history_line = (edit_line+1)&31;
-		Q_strcpy(key_lines[edit_line], key_lines[history_line]);
-		key_linepos = Q_strlen(key_lines[edit_line]);
+// 2000-01-05 Console typing enhancement by Radix/Maddes  start
+//			history_line = (edit_line+1)&31;
+			history_line = history_line_last;
+// 2000-01-05 Console typing enhancement by Radix/Maddes  end
+		strcpy(key_lines[edit_line], key_lines[history_line]);
+		key_linepos = strlen(key_lines[edit_line]);
 		return;
 	}
 
@@ -224,12 +378,14 @@ void Key_Console (int key)
 		if (history_line == edit_line)
 		{
 			key_lines[edit_line][0] = ']';
+			key_lines[edit_line][1] = 0;	// 2000-01-05 Console typing enhancement by Radix/Maddes
+							// null terminate
 			key_linepos = 1;
 		}
 		else
 		{
-			Q_strcpy(key_lines[edit_line], key_lines[history_line]);
-			key_linepos = Q_strlen(key_lines[edit_line]);
+			strcpy(key_lines[edit_line], key_lines[history_line]);
+			key_linepos = strlen(key_lines[edit_line]);
 		}
 		return;
 	}
@@ -237,22 +393,33 @@ void Key_Console (int key)
 	if (key == K_PGUP || key==K_MWHEELUP)
 	{
 		con_backscroll += 2;
+// 2000-01-05 Console scrolling fix by Maddes  start
+/*
 		if (con_backscroll > con_totallines - (vid.height>>3) - 1)
 			con_backscroll = con_totallines - (vid.height>>3) - 1;
+*/
+// 2000-01-05 Console scrolling fix by Maddes  end
 		return;
 	}
 
 	if (key == K_PGDN || key==K_MWHEELDOWN)
 	{
 		con_backscroll -= 2;
+// 2000-01-05 Console scrolling fix by Maddes  start
+/*
 		if (con_backscroll < 0)
 			con_backscroll = 0;
+*/
+// 2000-01-05 Console scrolling fix by Maddes  end
 		return;
 	}
 
 	if (key == K_HOME)
 	{
-		con_backscroll = con_totallines - (vid.height>>3) - 1;
+// 2000-01-05 Console scrolling fix by Maddes  start
+//		con_backscroll = con_totallines - (vid.height>>3) - 1;
+		con_backscroll = con_current - 1;
+// 2000-01-05 Console scrolling fix by Maddes  end
 		return;
 	}
 
@@ -261,15 +428,60 @@ void Key_Console (int key)
 		con_backscroll = 0;
 		return;
 	}
-	
+
+// 2001-12-15 Windows Clipboard pasting by FrikaC  start
+#ifdef _WIN32
+	if ((key=='V' || key=='v') && GetKeyState(VK_CONTROL)<0) {
+		if (OpenClipboard(NULL)) {
+			th = GetClipboardData(CF_TEXT);
+			if (th) {
+				clipText = GlobalLock(th);
+				if (clipText) {
+					textCopied = malloc(GlobalSize(th)+1);
+					strcpy(textCopied, clipText);
+					/* Substitutes a NULL for every token */
+					strtok(textCopied, "\n\r\b");
+					i = strlen(textCopied);
+					if (i+key_linepos>=MAXCMDLINE)
+						i=MAXCMDLINE-key_linepos;
+					if (i>0) {
+						textCopied[i]=0;
+						strcat(key_lines[edit_line], textCopied);
+						key_linepos+=i;;
+					}
+					free(textCopied);
+				}
+				GlobalUnlock(th);
+			}
+			CloseClipboard();
+		return;
+		}
+	}
+#endif
+// 2001-12-15 Windows Clipboard pasting by FrikaC  end
+
 	if (key < 32 || key > 127)
 		return;	// non printable
-		
+
 	if (key_linepos < MAXCMDLINE-1)
 	{
+// 2000-01-05 Console typing enhancement by Radix  start
+		int i;
+		// check insert mode
+		if (key_insert)
+		{	// can't do strcpy to move string to right
+			i = strlen(key_lines[edit_line]) - 1;
+			if (i == 254) i--;
+			for (; i >= key_linepos; i--)
+				key_lines[edit_line][i + 1] = key_lines[edit_line][i];
+		}
+		// only null terminate if at the end
+		i = key_lines[edit_line][key_linepos];
+// 2000-01-05 Console typing enhancement by Radix  end
 		key_lines[edit_line][key_linepos] = key;
 		key_linepos++;
-		key_lines[edit_line][key_linepos] = 0;
+		if (!i)		// 2000-01-05 Console typing enhancement by Radix
+			key_lines[edit_line][key_linepos] = 0;
 	}
 
 }
@@ -341,7 +553,7 @@ the K_* names are matched up.
 int Key_StringToKeynum (char *str)
 {
 	keyname_t	*kn;
-	
+
 	if (!str || !str[0])
 		return -1;
 	if (!str[1])
@@ -366,9 +578,9 @@ FIXME: handle quote special (general escape sequence?)
 */
 char *Key_KeynumToString (int keynum)
 {
-	keyname_t	*kn;	
+	keyname_t	*kn;
 	static	char	tinystr[2];
-	
+
 	if (keynum == -1)
 		return "<KEY NOT FOUND>";
 	if (keynum > 32 && keynum < 127)
@@ -377,7 +589,7 @@ char *Key_KeynumToString (int keynum)
 		tinystr[1] = 0;
 		return tinystr;
 	}
-	
+
 	for (kn=keynames ; kn->name ; kn++)
 		if (keynum == kn->keynum)
 			return kn->name;
@@ -395,23 +607,23 @@ void Key_SetBinding (int keynum, char *binding)
 {
 	char	*new;
 	int		l;
-			
+
 	if (keynum == -1)
 		return;
 
 // free old bindings
 	if (keybindings[keynum])
 	{
-		Z_Free (keybindings[keynum]);
+		Z_Free (mainzone, keybindings[keynum]);	// 2001-09-20 Enhanced zone handling by Maddes
 		keybindings[keynum] = NULL;
 	}
-			
+
 // allocate memory for new binding
-	l = Q_strlen (binding);	
-	new = Z_Malloc (l+1);
-	Q_strcpy (new, binding);
+	l = strlen (binding);
+	new = Z_Malloc (mainzone, l+1);	// 2001-09-20 Enhanced zone handling by Maddes
+	strcpy (new, binding);
 	new[l] = 0;
-	keybindings[keynum] = new;	
+	keybindings[keynum] = new;
 }
 
 /*
@@ -428,7 +640,7 @@ void Key_Unbind_f (void)
 		Con_Printf ("unbind <key> : remove commands from a key\n");
 		return;
 	}
-	
+
 	b = Key_StringToKeynum (Cmd_Argv(1));
 	if (b==-1)
 	{
@@ -442,7 +654,7 @@ void Key_Unbind_f (void)
 void Key_Unbindall_f (void)
 {
 	int		i;
-	
+
 	for (i=0 ; i<256 ; i++)
 		if (keybindings[i])
 			Key_SetBinding (i, "");
@@ -458,7 +670,7 @@ void Key_Bind_f (void)
 {
 	int			i, c, b;
 	char		cmd[1024];
-	
+
 	c = Cmd_Argc();
 
 	if (c != 2 && c != 3)
@@ -481,7 +693,7 @@ void Key_Bind_f (void)
 			Con_Printf ("\"%s\" is not bound\n", Cmd_Argv(1) );
 		return;
 	}
-	
+
 // copy the rest of the command line
 	cmd[0] = 0;		// start out with a null string
 	for (i=2 ; i< c ; i++)
@@ -527,7 +739,7 @@ void Key_Init (void)
 		key_lines[i][1] = 0;
 	}
 	key_linepos = 1;
-	
+
 //
 // init ascii characters in console mode
 //
@@ -540,6 +752,14 @@ void Key_Init (void)
 	consolekeys[K_UPARROW] = true;
 	consolekeys[K_DOWNARROW] = true;
 	consolekeys[K_BACKSPACE] = true;
+// 2000-01-05 Console typing enhancement by Radix/Maddes  start
+	consolekeys[K_DEL] = true;
+	consolekeys[K_INS] = true;
+// 2000-01-05 Console typing enhancement by Radix/Maddes  end
+// 2000-01-05 Console scrolling fix by Maddes  start
+	consolekeys[K_HOME] = true;
+	consolekeys[K_END] = true;
+// 2000-01-05 Console scrolling fix by Maddes  end
 	consolekeys[K_PGUP] = true;
 	consolekeys[K_PGDN] = true;
 	consolekeys[K_SHIFT] = true;
@@ -621,7 +841,7 @@ void Key_Event (int key, qboolean down)
 		{
 			return;	// ignore most autorepeats
 		}
-			
+
 		if (key >= 200 && !keybindings[key])
 			Con_Printf ("%s is unbound, hit F4 to set.\n", Key_KeynumToString (key) );
 	}

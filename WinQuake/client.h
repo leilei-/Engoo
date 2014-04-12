@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 // client.h
+
+#include "nvs_client.h"	// 2000-04-30 NVS COMMON by Maddes
 
 typedef struct
 {
@@ -80,6 +82,10 @@ typedef struct
 #ifdef QUAKE2
 	qboolean	dark;			// subtracts light instead of adding
 #endif
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+	float	color[3];			// color dynamic lightning (not flashblend), Quake default: 1.0/1.0/1.0
+	float	flashcolor[4];		// flashblend color, RGBA, alpha is for screen flash, Quake default: 1.0/0.5/0.0/0.2
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 } dlight_t;
 
 
@@ -112,7 +118,7 @@ typedef struct
 {
 	cactive_t	state;
 
-// personalization data sent to server	
+// personalization data sent to server
 	char		mapstring[MAX_QPATH];
 	char		spawnparms[MAX_MAPSTRING];	// to restart a level
 
@@ -136,7 +142,7 @@ typedef struct
 	int			signon;			// 0 to SIGNONS
 	struct qsocket_s	*netcon;
 	sizebuf_t	message;		// writing buffer to send to server
-	
+
 } client_static_t;
 
 extern client_static_t	cls;
@@ -149,7 +155,7 @@ typedef struct
 {
 	int			movemessages;	// since connecting to this server
 								// throw out the first couple, so the player
-								// doesn't accidentally do something the 
+								// doesn't accidentally do something the
 								// first frame
 	usercmd_t	cmd;			// last command sent to the server
 
@@ -169,13 +175,13 @@ typedef struct
 	vec3_t		mviewangles[2];	// during demo playback viewangles is lerped
 								// between these
 	vec3_t		viewangles;
-	
+
 	vec3_t		mvelocity[2];	// update by server, used for lean+bob
 								// (0 is newest)
 	vec3_t		velocity;		// lerped between mvelocity[0] and [1]
 
 	vec3_t		punchangle;		// temporary offset
-	
+
 // pitch drifting vars
 	float		idealpitch;
 	float		pitchvel;
@@ -189,17 +195,17 @@ typedef struct
 	qboolean	paused;			// send over by server
 	qboolean	onground;
 	qboolean	inwater;
-	
+
 	int			intermission;	// don't change view angle, full screen, etc
 	int			completed_time;	// latched at intermission start
-	
-	double		mtime[2];		// the timestamp of last two messages	
+
+	double		mtime[2];		// the timestamp of last two messages
 	double		time;			// clients view of time, should be between
 								// servertime and oldservertime to generate
 								// a lerp point for other data
 	double		oldtime;		// previous cl.time, time-oldtime is used
 								// to decay light values and smooth step ups
-	
+
 
 	float		last_received_message;	// (realtime) for net trouble icon
 
@@ -217,6 +223,11 @@ typedef struct
 // refresh related state
 	struct model_s	*worldmodel;	// cl_entitites[0].model
 	struct efrag_s	*free_efrags;
+// 2001-09-20 Configurable entity limits by Maddes  start
+	int			max_edicts;
+	int			max_static_edicts;
+	int			max_temp_edicts;
+// 2001-09-20 Configurable entity limits by Maddes  end
 	int			num_entities;	// held in cl_entities array
 	int			num_statics;	// held in cl_staticentities array
 	entity_t	viewent;			// the gun model
@@ -238,49 +249,73 @@ typedef struct
 //
 // cvars
 //
-extern	cvar_t	cl_name;
-extern	cvar_t	cl_color;
+extern	cvar_t	*cl_name;
+extern	cvar_t	*cl_color;
 
-extern	cvar_t	cl_upspeed;
-extern	cvar_t	cl_forwardspeed;
-extern	cvar_t	cl_backspeed;
-extern	cvar_t	cl_sidespeed;
+extern	cvar_t	*cl_upspeed;
+extern	cvar_t	*cl_forwardspeed;
+extern	cvar_t	*cl_backspeed;
+extern	cvar_t	*cl_sidespeed;
 
-extern	cvar_t	cl_movespeedkey;
+extern	cvar_t	*cl_movespeedkey;
 
-extern	cvar_t	cl_yawspeed;
-extern	cvar_t	cl_pitchspeed;
+extern	cvar_t	*cl_yawspeed;
+extern	cvar_t	*cl_pitchspeed;
 
-extern	cvar_t	cl_anglespeedkey;
+extern	cvar_t	*cl_anglespeedkey;
 
-extern	cvar_t	cl_autofire;
+extern	cvar_t	*cl_autofire;
 
-extern	cvar_t	cl_shownet;
-extern	cvar_t	cl_nolerp;
+extern	cvar_t	*cl_shownet;
+extern	cvar_t	*cl_nolerp;
 
-extern	cvar_t	cl_pitchdriftspeed;
-extern	cvar_t	lookspring;
-extern	cvar_t	lookstrafe;
-extern	cvar_t	sensitivity;
+extern	cvar_t	*cl_pitchdriftspeed;
+extern	cvar_t	*lookspring;
+extern	cvar_t	*lookstrafe;
+extern	cvar_t	*sensitivity;
 
-extern	cvar_t	m_pitch;
-extern	cvar_t	m_yaw;
-extern	cvar_t	m_forward;
-extern	cvar_t	m_side;
+extern	cvar_t	*m_pitch;
+extern	cvar_t	*m_yaw;
+extern	cvar_t	*m_forward;
+extern	cvar_t	*m_side;
+extern	cvar_t	*m_look;	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 
+// 2001-11-31 FPS display by QuakeForge/Muff  start
+extern cvar_t	*cl_showfps;
+extern int		fps_count;
+// 2001-11-31 FPS display by QuakeForge/Muff  end
 
+extern cvar_t	*cl_compatibility;	// 2001-12-24 Keeping full backwards compatibility by Maddes
+
+// 2001-09-20 Configurable entity limits by Maddes  start
+extern cvar_t	*cl_entities_min;
+extern cvar_t	*cl_entities_min_static;
+extern cvar_t	*cl_entities_min_temp;
+
+/*
 #define	MAX_TEMP_ENTITIES	64			// lightning bolts, etc
 #define	MAX_STATIC_ENTITIES	128			// torches, etc
+*/
+// 2001-09-20 Configurable entity limits by Maddes  end
 
 extern	client_state_t	cl;
 
 // FIXME, allocate dynamically
 extern	efrag_t			cl_efrags[MAX_EFRAGS];
+// 2001-09-20 Configurable entity limits by Maddes  start
+/*
 extern	entity_t		cl_entities[MAX_EDICTS];
 extern	entity_t		cl_static_entities[MAX_STATIC_ENTITIES];
+*/
+extern	entity_t		*cl_entities;
+extern	entity_t		*cl_static_entities;
+// 2001-09-20 Configurable entity limits by Maddes  end
 extern	lightstyle_t	cl_lightstyle[MAX_LIGHTSTYLES];
 extern	dlight_t		cl_dlights[MAX_DLIGHTS];
-extern	entity_t		cl_temp_entities[MAX_TEMP_ENTITIES];
+// 2001-09-20 Configurable entity limits by Maddes  start
+//extern	entity_t		cl_temp_entities[MAX_TEMP_ENTITIES];
+extern	entity_t		*cl_temp_entities;
+// 2001-09-20 Configurable entity limits by Maddes  end
 extern	beam_t			cl_beams[MAX_BEAMS];
 
 //=============================================================================

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -43,9 +43,12 @@ FILE IO
 ===============================================================================
 */
 
-#define MAX_HANDLES             10
+// 1999-12-23 More PAK files support by Maddes  start
+//#define	MAX_HANDLES		10
+#define	MAX_HANDLES		64
+// 1999-12-23 More PAK files support by Maddes  end
 
-typedef struct 
+typedef struct
 {
     FILE	    *hFile;
     char	    *pMap;
@@ -58,7 +61,7 @@ MEMFILE		    sys_handles[MAX_HANDLES];
 int findhandle (void)
 {
     int             i;
-    
+
     for (i=1 ; i<MAX_HANDLES ; i++)
 	    if (!sys_handles[i].hFile)
 		    return i;
@@ -88,9 +91,9 @@ int Sys_FileOpenRead (char *path, int *hndl)
 {
     FILE    *f;
     int             i;
-    
+
     i = findhandle ();
-    
+
     f = fopen(path, "rb");
     if (!f)
     {
@@ -108,7 +111,7 @@ int Sys_FileOpenRead (char *path, int *hndl)
     }
 
     *hndl = i;
-    
+
     return( sys_handles[i].nLen );
 }
 
@@ -116,7 +119,7 @@ int Sys_FileOpenWrite (char *path)
 {
     FILE    *f;
     int             i;
-    
+
     i = findhandle ();
 
     f = fopen(path, "wb");
@@ -126,7 +129,7 @@ int Sys_FileOpenWrite (char *path)
     sys_handles[i].nLen = 0;
     sys_handles[i].nPos = 0;
     sys_handles[i].pMap = NULL;
-    
+
     return i;
 }
 
@@ -174,14 +177,14 @@ int Sys_FileWrite (int handle, void *data, int count)
 int Sys_FileTime (char *path)
 {
     FILE    *f;
-    
+
     f = fopen(path, "rb");
     if (f)
     {
 	fclose(f);
 	return 1;
     }
-    
+
     return -1;
 }
 
@@ -222,7 +225,7 @@ void Sys_Error (char *error, ...)
 {
     va_list         argptr;
 
-    printf ("Sys_Error: ");   
+    printf ("Sys_Error: ");
     va_start (argptr,error);
     vprintf (error,argptr);
     va_end (argptr);
@@ -234,7 +237,7 @@ void Sys_Error (char *error, ...)
 void Sys_Printf (char *fmt, ...)
 {
     va_list         argptr;
-    
+
     va_start (argptr,fmt);
     vprintf (fmt,argptr);
     va_end (argptr);
@@ -249,10 +252,10 @@ void Sys_Quit (void)
 double Sys_FloatTime (void)
 {
     struct timeval tp;
-    struct timezone tzp; 
-    static int      secbase; 
-    
-    gettimeofday(&tp, &tzp);  
+    struct timezone tzp;
+    static int      secbase;
+
+    gettimeofday(&tp, &tzp);
 
     if (!secbase)
     {
@@ -270,13 +273,13 @@ char *Sys_ConsoleInput (void)
     fd_set	readfds;
     int		ready;
     struct timeval timeout;
-    
+
     timeout.tv_sec = 0;
     timeout.tv_usec = 0;
     FD_ZERO(&readfds);
     FD_SET(0, &readfds);
     ready = select(1, &readfds, 0, 0, &timeout);
-    
+
     if (ready>0)
     {
 	len = read (0, text, sizeof(text));
@@ -286,7 +289,7 @@ char *Sys_ConsoleInput (void)
 		return text;
 	}
     }
-    
+
     return 0;
 }
 
@@ -317,7 +320,7 @@ int main (int argc, char **argv)
 {
     static quakeparms_t    parms;
     float time, oldtime, newtime;
-    
+
     parms.memsize = 16*1024*1024;
     parms.membase = malloc (parms.memsize);
     parms.basedir = ".";

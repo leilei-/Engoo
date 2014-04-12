@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /*
 
-A server can allways be started, even if the system started out as a client
+A server can always be started, even if the system started out as a client
 to a remote system.
 
 A client can NOT be started if the system started as a dedicated server.
@@ -32,6 +32,13 @@ A client can NOT be started if the system started as a dedicated server.
 Memory is cleared / released when a server or client begins, not when they end.
 
 */
+
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+double	host_cpu_frametime;
+double	host_org_frametime;
+
+cvar_t	*host_timescale;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 quakeparms_t host_parms;
 
@@ -54,33 +61,34 @@ jmp_buf 	host_abortserver;
 byte		*host_basepal;
 byte		*host_colormap;
 
-cvar_t	host_framerate = {"host_framerate","0"};	// set for slow motion
-cvar_t	host_speeds = {"host_speeds","0"};			// set for running times
+cvar_t	*host_framerate;	// set for slow motion
+cvar_t	*host_speeds;		// set for running times
 
-cvar_t	sys_ticrate = {"sys_ticrate","0.05"};
-cvar_t	serverprofile = {"serverprofile","0"};
+cvar_t	*sys_ticrate;
+cvar_t	*serverprofile;
 
-cvar_t	fraglimit = {"fraglimit","0",false,true};
-cvar_t	timelimit = {"timelimit","0",false,true};
-cvar_t	teamplay = {"teamplay","0",false,true};
+cvar_t	*fraglimit;
+cvar_t	*timelimit;
+cvar_t	*teamplay;
 
-cvar_t	samelevel = {"samelevel","0"};
-cvar_t	noexit = {"noexit","0",false,true};
+cvar_t	*samelevel;
+cvar_t	*noexit;
 
-#ifdef QUAKE2
-cvar_t	developer = {"developer","1"};	// should be 0 for release!
-#else
-cvar_t	developer = {"developer","0"};
-#endif
+cvar_t	*developer;
 
-cvar_t	skill = {"skill","1"};						// 0 - 3
-cvar_t	deathmatch = {"deathmatch","0"};			// 0, 1, or 2
-cvar_t	coop = {"coop","0"};			// 0 or 1
+cvar_t	*skill;					// 0 - 3
+cvar_t	*deathmatch;			// 0, 1, or 2
+cvar_t	*coop;					// 0 or 1
 
-cvar_t	pausable = {"pausable","1"};
+cvar_t	*pausable;
 
-cvar_t	temp1 = {"temp1","0"};
+cvar_t	*temp1;
 
+cvar_t	*contact;		// 2000-01-31 Contact cvar by Maddes
+
+cvar_t	*max_fps;		// 2001-12-16 MAX_FPS cvar by MrG
+
+int		fps_count;	// 2001-11-31 FPS display by QuakeForge/Muff  end
 
 /*
 ================
@@ -91,18 +99,18 @@ void Host_EndGame (char *message, ...)
 {
 	va_list		argptr;
 	char		string[1024];
-	
+
 	va_start (argptr,message);
 	vsprintf (string,message,argptr);
 	va_end (argptr);
 	Con_DPrintf ("Host_EndGame: %s\n",string);
-	
+
 	if (sv.active)
 		Host_ShutdownServer (false);
 
 	if (cls.state == ca_dedicated)
 		Sys_Error ("Host_EndGame: %s\n",string);	// dedicated servers exit
-	
+
 	if (cls.demonum != -1)
 		CL_NextDemo ();
 	else
@@ -123,23 +131,23 @@ void Host_Error (char *error, ...)
 	va_list		argptr;
 	char		string[1024];
 	static	qboolean inerror = false;
-	
+
 	if (inerror)
 		Sys_Error ("Host_Error: recursively entered");
 	inerror = true;
-	
+
 	SCR_EndLoadingPlaque ();		// reenable screen updates
 
 	va_start (argptr,error);
 	vsprintf (string,error,argptr);
 	va_end (argptr);
 	Con_Printf ("Host_Error: %s\n",string);
-	
+
 	if (sv.active)
 		Host_ShutdownServer (false);
 
 	if (cls.state == ca_dedicated)
-		Sys_Error ("Host_Error: %s\n",string);	// dedicated servers exit
+		Sys_Error ("Host_Error: %s",string);	// dedicated servers exit
 
 	CL_Disconnect ();
 	cls.demonum = -1;
@@ -159,7 +167,8 @@ void	Host_FindMaxClients (void)
 	int		i;
 
 	svs.maxclients = 1;
-		
+	svs.maxclientslimit = MAX_SCOREBOARD;	// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes
+
 	i = COM_CheckParm ("-dedicated");
 	if (i)
 	{
@@ -186,20 +195,103 @@ void	Host_FindMaxClients (void)
 	}
 	if (svs.maxclients < 1)
 		svs.maxclients = 8;
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  start
+/*
 	else if (svs.maxclients > MAX_SCOREBOARD)
 		svs.maxclients = MAX_SCOREBOARD;
 
 	svs.maxclientslimit = svs.maxclients;
+*/
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  end
 	if (svs.maxclientslimit < 4)
 		svs.maxclientslimit = 4;
+
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  start
+	if (svs.maxclientslimit > MAX_SCOREBOARD)
+		svs.maxclientslimit = MAX_SCOREBOARD;
+
+	if (svs.maxclients > svs.maxclientslimit)
+		svs.maxclients = svs.maxclientslimit;
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  end
 	svs.clients = Hunk_AllocName (svs.maxclientslimit*sizeof(client_t), "clients");
 
 	if (svs.maxclients > 1)
-		Cvar_SetValue ("deathmatch", 1.0);
+		Cvar_Set (deathmatch, "1");
 	else
-		Cvar_SetValue ("deathmatch", 0.0);
+		Cvar_Set (deathmatch, "0");
 }
 
+// 1999-09-06 deathmatch/coop not at the same time fix by Maddes  start
+void Callback_Deathmatch (cvar_t *var)
+{
+	if (var->value)
+	{
+		Cvar_Set (coop, "0");
+	}
+}
+
+void Callback_Coop (cvar_t *var)
+{
+	if (var->value)
+	{
+		Cvar_Set (deathmatch, "0");
+	}
+}
+// 1999-09-06 deathmatch/coop not at the same time fix by Maddes  end
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+=======================
+Host_InitLocal_Cvars
+======================
+*/
+void Host_InitLocal_Cvars (void)
+{
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+	host_timescale = Cvar_Get ("host_timescale", "1", CVAR_NONE);
+	Cvar_SetRangecheck (host_timescale, Cvar_RangecheckFloat, 0.0, 10.0);
+	Cvar_Set(host_timescale, host_timescale->string);	// do rangecheck
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+
+	host_framerate = Cvar_Get ("host_framerate", "0", CVAR_ORIGINAL);
+	host_speeds = Cvar_Get ("host_speeds", "0", CVAR_ORIGINAL);
+
+	sys_ticrate = Cvar_Get ("sys_ticrate", "0.05", CVAR_ORIGINAL);
+	serverprofile = Cvar_Get ("serverprofile", "0", CVAR_ORIGINAL);
+
+	fraglimit = Cvar_Get ("fraglimit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	timelimit = Cvar_Get ("timelimit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	teamplay = Cvar_Get ("teamplay", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+
+ 	samelevel = Cvar_Get ("samelevel", "0", CVAR_ORIGINAL);
+	noexit = Cvar_Get ("noexit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	skill = Cvar_Get ("skill", "1", CVAR_ORIGINAL);
+
+#ifdef QUAKE2
+	developer = Cvar_Get ("developer", "1", CVAR_ORIGINAL);	// should be 0 for release!
+#else
+	developer = Cvar_Get ("developer", "0", CVAR_ORIGINAL);
+#endif
+
+	deathmatch = Cvar_Get ("deathmatch", "0", CVAR_ORIGINAL);
+	Cvar_SetCallback (deathmatch, Callback_Deathmatch);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
+
+	coop = Cvar_Get ("coop", "0", CVAR_ORIGINAL);
+	Cvar_SetCallback (coop, Callback_Coop);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
+
+	pausable = Cvar_Get ("pausable", "1", CVAR_ORIGINAL);
+
+	temp1 = Cvar_Get ("temp1", "0", CVAR_ORIGINAL);
+
+	contact = Cvar_Get ("contact", "", CVAR_ARCHIVE);	// 2000-01-31 Contact cvar by Maddes
+
+// 2001-12-16 MAX_FPS cvar by MrG  start
+	max_fps = Cvar_Get ("max_fps", "72", CVAR_ARCHIVE);
+	Cvar_SetRangecheck (max_fps, Cvar_RangecheckInt, 10, 200);
+	Cvar_Set(max_fps, max_fps->string);	// do rangecheck
+// 2001-12-16 MAX_FPS cvar by MrG  end
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 =======================
@@ -209,29 +301,51 @@ Host_InitLocal
 void Host_InitLocal (void)
 {
 	Host_InitCommands ();
-	
-	Cvar_RegisterVariable (&host_framerate);
-	Cvar_RegisterVariable (&host_speeds);
 
-	Cvar_RegisterVariable (&sys_ticrate);
-	Cvar_RegisterVariable (&serverprofile);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+	host_timescale = Cvar_Get ("host_timescale", "1", CVAR_NONE);
+	Cvar_SetRangecheck (host_timescale, Cvar_RangecheckFloat, 0.0, 10.0);
+	Cvar_Set(host_timescale, host_timescale->string);	// do rangecheck
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
-	Cvar_RegisterVariable (&fraglimit);
-	Cvar_RegisterVariable (&timelimit);
-	Cvar_RegisterVariable (&teamplay);
-	Cvar_RegisterVariable (&samelevel);
-	Cvar_RegisterVariable (&noexit);
-	Cvar_RegisterVariable (&skill);
-	Cvar_RegisterVariable (&developer);
-	Cvar_RegisterVariable (&deathmatch);
-	Cvar_RegisterVariable (&coop);
+	host_framerate = Cvar_Get ("host_framerate", "0", CVAR_ORIGINAL);
+	host_speeds = Cvar_Get ("host_speeds", "0", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&pausable);
+	sys_ticrate = Cvar_Get ("sys_ticrate", "0.05", CVAR_ORIGINAL);
+	serverprofile = Cvar_Get ("serverprofile", "0", CVAR_ORIGINAL);
 
-	Cvar_RegisterVariable (&temp1);
+	fraglimit = Cvar_Get ("fraglimit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	timelimit = Cvar_Get ("timelimit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	teamplay = Cvar_Get ("teamplay", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+
+ 	samelevel = Cvar_Get ("samelevel", "0", CVAR_ORIGINAL);
+	noexit = Cvar_Get ("noexit", "0", CVAR_NOTIFY|CVAR_SERVERINFO|CVAR_ORIGINAL);
+	skill = Cvar_Get ("skill", "1", CVAR_ORIGINAL);
+
+#ifdef QUAKE2
+	developer = Cvar_Get ("developer", "1", CVAR_ORIGINAL);	// should be 0 for release!
+#else
+	developer = Cvar_Get ("developer", "0", CVAR_ORIGINAL);
+#endif
+
+	deathmatch = Cvar_Get ("deathmatch", "0", CVAR_ORIGINAL);
+	Cvar_SetCallback (deathmatch, Callback_Deathmatch);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
+
+	coop = Cvar_Get ("coop", "0", CVAR_ORIGINAL);
+	Cvar_SetCallback (coop, Callback_Coop);	// 1999-09-06 deathmatch/coop not at the same time fix by Maddes
+
+	pausable = Cvar_Get ("pausable", "1", CVAR_ORIGINAL);
+
+	temp1 = Cvar_Get ("temp1", "0", CVAR_ORIGINAL);
+
+	contact = Cvar_Get ("contact", "", CVAR_ARCHIVE);	// 2000-01-31 Contact cvar by Maddes
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Host_FindMaxClients ();
-	
+
 	host_time = 1.0;		// so a think at time 0 won't get called
 }
 
@@ -249,7 +363,8 @@ void Host_WriteConfiguration (void)
 
 // dedicated servers initialize the host but don't parse and set the
 // config.cfg cvars
-	if (host_initialized & !isDedicated)
+//	if (host_initialized & !isDedicated)
+	if (host_initialized && !isDedicated)	// 1999-12-24 logical correction by Maddes
 	{
 		f = fopen (va("%s/config.cfg",com_gamedir), "w");
 		if (!f)
@@ -257,11 +372,24 @@ void Host_WriteConfiguration (void)
 			Con_Printf ("Couldn't write config.cfg.\n");
 			return;
 		}
-		
+
 		Key_WriteBindings (f);
-		Cvar_WriteVariables (f);
+		Cvar_WriteVariables (f, false);	// 2001-09-18 New cvar system by Maddes
 
 		fclose (f);
+
+// 2001-09-18 New cvar system by Maddes  start
+		f = fopen (va("%s/config.rc",com_gamedir), "w");
+		if (!f)
+		{
+			Con_Printf ("Couldn't write config.rc.\n");
+			return;
+		}
+
+		Cvar_WriteVariables (f, true);	// 2001-09-18 New cvar system by Maddes
+
+		fclose (f);
+// 2001-09-18 New cvar system by Maddes  end
 	}
 }
 
@@ -270,7 +398,7 @@ void Host_WriteConfiguration (void)
 =================
 SV_ClientPrintf
 
-Sends text across to be displayed 
+Sends text across to be displayed
 FIXME: make this just a stuffed echo?
 =================
 */
@@ -278,11 +406,11 @@ void SV_ClientPrintf (char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024];
-	
+
 	va_start (argptr,fmt);
 	vsprintf (string, fmt,argptr);
 	va_end (argptr);
-	
+
 	MSG_WriteByte (&host_client->message, svc_print);
 	MSG_WriteString (&host_client->message, string);
 }
@@ -299,11 +427,11 @@ void SV_BroadcastPrintf (char *fmt, ...)
 	va_list		argptr;
 	char		string[1024];
 	int			i;
-	
+
 	va_start (argptr,fmt);
 	vsprintf (string, fmt,argptr);
 	va_end (argptr);
-	
+
 	for (i=0 ; i<svs.maxclients ; i++)
 		if (svs.clients[i].active && svs.clients[i].spawned)
 		{
@@ -323,11 +451,11 @@ void Host_ClientCommands (char *fmt, ...)
 {
 	va_list		argptr;
 	char		string[1024];
-	
+
 	va_start (argptr,fmt);
 	vsprintf (string, fmt,argptr);
 	va_end (argptr);
-	
+
 	MSG_WriteByte (&host_client->message, svc_stufftext);
 	MSG_WriteString (&host_client->message, string);
 }
@@ -354,7 +482,7 @@ void SV_DropClient (qboolean crash)
 			MSG_WriteByte (&host_client->message, svc_disconnect);
 			NET_SendMessage (host_client->netconnection, &host_client->message);
 		}
-	
+
 		if (host_client->edict && host_client->spawned)
 		{
 		// call the prog function for removing a client
@@ -502,22 +630,45 @@ qboolean Host_FilterTime (float time)
 {
 	realtime += time;
 
-	if (!cls.timedemo && realtime - oldrealtime < 1.0/72.0)
+// 2001-12-16 MAX_FPS cvar by MrG  start
+//	if (!cls.timedemo && realtime - oldrealtime < 1.0/72.0)
+	if (max_fps->value < 10) Cvar_Set(max_fps, "72");
+	if (!cls.timedemo && realtime - oldrealtime < 1.0/max_fps->value)
+// 2001-12-16 MAX_FPS cvar by MrG  end
 		return false;		// framerate is too high
 
-	host_frametime = realtime - oldrealtime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	host_frametime = realtime - oldrealtime;
+	host_cpu_frametime = realtime - oldrealtime;
+	host_org_frametime = host_cpu_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 	oldrealtime = realtime;
 
-	if (host_framerate.value > 0)
-		host_frametime = host_framerate.value;
+	if (host_framerate->value > 0)
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+	{
+//		host_frametime = host_framerate->value;
+		host_org_frametime = host_framerate->value;
+	}
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 	else
 	{	// don't allow really long or short frames
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+/*
 		if (host_frametime > 0.1)
 			host_frametime = 0.1;
 		if (host_frametime < 0.001)
 			host_frametime = 0.001;
+*/
+		if (host_org_frametime > 0.1)
+			host_org_frametime = 0.1;
+		if (host_org_frametime < 0.001)
+			host_org_frametime = 0.001;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 	}
-	
+
+	host_frametime = host_org_frametime * host_timescale->value;	// 2001-10-20 TIMESCALE extension by Tomaz/Maddes
+
 	return true;
 }
 
@@ -553,12 +704,23 @@ Host_ServerFrame
 
 void _Host_ServerFrame (void)
 {
-// run the world state	
+// run the world state
 	pr_global_struct->frametime = host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+	if (pr_global_cpu_frametime)
+	{
+		G_FLOAT(pr_global_cpu_frametime->ofs) = host_cpu_frametime;
+	}
+
+	if (pr_global_org_frametime)
+	{
+		G_FLOAT(pr_global_org_frametime->ofs) = host_org_frametime;
+	}
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 // read client messages
 	SV_RunClients ();
-	
+
 // move things around and think
 // always pause in single player if in console or menus
 	if (!sv.paused && (svs.maxclients > 1 || key_dest == key_game) )
@@ -569,13 +731,35 @@ void Host_ServerFrame (void)
 {
 	float	save_host_frametime;
 	float	temp_host_frametime;
+	int	i;		// 2000-05-02 NVS SVC by Maddes
 
-// run the world state	
+// run the world state
 	pr_global_struct->frametime = host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+	if (pr_global_cpu_frametime)
+	{
+		G_FLOAT(pr_global_cpu_frametime->ofs) = host_cpu_frametime;
+	}
+
+	if (pr_global_org_frametime)
+	{
+		G_FLOAT(pr_global_org_frametime->ofs) = host_org_frametime;
+	}
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 // set the time and clear the general datagram
 	SV_ClearDatagram ();
-	
+// 2000-05-02 NVS SVC by Maddes  start
+	// clear existing clients
+	for (i=0 ; i<svs.maxclients ; i++)
+	{
+		if (svs.clients[i].active)
+		{
+			SZ_Clear (&svs.clients[i].datagram);
+		}
+	}
+// 2000-05-02 NVS SVC by Maddes  end
+
 // check for new clients
 	SV_CheckForNewClients ();
 
@@ -599,18 +783,41 @@ void Host_ServerFrame (void)
 
 void Host_ServerFrame (void)
 {
-// run the world state	
+	int	i;		// 2000-05-02 NVS SVC by Maddes
+
+// run the world state
 	pr_global_struct->frametime = host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+	if (pr_global_cpu_frametime)
+	{
+		G_FLOAT(pr_global_cpu_frametime->ofs) = host_cpu_frametime;
+	}
+
+	if (pr_global_org_frametime)
+	{
+		G_FLOAT(pr_global_org_frametime->ofs) = host_org_frametime;
+	}
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 // set the time and clear the general datagram
 	SV_ClearDatagram ();
-	
+// 2000-05-02 NVS SVC by Maddes  start
+	// clear existing clients
+	for (i=0 ; i<svs.maxclients ; i++)
+	{
+		if (svs.clients[i].active)
+		{
+			SZ_Clear (&svs.clients[i].datagram);
+		}
+	}
+// 2000-05-02 NVS SVC by Maddes  end
+
 // check for new clients
 	SV_CheckForNewClients ();
 
 // read client messages
 	SV_RunClients ();
-	
+
 // move things around and think
 // always pause in single player if in console or menus
 	if (!sv.paused && (svs.maxclients > 1 || key_dest == key_game) )
@@ -642,11 +849,11 @@ void _Host_Frame (float time)
 
 // keep the random time dependent
 	rand ();
-	
+
 // decide the simulation time
 	if (!Host_FilterTime (time))
 		return;			// don't run too fast, or packets will flood out
-		
+
 // get new key events
 	Sys_SendKeyEvents ();
 
@@ -661,7 +868,7 @@ void _Host_Frame (float time)
 // if running the server locally, make intentions now
 	if (sv.active)
 		CL_SendCmd ();
-	
+
 //-------------------
 //
 // server operations
@@ -670,7 +877,7 @@ void _Host_Frame (float time)
 
 // check for commands typed to the host
 	Host_GetConsoleCommands ();
-	
+
 	if (sv.active)
 		Host_ServerFrame ();
 
@@ -694,14 +901,14 @@ void _Host_Frame (float time)
 	}
 
 // update video
-	if (host_speeds.value)
+	if (host_speeds->value)
 		time1 = Sys_FloatTime ();
-		
+
 	SCR_UpdateScreen ();
 
-	if (host_speeds.value)
+	if (host_speeds->value)
 		time2 = Sys_FloatTime ();
-		
+
 // update audio
 	if (cls.signon == SIGNONS)
 	{
@@ -710,10 +917,10 @@ void _Host_Frame (float time)
 	}
 	else
 		S_Update (vec3_origin, vec3_origin, vec3_origin, vec3_origin);
-	
+
 	CDAudio_Update();
 
-	if (host_speeds.value)
+	if (host_speeds->value)
 	{
 		pass1 = (time1 - time3)*1000;
 		time3 = Sys_FloatTime ();
@@ -722,8 +929,10 @@ void _Host_Frame (float time)
 		Con_Printf ("%3i tot %3i server %3i gfx %3i snd\n",
 					pass1+pass2+pass3, pass1, pass2, pass3);
 	}
-	
+
 	host_framecount++;
+
+	fps_count++;	// 2001-11-31 FPS display by QuakeForge/Muff
 }
 
 void Host_Frame (float time)
@@ -733,19 +942,19 @@ void Host_Frame (float time)
 	static int		timecount;
 	int		i, c, m;
 
-	if (!serverprofile.value)
+	if (!serverprofile->value)
 	{
 		_Host_Frame (time);
 		return;
 	}
-	
+
 	time1 = Sys_FloatTime ();
 	_Host_Frame (time);
-	time2 = Sys_FloatTime ();	
-	
+	time2 = Sys_FloatTime ();
+
 	timetotal += time2 - time1;
 	timecount++;
-	
+
 	if (timecount < 1000)
 		return;
 
@@ -773,7 +982,7 @@ void Host_InitVCR (quakeparms_t *parms)
 {
 	int		i, len, n;
 	char	*p;
-	
+
 	if (COM_CheckParm("-playback"))
 	{
 		if (com_argc != 2)
@@ -819,13 +1028,35 @@ void Host_InitVCR (quakeparms_t *parms)
 				Sys_FileWrite(vcrFile, "-playback", len);
 				continue;
 			}
-			len = Q_strlen(com_argv[i]) + 1;
+			len = strlen(com_argv[i]) + 1;
 			Sys_FileWrite(vcrFile, &len, sizeof(int));
 			Sys_FileWrite(vcrFile, com_argv[i], len);
 		}
 	}
-	
+
 }
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+void COM_Init_Cvars ();
+void Con_Init_Cvars ();
+//TW	void Key_Init_Cvars ();
+void Mod_Init_Cvars();
+void Chase_Init_Cvars ();
+void SCR_Init_Cvars ();
+void VID_Init_Cvars();
+void V_Init_Cvars();
+//TW	void M_Init_Cvars ();
+void R_Init_Cvars ();
+//TW	void Sbar_Init_Cvars ();
+void CL_Init_Cvars ();
+void S_Init_Cvars ();
+void IN_Init_Cvars ();
+void NET_Init_Cvars ();
+void Host_InitLocal_Cvars ();
+void PR_Init_Cvars();
+void Draw_Init_Cvars();
+//TW	void CDAudio_Init_Cvars();
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 ====================
@@ -834,6 +1065,7 @@ Host_Init
 */
 void Host_Init (quakeparms_t *parms)
 {
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
 
 	if (standard_quake)
 		minimum_memory = MINIMUM_MEMORY;
@@ -852,8 +1084,33 @@ void Host_Init (quakeparms_t *parms)
 	com_argv = parms->argv;
 
 	Memory_Init (parms->membase, parms->memsize);
+	Cvar_Init ();		// 2001-09-18 New cvar system by Maddes
 	Cbuf_Init ();
-	Cmd_Init ();	
+	Cmd_Init ();
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+	COM_Init_Cvars ();				// initialize all filesystem related variables
+	Con_Init_Cvars ();				// initialize all console related cvars
+//TW	Key_Init_Cvars ();				// initialize all key related cvars
+	Mod_Init_Cvars();				// initialize all model related cvars
+	Chase_Init_Cvars ();			// initialize all chase camera related cvars
+	SCR_Init_Cvars ();				// initialize all screen(?) related cvars
+	VID_Init_Cvars();				// initialize all video related cvars
+	V_Init_Cvars();					// initialize all view related cvars
+//TW	M_Init_Cvars ();				// initialize all menu related cvars
+	R_Init_Cvars ();				// initialize all rendering system related cvars
+//TW	Sbar_Init_Cvars ();				// initialize all statusbar related cvars
+	CL_Init_Cvars ();				// initialize all cl_* related cvars
+	S_Init_Cvars ();				// initialize all sound system related cvars
+	IN_Init_Cvars ();				// initialize all input related cvars
+	NET_Init_Cvars ();				// initialize all net related cvars
+	Host_InitLocal_Cvars ();		// initialize all local host related cvars
+	PR_Init_Cvars();				// initialize all pr_* related cvars
+	NVS_Init_Cvars ();				// 2000-04-30 NVS COMMON by Maddes
+	NVS_Init_Server_Cvars ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
+	NVS_Init_Client_Cvars ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 	V_Init ();
 	Chase_Init ();
 	Host_InitVCR (parms);
@@ -861,32 +1118,54 @@ void Host_Init (quakeparms_t *parms)
 	Host_InitLocal ();
 	W_LoadWadFile ("gfx.wad");
 	Key_Init ();
-	Con_Init ();	
-	M_Init ();	
+	Con_Init ();
+	M_Init ();
 	PR_Init ();
 	Mod_Init ();
 	NET_Init ();
 	SV_Init ();
+	NVS_Init ();	// 2000-04-30 NVS COMMON by Maddes
+	NVS_Init_Server ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
+	NVS_Init_Client ();		// 2000-04-30 NVS HANDSHAKE SRV<->QC/SRV<->CL by Maddes
 
 	Con_Printf ("Exe: "__TIME__" "__DATE__"\n");
 	Con_Printf ("%4.1f megabyte heap\n",parms->memsize/ (1024*1024.0));
-	
+
 	R_InitTextures ();		// needed even for dedicated servers
- 
+
 	if (cls.state != ca_dedicated)
 	{
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
 		host_basepal = (byte *)COM_LoadHunkFile ("gfx/palette.lmp");
 		if (!host_basepal)
+*/
+		fileinfo = COM_LoadHunkFile ("gfx/palette.lmp");
+		if (!fileinfo)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 			Sys_Error ("Couldn't load gfx/palette.lmp");
+		host_basepal = fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
+
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
 		host_colormap = (byte *)COM_LoadHunkFile ("gfx/colormap.lmp");
 		if (!host_colormap)
+*/
+		fileinfo = COM_LoadHunkFile ("gfx/colormap.lmp");
+		if (!fileinfo)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 			Sys_Error ("Couldn't load gfx/colormap.lmp");
+		host_colormap = fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
 
-#ifndef _WIN32 // on non win32, mouse comes before video for security reasons
+// 2000-07-28 DOSQuake input init before video init fix by Norberto Alfredo Bensa  start
+//#ifndef _WIN32 // on non win32, mouse comes before video for security reasons
+#if !defined(_WIN32) && !defined(DOSQUAKE)	// on non dos/win32, mouse comes before video for security reasons
+// 2000-07-28 DOSQuake input init before video init fix by Norberto Alfredo Bensa  end
 		IN_Init ();
 #endif
 		VID_Init (host_basepal);
 
+		Draw_Init_Cvars();	// 2001-09-18 New cvar system by Maddes (Init)
 		Draw_Init ();
 		SCR_Init ();
 		R_Init ();
@@ -902,13 +1181,22 @@ void Host_Init (quakeparms_t *parms)
 #endif
 
 #endif	// _WIN32
+//TW		CDAudio_Init_Cvars();	// 2001-09-18 New cvar system by Maddes (Init)
 		CDAudio_Init ();
 		Sbar_Init ();
 		CL_Init ();
-#ifdef _WIN32 // on non win32, mouse comes before video for security reasons
+// 2000-07-28 DOSQuake input init before video init fix by Norberto Alfredo Bensa  start
+//#ifdef _WIN32 // on non win32, mouse comes before video for security reasons
+#if defined(_WIN32) || defined(DOSQUAKE)	// on non dos/win32, mouse comes before video for security reasons
+// 2000-07-28 DOSQuake input init before video init fix by Norberto Alfredo Bensa  end
 		IN_Init ();
 #endif
 	}
+
+	Cbuf_InsertText ("exec config.rc\n");	// 2001-09-18 New cvar system by Maddes
+											// this creates all missing variables
+											// some of them will be updated by config.cfg executed in quake.rc
+											// this way you can use a non-set-compatible engine without loosing your new cvars
 
 	Cbuf_InsertText ("exec quake.rc\n");
 
@@ -916,8 +1204,8 @@ void Host_Init (quakeparms_t *parms)
 	host_hunklevel = Hunk_LowMark ();
 
 	host_initialized = true;
-	
-	Sys_Printf ("========Quake Initialized=========\n");	
+
+	Sys_Printf ("========Quake Initialized=========\n");
 }
 
 
@@ -932,7 +1220,7 @@ to run quit through here before the final handoff to the sys code.
 void Host_Shutdown(void)
 {
 	static qboolean isdown = false;
-	
+
 	if (isdown)
 	{
 		printf ("recursive shutdown\n");
@@ -943,7 +1231,7 @@ void Host_Shutdown(void)
 // keep Con_Printf from trying to update the screen
 	scr_disabled_for_loading = true;
 
-	Host_WriteConfiguration (); 
+	Host_WriteConfiguration ();
 
 	CDAudio_Shutdown ();
 	NET_Shutdown ();
@@ -955,4 +1243,3 @@ void Host_Shutdown(void)
 		VID_Shutdown();
 	}
 }
-

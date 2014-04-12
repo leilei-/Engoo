@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -21,7 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-
+cvar_t	*gl_glowmap;	// 1999-12-28 OpenGL fullbright fix by Neal White III
+cvar_t	*gl_maxdepth;	// 2002-01-31 GLQuake HOM fix by Matador
 
 /*
 ==================
@@ -35,13 +36,13 @@ void	R_InitTextures (void)
 
 // create a simple checkerboard texture for the default
 	r_notexture_mip = Hunk_AllocName (sizeof(texture_t) + 16*16+8*8+4*4+2*2, "notexture");
-	
+
 	r_notexture_mip->width = r_notexture_mip->height = 16;
 	r_notexture_mip->offsets[0] = sizeof(texture_t);
 	r_notexture_mip->offsets[1] = r_notexture_mip->offsets[0] + 16*16;
 	r_notexture_mip->offsets[2] = r_notexture_mip->offsets[1] + 8*8;
 	r_notexture_mip->offsets[3] = r_notexture_mip->offsets[2] + 4*4;
-	
+
 	for (m=0 ; m<4 ; m++)
 	{
 		dest = (byte *)r_notexture_mip + r_notexture_mip->offsets[m];
@@ -53,7 +54,7 @@ void	R_InitTextures (void)
 				else
 					*dest++ = 0xff;
 			}
-	}	
+	}
 }
 
 byte	dottexture[8][8] =
@@ -76,7 +77,7 @@ void R_InitParticleTexture (void)
 	// particle texture
 	//
 	particletexture = texture_extension_number++;
-    GL_Bind(particletexture);
+	GL_Bind(particletexture);
 
 	for (x=0 ; x<8 ; x++)
 	{
@@ -123,39 +124,39 @@ void R_Envmap_f (void)
 	GL_BeginRendering (&glx, &gly, &glwidth, &glheight);
 	R_RenderView ();
 	glReadPixels (0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	COM_WriteFile ("env0.rgb", buffer, sizeof(buffer));		
+	COM_WriteFile ("env0.rgb", buffer, sizeof(buffer));
 
 	r_refdef.viewangles[1] = 90;
 	GL_BeginRendering (&glx, &gly, &glwidth, &glheight);
 	R_RenderView ();
 	glReadPixels (0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	COM_WriteFile ("env1.rgb", buffer, sizeof(buffer));		
+	COM_WriteFile ("env1.rgb", buffer, sizeof(buffer));
 
 	r_refdef.viewangles[1] = 180;
 	GL_BeginRendering (&glx, &gly, &glwidth, &glheight);
 	R_RenderView ();
 	glReadPixels (0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	COM_WriteFile ("env2.rgb", buffer, sizeof(buffer));		
+	COM_WriteFile ("env2.rgb", buffer, sizeof(buffer));
 
 	r_refdef.viewangles[1] = 270;
 	GL_BeginRendering (&glx, &gly, &glwidth, &glheight);
 	R_RenderView ();
 	glReadPixels (0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	COM_WriteFile ("env3.rgb", buffer, sizeof(buffer));		
+	COM_WriteFile ("env3.rgb", buffer, sizeof(buffer));
 
 	r_refdef.viewangles[0] = -90;
 	r_refdef.viewangles[1] = 0;
 	GL_BeginRendering (&glx, &gly, &glwidth, &glheight);
 	R_RenderView ();
 	glReadPixels (0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	COM_WriteFile ("env4.rgb", buffer, sizeof(buffer));		
+	COM_WriteFile ("env4.rgb", buffer, sizeof(buffer));
 
 	r_refdef.viewangles[0] = 90;
 	r_refdef.viewangles[1] = 0;
 	GL_BeginRendering (&glx, &gly, &glwidth, &glheight);
 	R_RenderView ();
 	glReadPixels (0, 0, 256, 256, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-	COM_WriteFile ("env5.rgb", buffer, sizeof(buffer));		
+	COM_WriteFile ("env5.rgb", buffer, sizeof(buffer));
 
 	envmap = false;
 	glDrawBuffer  (GL_BACK);
@@ -163,51 +164,124 @@ void R_Envmap_f (void)
 	GL_EndRendering ();
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===============
+R_Init_Cvars
+===============
+*/
+void
+R_Init_Cvars (void)
+{
+	extern cvar_t	*gl_finish;
+
+	r_norefresh = Cvar_Get ("r_norefresh", "0", CVAR_ORIGINAL);
+	r_lightmap = Cvar_Get ("r_lightmap", "0", CVAR_ORIGINAL);
+	r_fullbright = Cvar_Get ("r_fullbright", "0", CVAR_ORIGINAL);
+	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ORIGINAL);
+	r_drawviewmodel = Cvar_Get ("r_drawviewmodel", "1", CVAR_ORIGINAL);
+	r_shadows = Cvar_Get ("r_shadows", "0", CVAR_ORIGINAL);
+	r_mirroralpha = Cvar_Get ("r_mirroralpha", "1", CVAR_ORIGINAL);
+	r_wateralpha = Cvar_Get ("r_wateralpha", "1", CVAR_ORIGINAL);
+	r_dynamic = Cvar_Get ("r_dynamic", "1", CVAR_ORIGINAL);
+	r_novis = Cvar_Get ("r_novis", "0", CVAR_ORIGINAL);
+	r_speeds = Cvar_Get ("r_speeds", "0", CVAR_ORIGINAL);
+	r_waterwarp = Cvar_Get ("r_waterwarp", "1", CVAR_ORIGINAL);	// 2000-01-02 Missing R_WATERWARP fix by Radix
+
+	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ORIGINAL);
+	gl_clear = Cvar_Get ("gl_clear", "0", CVAR_ORIGINAL);
+	gl_texsort = Cvar_Get ("gl_texsort", "1", CVAR_ORIGINAL);
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+	gl_glowmap = Cvar_Get ("gl_glowmap", "0", CVAR_NONE);
+	Cvar_SetRangecheck (gl_glowmap, Cvar_RangecheckBool, 0, 1);
+	Cvar_Set(gl_glowmap, gl_glowmap->string);	// do rangecheck
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
+
+ 	if (gl_mtexable)
+	{	// 1999-12-28 OpenGL fullbright fix by Neal White III
+		Cvar_Set (gl_texsort, "0");
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+		Cvar_Set (gl_glowmap, "1");
+	}
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
+
+	gl_cull = Cvar_Get ("gl_cull", "1", CVAR_ORIGINAL);
+	gl_smoothmodels = Cvar_Get ("gl_smoothmodels", "1", CVAR_ORIGINAL);
+	gl_affinemodels = Cvar_Get ("gl_affinemodels", "0", CVAR_ORIGINAL);
+	gl_polyblend = Cvar_Get ("gl_polyblend", "1", CVAR_ORIGINAL);
+	gl_flashblend = Cvar_Get ("gl_flashblend", "1", CVAR_ORIGINAL);
+	gl_playermip = Cvar_Get ("gl_playermip", "0", CVAR_ORIGINAL);
+	gl_nocolors = Cvar_Get ("gl_nocolors", "0", CVAR_ORIGINAL);
+	gl_keeptjunctions = Cvar_Get ("gl_keeptjunctions", "0", CVAR_ORIGINAL);
+	gl_reporttjunctions = Cvar_Get ("gl_reporttjunctions", "0", CVAR_ORIGINAL);
+	gl_doubleeyes = Cvar_Get ("gl_doubleeys", "1", CVAR_ORIGINAL);
+
+// 2002-01-31 GLQuake HOM fix by Matador  start
+	gl_maxdepth = Cvar_Get ("gl_maxdepth", "4096", CVAR_NONE);
+	Cvar_SetRangecheck (gl_maxdepth, Cvar_RangecheckInt, 4096, 8192);
+	Cvar_Set(gl_maxdepth, gl_maxdepth->string);	// do rangecheck
+// 2002-01-31 GLQuake HOM fix by Matador  end
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 /*
 ===============
 R_Init
 ===============
 */
 void R_Init (void)
-{	
-	extern byte *hunk_base;
-	extern cvar_t gl_finish;
+{
+	extern byte	*hunk_base;
+//	extern cvar_t	*gl_finish;	// 2001-09-18 New cvar system by Maddes (Init)
 
-	Cmd_AddCommand ("timerefresh", R_TimeRefresh_f);	
-	Cmd_AddCommand ("envmap", R_Envmap_f);	
-	Cmd_AddCommand ("pointfile", R_ReadPointFile_f);	
+	Cmd_AddCommand ("timerefresh", R_TimeRefresh_f);
+	Cmd_AddCommand ("envmap", R_Envmap_f);
+	Cmd_AddCommand ("pointfile", R_ReadPointFile_f);
 
-	Cvar_RegisterVariable (&r_norefresh);
-	Cvar_RegisterVariable (&r_lightmap);
-	Cvar_RegisterVariable (&r_fullbright);
-	Cvar_RegisterVariable (&r_drawentities);
-	Cvar_RegisterVariable (&r_drawviewmodel);
-	Cvar_RegisterVariable (&r_shadows);
-	Cvar_RegisterVariable (&r_mirroralpha);
-	Cvar_RegisterVariable (&r_wateralpha);
-	Cvar_RegisterVariable (&r_dynamic);
-	Cvar_RegisterVariable (&r_novis);
-	Cvar_RegisterVariable (&r_speeds);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	r_norefresh = Cvar_Get ("r_norefresh", "0", CVAR_ORIGINAL);
+	r_lightmap = Cvar_Get ("r_lightmap", "0", CVAR_ORIGINAL);
+	r_fullbright = Cvar_Get ("r_fullbright", "0", CVAR_ORIGINAL);
+	r_drawentities = Cvar_Get ("r_drawentities", "1", CVAR_ORIGINAL);
+	r_drawviewmodel = Cvar_Get ("r_drawviewmodel", "1", CVAR_ORIGINAL);
+	r_shadows = Cvar_Get ("r_shadows", "0", CVAR_ORIGINAL);
+	r_mirroralpha = Cvar_Get ("r_mirroralpha", "1", CVAR_ORIGINAL);
+	r_wateralpha = Cvar_Get ("r_wateralpha", "1", CVAR_ORIGINAL);
+	r_dynamic = Cvar_Get ("r_dynamic", "1", CVAR_ORIGINAL);
+	r_novis = Cvar_Get ("r_novis", "0", CVAR_ORIGINAL);
+	r_speeds = Cvar_Get ("r_speeds", "0", CVAR_ORIGINAL);
+	r_waterwarp = Cvar_Get ("r_waterwarp", "1", CVAR_ORIGINAL);	// 2000-01-02 Missing R_WATERWARP fix by Radix
 
-	Cvar_RegisterVariable (&gl_finish);
-	Cvar_RegisterVariable (&gl_clear);
-	Cvar_RegisterVariable (&gl_texsort);
+	gl_finish = Cvar_Get ("gl_finish", "0", CVAR_ORIGINAL);
+	gl_clear = Cvar_Get ("gl_clear", "0", CVAR_ORIGINAL);
+	gl_texsort = Cvar_Get ("gl_texsort", "1", CVAR_ORIGINAL);
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+	gl_glowmap = Cvar_Get ("gl_glowmap", "0", CVAR_NONE);
+	Cvar_SetRangecheck (gl_glowmap, Cvar_RangecheckBool, 0, 1);
+	Cvar_Set(gl_glowmap, gl_glowmap->string);	// do rangecheck
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
 
  	if (gl_mtexable)
-		Cvar_SetValue ("gl_texsort", 0.0);
+	{	// 1999-12-28 OpenGL fullbright fix by Neal White III
+		Cvar_Set (gl_texsort, "0");
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+		Cvar_Set (gl_glowmap, "1");
+	}
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
 
-	Cvar_RegisterVariable (&gl_cull);
-	Cvar_RegisterVariable (&gl_smoothmodels);
-	Cvar_RegisterVariable (&gl_affinemodels);
-	Cvar_RegisterVariable (&gl_polyblend);
-	Cvar_RegisterVariable (&gl_flashblend);
-	Cvar_RegisterVariable (&gl_playermip);
-	Cvar_RegisterVariable (&gl_nocolors);
-
-	Cvar_RegisterVariable (&gl_keeptjunctions);
-	Cvar_RegisterVariable (&gl_reporttjunctions);
-
-	Cvar_RegisterVariable (&gl_doubleeyes);
+	gl_cull = Cvar_Get ("gl_cull", "1", CVAR_ORIGINAL);
+	gl_smoothmodels = Cvar_Get ("gl_smoothmodels", "1", CVAR_ORIGINAL);
+	gl_affinemodels = Cvar_Get ("gl_affinemodels", "0", CVAR_ORIGINAL);
+	gl_polyblend = Cvar_Get ("gl_polyblend", "1", CVAR_ORIGINAL);
+	gl_flashblend = Cvar_Get ("gl_flashblend", "1", CVAR_ORIGINAL);
+	gl_playermip = Cvar_Get ("gl_playermip", "0", CVAR_ORIGINAL);
+	gl_nocolors = Cvar_Get ("gl_nocolors", "0", CVAR_ORIGINAL);
+	gl_keeptjunctions = Cvar_Get ("gl_keeptjunctions", "0", CVAR_ORIGINAL);
+	gl_reporttjunctions = Cvar_Get ("gl_reporttjunctions", "0", CVAR_ORIGINAL);
+	gl_doubleeyes = Cvar_Get ("gl_doubleeys", "1", CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	R_InitParticles ();
 	R_InitParticleTexture ();
@@ -257,7 +331,7 @@ void R_TranslatePlayerSkin (int playernum)
 			translate[TOP_RANGE+i] = top+i;
 		else
 			translate[TOP_RANGE+i] = top+15-i;
-				
+
 		if (bottom < 128)
 			translate[BOTTOM_RANGE+i] = bottom+i;
 		else
@@ -277,7 +351,7 @@ void R_TranslatePlayerSkin (int playernum)
 	paliashdr = (aliashdr_t *)Mod_Extradata (model);
 	s = paliashdr->skinwidth * paliashdr->skinheight;
 	if (currententity->skinnum < 0 || currententity->skinnum >= paliashdr->numskins) {
-		Con_Printf("(%d): Invalid player skin #%d\n", playernum, currententity->skinnum);
+		Con_DPrintf("(%d): Invalid player skin #%d\n", playernum, currententity->skinnum);	// 1999-12-27 Invalid skin number as developer message by Maddes
 		original = (byte *)paliashdr + paliashdr->texels[0];
 	} else
 		original = (byte *)paliashdr + paliashdr->texels[currententity->skinnum];
@@ -289,7 +363,7 @@ void R_TranslatePlayerSkin (int playernum)
 
 	// because this happens during gameplay, do it fast
 	// instead of sending it through gl_upload 8
-    GL_Bind(playertextures + playernum);
+	GL_Bind(playertextures + playernum);
 
 #if 0
 	byte	translated[320*200];
@@ -306,12 +380,12 @@ void R_TranslatePlayerSkin (int playernum)
 	// don't mipmap these, because it takes too long
 	GL_Upload8 (translated, paliashdr->skinwidth, paliashdr->skinheight, false, false, true);
 #else
-	scaled_width = gl_max_size.value < 512 ? gl_max_size.value : 512;
-	scaled_height = gl_max_size.value < 256 ? gl_max_size.value : 256;
+	scaled_width = gl_max_size->value < 512 ? gl_max_size->value : 512;
+	scaled_height = gl_max_size->value < 256 ? gl_max_size->value : 256;
 
 	// allow users to crunch sizes down even more if they want
-	scaled_width >>= (int)gl_playermip.value;
-	scaled_height >>= (int)gl_playermip.value;
+	scaled_width >>= (int)gl_playermip->value;
+	scaled_height >>= (int)gl_playermip->value;
 
 	if (VID_Is8bit()) { // 8bit texture upload
 		byte *out2;
@@ -379,7 +453,7 @@ R_NewMap
 void R_NewMap (void)
 {
 	int		i;
-	
+
 	for (i=0 ; i<256 ; i++)
 		d_lightstylevalue[i] = 264;		// normal light value
 
@@ -390,7 +464,7 @@ void R_NewMap (void)
 // FIXME: is this one short?
 	for (i=0 ; i<cl.worldmodel->numleafs ; i++)
 		cl.worldmodel->leafs[i].efrags = NULL;
-		 	
+
 	r_viewleaf = NULL;
 	R_ClearParticles ();
 
@@ -403,9 +477,9 @@ void R_NewMap (void)
 	{
 		if (!cl.worldmodel->textures[i])
 			continue;
-		if (!Q_strncmp(cl.worldmodel->textures[i]->name,"sky",3) )
+		if (!strncmp(cl.worldmodel->textures[i]->name,"sky",3) )
 			skytexturenum = i;
-		if (!Q_strncmp(cl.worldmodel->textures[i]->name,"window02_1",10) )
+		if (!strncmp(cl.worldmodel->textures[i]->name,"window02_1",10) )
 			mirrortexturenum = i;
  		cl.worldmodel->textures[i]->texturechain = NULL;
 	}

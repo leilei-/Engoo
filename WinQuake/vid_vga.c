@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -291,7 +291,7 @@ qboolean VGA_FreeAndAllocVidbuffer (viddef_t *lvid, int allocnewbuffer)
 
 	vid_surfcache = (byte *)d_pzbuffer
 		+ lvid->width * lvid->height * sizeof (*d_pzbuffer);
-	
+
 	if (allocnewbuffer)
 	{
 		lvid->buffer = (void *)( (byte *)vid_surfcache + vid_surfcachesize);
@@ -388,13 +388,13 @@ int VGA_InitMode (viddef_t *lvid, vmode_t *pcurrentmode)
 
 	VGA_ClearVideoMem (pcurrentmode->planar);
 
-	if (_vid_wait_override.value)
+	if (_vid_wait_override->value)
 	{
-		Cvar_SetValue ("vid_wait", (float)VID_WAIT_VSYNC);
+		Cvar_SetValue (vid_wait, (float)VID_WAIT_VSYNC);
 	}
 	else
 	{
-		Cvar_SetValue ("vid_wait", (float)VID_WAIT_NONE);
+		Cvar_SetValue (vid_wait, (float)VID_WAIT_NONE);
 	}
 
 	D_InitCaches (vid_surfcache, vid_surfcachesize);
@@ -470,7 +470,7 @@ void VGA_SwapBuffers (viddef_t *lvid, vmode_t *pcurrentmode, vrect_t *rects)
 {
 	UNUSED(lvid);
 
-	if (vid_wait.value == VID_WAIT_VSYNC)
+	if (vid_wait->value == VID_WAIT_VSYNC)
 		VGA_WaitVsync ();
 
 	VGA_SwapBuffersCopy (lvid, pcurrentmode, rects);

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -25,17 +25,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 int			sb_updates;		// if >= vid.numpages, no update needed
 
 #define STAT_MINUS		10	// num frame for '-' stats digit
-qpic_t		*sb_nums[2][11];
-qpic_t		*sb_colon, *sb_slash;
-qpic_t		*sb_ibar;
-qpic_t		*sb_sbar;
-qpic_t		*sb_scorebar;
+qpic_t	*sb_nums[2][11];
+qpic_t	*sb_colon, *sb_slash;
+qpic_t	*sb_ibar;
+qpic_t	*sb_sbar;
+qpic_t	*sb_scorebar;
 
-qpic_t      *sb_weapons[7][8];   // 0 is active, 1 is owned, 2-5 are flashes
-qpic_t      *sb_ammo[4];
-qpic_t		*sb_sigil[4];
-qpic_t		*sb_armor[3];
-qpic_t		*sb_items[32];
+qpic_t	*sb_weapons[7][8];   // 0 is active, 1 is owned, 2-5 are flashes
+qpic_t	*sb_ammo[4];
+qpic_t	*sb_sigil[4];
+qpic_t	*sb_armor[3];
+qpic_t	*sb_items[32];
 
 qpic_t	*sb_faces[7][2];		// 0 is gibbed, 1 is dead, 2-6 are alive
 							// 0 is static, 1 is temporary animation
@@ -48,18 +48,18 @@ qboolean	sb_showscores;
 
 int			sb_lines;			// scan lines to draw
 
-qpic_t      *rsb_invbar[2];
-qpic_t      *rsb_weapons[5];
-qpic_t      *rsb_items[2];
-qpic_t      *rsb_ammo[3];
-qpic_t      *rsb_teambord;		// PGM 01/19/97 - team color border
+qpic_t	*rsb_invbar[2];
+qpic_t	*rsb_weapons[5];
+qpic_t	*rsb_items[2];
+qpic_t	*rsb_ammo[3];
+qpic_t	*rsb_teambord;		// PGM 01/19/97 - team color border
 
 //MED 01/04/97 added two more weapons + 3 alternates for grenade launcher
-qpic_t      *hsb_weapons[7][5];   // 0 is active, 1 is owned, 2-5 are flashes
+qpic_t	*hsb_weapons[7][5];   // 0 is active, 1 is owned, 2-5 are flashes
 //MED 01/04/97 added array to simplify weapon parsing
-int         hipweapons[4] = {HIT_LASER_CANNON_BIT,HIT_MJOLNIR_BIT,4,HIT_PROXIMITY_GUN_BIT};
+int		hipweapons[4] = {HIT_LASER_CANNON_BIT,HIT_MJOLNIR_BIT,4,HIT_PROXIMITY_GUN_BIT};
 //MED 01/04/97 added hipnotic items array
-qpic_t      *hsb_items[2];
+qpic_t	*hsb_items[2];
 
 void Sbar_MiniDeathmatchOverlay (void);
 void Sbar_DeathmatchOverlay (void);
@@ -235,10 +235,10 @@ void Sbar_Init (void)
 		rsb_weapons[4] = Draw_PicFromWad ("r_plasma");
 
 		rsb_items[0] = Draw_PicFromWad ("r_shield1");
-        rsb_items[1] = Draw_PicFromWad ("r_agrav1");
+		rsb_items[1] = Draw_PicFromWad ("r_agrav1");
 
 // PGM 01/19/97 - team color border
-        rsb_teambord = Draw_PicFromWad ("r_teambord");
+		rsb_teambord = Draw_PicFromWad ("r_teambord");
 // PGM 01/19/97 - team color border
 
 		rsb_ammo[0] = Draw_PicFromWad ("r_ammolava");
@@ -579,7 +579,7 @@ void Sbar_DrawInventory (void)
 			else
 				flashon = (flashon%5) + 2;
 
-         Sbar_DrawPic (i*24, -16, sb_weapons[flashon][i]);
+			Sbar_DrawPic (i*24, -16, sb_weapons[flashon][i]);
 
 			if (flashon > 1)
 				sb_updates = 0;		// force update to remove flash
@@ -588,60 +588,60 @@ void Sbar_DrawInventory (void)
 
 // MED 01/04/97
 // hipnotic weapons
-    if (hipnotic)
-    {
-      int grenadeflashing=0;
-      for (i=0 ; i<4 ; i++)
-      {
-         if (cl.items & (1<<hipweapons[i]) )
-         {
-            time = cl.item_gettime[hipweapons[i]];
-            flashon = (int)((cl.time - time)*10);
-            if (flashon >= 10)
-            {
-               if ( cl.stats[STAT_ACTIVEWEAPON] == (1<<hipweapons[i])  )
-                  flashon = 1;
-               else
-                  flashon = 0;
-            }
-            else
-               flashon = (flashon%5) + 2;
+	if (hipnotic)
+	{
+		int grenadeflashing=0;
+		for (i=0 ; i<4 ; i++)
+		{
+			if (cl.items & (1<<hipweapons[i]) )
+			{
+				time = cl.item_gettime[hipweapons[i]];
+				flashon = (int)((cl.time - time)*10);
+				if (flashon >= 10)
+				{
+					if ( cl.stats[STAT_ACTIVEWEAPON] == (1<<hipweapons[i])  )
+						flashon = 1;
+					else
+						flashon = 0;
+					}
+				else
+					flashon = (flashon%5) + 2;
 
-            // check grenade launcher
-            if (i==2)
-            {
-               if (cl.items & HIT_PROXIMITY_GUN)
-               {
-                  if (flashon)
-                  {
-                     grenadeflashing = 1;
-                     Sbar_DrawPic (96, -16, hsb_weapons[flashon][2]);
-                  }
-               }
-            }
-            else if (i==3)
-            {
-               if (cl.items & (IT_SHOTGUN<<4))
-               {
-                  if (flashon && !grenadeflashing)
-                  {
-                     Sbar_DrawPic (96, -16, hsb_weapons[flashon][3]);
-                  }
-                  else if (!grenadeflashing)
-                  {
-                     Sbar_DrawPic (96, -16, hsb_weapons[0][3]);
-                  }
-               }
-               else
-                  Sbar_DrawPic (96, -16, hsb_weapons[flashon][4]);
-            }
-            else
-               Sbar_DrawPic (176 + (i*24), -16, hsb_weapons[flashon][i]);
-            if (flashon > 1)
-               sb_updates = 0;      // force update to remove flash
-         }
-      }
-    }
+				// check grenade launcher
+				if (i==2)
+				{
+					if (cl.items & HIT_PROXIMITY_GUN)
+					{
+						if (flashon)
+						{
+							grenadeflashing = 1;
+							Sbar_DrawPic (96, -16, hsb_weapons[flashon][2]);
+						}
+					}
+				}
+				else if (i==3)
+				{
+					if (cl.items & (IT_SHOTGUN<<4))
+					{
+						if (flashon && !grenadeflashing)
+						{
+							Sbar_DrawPic (96, -16, hsb_weapons[flashon][3]);
+						}
+						else if (!grenadeflashing)
+						{
+							Sbar_DrawPic (96, -16, hsb_weapons[0][3]);
+						}
+					}
+					else
+						Sbar_DrawPic (96, -16, hsb_weapons[flashon][4]);
+				}
+				else
+					Sbar_DrawPic (176 + (i*24), -16, hsb_weapons[flashon][i]);
+				if (flashon > 1)
+					sb_updates = 0;	// force update to remove flash
+			}
+		}
+	}
 
 	if (rogue)
 	{
@@ -671,46 +671,46 @@ void Sbar_DrawInventory (void)
 	}
 
 	flashon = 0;
-   // items
-   for (i=0 ; i<6 ; i++)
-      if (cl.items & (1<<(17+i)))
-      {
-         time = cl.item_gettime[17+i];
-         if (time && time > cl.time - 2 && flashon )
-         {  // flash frame
-            sb_updates = 0;
-         }
-         else
-         {
-         //MED 01/04/97 changed keys
-            if (!hipnotic || (i>1))
-            {
-               Sbar_DrawPic (192 + i*16, -16, sb_items[i]);
-            }
-         }
-         if (time && time > cl.time - 2)
-            sb_updates = 0;
-      }
-   //MED 01/04/97 added hipnotic items
-   // hipnotic items
-   if (hipnotic)
-   {
-      for (i=0 ; i<2 ; i++)
-         if (cl.items & (1<<(24+i)))
-         {
-            time = cl.item_gettime[24+i];
-            if (time && time > cl.time - 2 && flashon )
-            {  // flash frame
-               sb_updates = 0;
-            }
-            else
-            {
-               Sbar_DrawPic (288 + i*16, -16, hsb_items[i]);
-            }
-            if (time && time > cl.time - 2)
-               sb_updates = 0;
-         }
-   }
+	// items
+	for (i=0 ; i<6 ; i++)
+		if (cl.items & (1<<(17+i)))
+		{
+			time = cl.item_gettime[17+i];
+			if (time && time > cl.time - 2 && flashon )
+			{	// flash frame
+				sb_updates = 0;
+			}
+			else
+			{
+				//MED 01/04/97 changed keys
+				if (!hipnotic || (i>1))
+				{
+					Sbar_DrawPic (192 + i*16, -16, sb_items[i]);
+				}
+			}
+			if (time && time > cl.time - 2)
+				sb_updates = 0;
+		}
+	//MED 01/04/97 added hipnotic items
+	// hipnotic items
+	if (hipnotic)
+	{
+		for (i=0 ; i<2 ; i++)
+			if (cl.items & (1<<(24+i)))
+			{
+				time = cl.item_gettime[24+i];
+				if (time && time > cl.time - 2 && flashon )
+				{	// flash frame
+					sb_updates = 0;
+				}
+				else
+				{
+					Sbar_DrawPic (288 + i*16, -16, hsb_items[i]);
+				}
+				if (time && time > cl.time - 2)
+					sb_updates = 0;
+			}
+	}
 
 	if (rogue)
 	{
@@ -832,15 +832,15 @@ void Sbar_DrawFace (void)
 // PGM 01/19/97 - team color drawing
 // PGM 03/02/97 - fixed so color swatch only appears in CTF modes
 	if (rogue &&
-        (cl.maxclients != 1) &&
-        (teamplay.value>3) &&
-        (teamplay.value<7))
+		(cl.maxclients != 1) &&
+		(teamplay->value>3) &&
+		(teamplay->value<7))
 	{
 		int				top, bottom;
 		int				xofs;
 		char			num[12];
 		scoreboard_t	*s;
-		
+
 		s = &cl.scores[cl.viewentity - 1];
 		// draw background
 		top = s->colors & 0xf0;
@@ -876,7 +876,7 @@ void Sbar_DrawFace (void)
 			Sbar_DrawCharacter ( 116, 3, num[1]);
 			Sbar_DrawCharacter ( 123, 3, num[2]);
 		}
-		
+
 		return;
 	}
 // PGM 01/19/97 - team color drawing
@@ -935,7 +935,7 @@ void Sbar_Draw (void)
 
 	sb_updates++;
 
-	if (sb_lines && vid.width > 320) 
+	if (sb_lines && vid.width > 320)
 		Draw_TileClear (0, vid.height - sb_lines, vid.width, sb_lines);
 
 	if (sb_lines > 24)
@@ -955,16 +955,16 @@ void Sbar_Draw (void)
 	{
 		Sbar_DrawPic (0, 0, sb_sbar);
 
-   // keys (hipnotic only)
-      //MED 01/04/97 moved keys here so they would not be overwritten
-      if (hipnotic)
-      {
-         if (cl.items & IT_KEY1)
-            Sbar_DrawPic (209, 3, sb_items[0]);
-         if (cl.items & IT_KEY2)
-            Sbar_DrawPic (209, 12, sb_items[1]);
-      }
-   // armor
+		// keys (hipnotic only)
+		//MED 01/04/97 moved keys here so they would not be overwritten
+		if (hipnotic)
+		{
+			if (cl.items & IT_KEY1)
+				Sbar_DrawPic (209, 3, sb_items[0]);
+			if (cl.items & IT_KEY2)
+				Sbar_DrawPic (209, 12, sb_items[1]);
+		}
+		// armor
 		if (cl.items & IT_INVULNERABILITY)
 		{
 			Sbar_DrawNum (24, 0, 666, 3, 1);
@@ -1166,8 +1166,8 @@ Sbar_DeathmatchOverlay
 */
 void Sbar_MiniDeathmatchOverlay (void)
 {
-	qpic_t			*pic;
-	int				i, k, l;
+//	qpic_t			*pic;	// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa
+	int				i, k;	//, l	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	int				top, bottom;
 	int				x, y, f;
 	char			num[12];
@@ -1184,7 +1184,7 @@ void Sbar_MiniDeathmatchOverlay (void)
 	Sbar_SortFrags ();
 
 // draw the text
-	l = scoreboardlines;
+//	l = scoreboardlines;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	y = vid.height - sb_lines;
 	numlines = sb_lines/8;
 	if (numlines < 3)
@@ -1196,14 +1196,14 @@ void Sbar_MiniDeathmatchOverlay (void)
 			break;
 
     if (i == scoreboardlines) // we're not there
-            i = 0;
+		i = 0;
     else // figure out start
-            i = i - numlines/2;
+		i = i - numlines/2;
 
     if (i > scoreboardlines - numlines)
-            i = scoreboardlines - numlines;
+		i = scoreboardlines - numlines;
     if (i < 0)
-            i = 0;
+		i = 0;
 
 	x = 324;
 	for (/* */; i < scoreboardlines && y < vid.height - 8 ; i++)

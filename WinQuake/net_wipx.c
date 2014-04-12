@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <wsipx.h>
 #include "net_wipx.h"
 
-extern cvar_t hostname;
+extern cvar_t	*hostname;
 
 #define MAXHOSTNAMELEN		256
 
@@ -39,6 +39,24 @@ extern WSADATA		winsockdata;
 static int ipxsocket[IPXSOCKETS];
 static int sequence[IPXSOCKETS];
 
+// 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  start
+#ifdef __LCC__
+// The structure sockaddr_ipx is not in lcc includes.
+typedef struct sockaddr_ipx {
+    short sa_family;
+    char  sa_netnum[4];
+    char  sa_nodenum[6];
+    unsigned short sa_socket;
+} SOCKADDR_IPX, *PSOCKADDR_IPX,FAR *LPSOCKADDR_IPX;
+
+// Several protocol family defines are not in lcc includes.
+#define NSPROTO_IPX		1000
+#define NSPROTO_SPX		1256
+#define NSPROTO_SPXII	1257
+
+#endif
+// 2001-12-10 Compilable with LCC-Win32 by Jeff Ford  end
+
 //=============================================================================
 
 int WIPX_Init (void)
@@ -48,7 +66,7 @@ int WIPX_Init (void)
 	struct qsockaddr addr;
 	char	*p;
 	int		r;
-	WORD	wVersionRequested; 
+	WORD	wVersionRequested;
 
 	if (COM_CheckParm ("-noipx"))
 		return -1;
@@ -59,7 +77,7 @@ int WIPX_Init (void)
 
 	if (winsock_initialized == 0)
 	{
-		wVersionRequested = MAKEWORD(1, 1); 
+		wVersionRequested = MAKEWORD(1, 1);
 
 		r = pWSAStartup (MAKEWORD(1, 1), &winsockdata);
 
@@ -78,7 +96,7 @@ int WIPX_Init (void)
 	if (pgethostname(buff, MAXHOSTNAMELEN) == 0)
 	{
 		// if the quake hostname isn't set, set it to the machine name
-		if (Q_strcmp(hostname.string, "UNNAMED") == 0)
+		if (strcmp(hostname->string, "UNNAMED") == 0)
 		{
 			// see if it's a text IP address (well, close enough)
 			for (p = buff; *p; p++)
@@ -93,7 +111,7 @@ int WIPX_Init (void)
 						break;
 				buff[i] = 0;
 			}
-			Cvar_Set ("hostname", buff);
+			Cvar_Set (hostname, buff);
 		}
 	}
 
@@ -111,8 +129,8 @@ int WIPX_Init (void)
 	((struct sockaddr_ipx *)&broadcastaddr)->sa_socket = htons((unsigned short)net_hostport);
 
 	WIPX_GetSocketAddr (net_controlsocket, &addr);
-	Q_strcpy(my_ipx_address,  WIPX_AddrToString (&addr));
-	p = Q_strrchr (my_ipx_address, ':');
+	strcpy(my_ipx_address,  WIPX_AddrToString (&addr));
+	p = strrchr (my_ipx_address, ':');
 	if (p)
 		*p = 0;
 
@@ -252,7 +270,7 @@ int WIPX_Read (int handle, byte *buf, int len, struct qsockaddr *addr)
 
 	if (ret < 4)
 		return 0;
-	
+
 	// remove sequence number, it's only needed for DOS IPX
 	ret -= 4;
 	memcpy(buf, packetBuffer+4, ret);
@@ -367,7 +385,7 @@ int WIPX_GetSocketAddr (int handle, struct qsockaddr *addr)
 
 int WIPX_GetNameFromAddr (struct qsockaddr *addr, char *name)
 {
-	Q_strcpy(name, WIPX_AddrToString(addr));
+	strcpy(name, WIPX_AddrToString(addr));
 	return 0;
 }
 
@@ -378,7 +396,7 @@ int WIPX_GetAddrFromName(char *name, struct qsockaddr *addr)
 	int n;
 	char buf[32];
 
-	n = Q_strlen(name);
+	n = strlen(name);
 
 	if (n == 12)
 	{

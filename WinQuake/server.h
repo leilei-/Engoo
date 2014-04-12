@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -18,6 +18,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 // server.h
+
+// 2000-05-02 NVS SVC by Maddes  start
+typedef struct msg_version_s
+{
+	float		nvs_version;		// valid from NVS version
+	int			numwrites;			// number of write command
+	int			numbytes;			// message size in bytes for MSG_BROADCAST
+	qboolean	*conversion_tab;	// pointer to conversion table
+} msg_version_t;
+
+typedef struct msg_lookup_s
+{
+	int			cmd;		// SVC byte
+	struct msg_version_s	*version_tab;	// pointer to version table
+} msg_lookup_t;
+// 2000-05-02 NVS SVC by Maddes  end
 
 typedef struct
 {
@@ -40,10 +56,10 @@ typedef struct
 	qboolean	loadgame;			// handle connections specially
 
 	double		time;
-	
+
 	int			lastcheck;			// used by PF_checkclient
 	double		lastchecktime;
-	
+
 	char		name[64];			// map name
 #ifdef QUAKE2
 	char		startspot[64];
@@ -69,6 +85,12 @@ typedef struct
 
 	sizebuf_t	signon;
 	byte		signon_buf[8192];
+
+// 2000-05-02 NVS SVC by Maddes  start
+	msg_version_t	*nvs_msgserver;
+	msg_version_t	*nvs_msgsignon;
+	int		nvs_msgwrites;
+// 2000-05-02 NVS SVC by Maddes  end
 } server_t;
 
 
@@ -97,15 +119,29 @@ typedef struct client_s
 	edict_t			*edict;				// EDICT_NUM(clientnum+1)
 	char			name[32];			// for printing to other people
 	int				colors;
-		
+
 	float			ping_times[NUM_PING_TIMES];
 	int				num_pings;			// ping_times[num_pings%NUM_PING_TIMES]
 
 // spawn parms are carried from level to level
 	float			spawn_parms[NUM_SPAWN_PARMS];
 
-// client known data for deltas	
+// client known data for deltas
 	int				old_frags;
+
+// 2000-04-30 NVS COMMON by Maddes  start
+	float			nvs_cmax;
+	float			nvs_cclc;
+	float			nvs_csvc;
+// 2000-04-30 NVS COMMON by Maddes  end
+
+// 2000-05-02 NVS SVC by Maddes  start
+	qboolean		*nvs_msgconversion;	// pointer to conversion table
+	qboolean		nvs_msgignore;
+
+	sizebuf_t		datagram;
+	byte			datagram_buf[MAX_DATAGRAM];
+// 2000-05-02 NVS SVC by Maddes  end
 } client_t;
 
 
@@ -195,12 +231,23 @@ typedef struct client_s
 
 //============================================================================
 
-extern	cvar_t	teamplay;
-extern	cvar_t	skill;
-extern	cvar_t	deathmatch;
-extern	cvar_t	coop;
-extern	cvar_t	fraglimit;
-extern	cvar_t	timelimit;
+extern	cvar_t	*teamplay;
+extern	cvar_t	*skill;
+extern	cvar_t	*deathmatch;
+extern	cvar_t	*coop;
+extern	cvar_t	*fraglimit;
+extern	cvar_t	*timelimit;
+
+// 2001-09-20 Configurable entity limits by Maddes  start
+extern	cvar_t	*sv_entities;
+extern	cvar_t	*sv_entities_static;
+extern	cvar_t	*sv_entities_temp;
+
+extern	edict_t	**moved_edict;
+extern	vec3_t	*moved_from;
+// 2001-09-20 Configurable entity limits by Maddes  end
+
+extern	cvar_t	*sv_compatibility;	// 2001-12-24 Keeping full backwards compatibility by Maddes
 
 extern	server_static_t	svs;				// persistant server info
 extern	server_t		sv;					// local server
@@ -255,3 +302,5 @@ void SV_SpawnServer (char *server, char *startspot);
 #else
 void SV_SpawnServer (char *server);
 #endif
+
+#include "nvs_server.h"	// 2000-04-30 NVS COMMON by Maddes

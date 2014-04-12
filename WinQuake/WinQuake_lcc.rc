@@ -1,0 +1,34 @@
+/* Wedit generated resource file */
+#include <windows.h>
+#include "resource.h"
+
+IDI_ICON1 ICON DISCARDABLE "../icons/qplayer_256.ico"
+IDI_ICON2 ICON DISCARDABLE "../icons/qsymbol_16.ico"
+IDI_ICON3 ICON DISCARDABLE "../icons/qsymbol_16_alpha.ico"
+IDI_ICON4 ICON DISCARDABLE "../icons/mhquake_256.ico"
+
+IDD_DIALOG1 DIALOGEX 0, 0, 62, 21
+STYLE DS_MODALFRAME | DS_CENTER | DS_3DLOOK | DS_SETFOREGROUND | WS_POPUP
+EXSTYLE WS_EX_CLIENTEDGE | WS_EX_TOOLWINDOW
+FONT 16, "Times New Roman", 0, 0, 0x1
+BEGIN
+    CTEXT           "Starting Quake...", IDC_STATIC, 4, 6, 54, 8
+END
+
+IDD_PROGRESS DIALOGEX 0, 0, 333, 45
+STYLE DS_MODALFRAME | DS_CENTER | DS_3DLOOK | DS_SETFOREGROUND | WS_POPUP |
+    WS_VISIBLE
+EXSTYLE WS_EX_CLIENTEDGE | WS_EX_TOOLWINDOW
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "Creating 15 bit inverse palette.  This is only done once, so just be patient for the next 30-60 seconds.",
+                    IDC_STATIC, 7, 19, 319, 10
+    CONTROL         "Progress1", IDC_PROGRESS, "msctls_progress32", 0x0, 7,
+                    29, 319, 11
+    LTEXT           "Starting Quake...", IDC_STATIC, 7, 4, 54, 8
+END
+
+STRINGTABLE
+BEGIN
+    IDS_STRING1, "WinQuake"
+END

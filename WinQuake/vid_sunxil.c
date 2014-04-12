@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -17,7 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// vid_sunxil.c -- uses X to setup windows and XIL to copy images (scaled as needed) 
+// vid_sunxil.c -- uses X to setup windows and XIL to copy images (scaled as needed)
 // 		   to screen
 
 #define _BSD
@@ -46,8 +46,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MIN_WIDTH 320
 #define MIN_HEIGHT 200
 
-cvar_t		_windowed_mouse = {"_windowed_mouse","0", true};
-cvar_t		m_filter = {"m_filter","0", true};
+cvar_t	*_windowed_mouse;
+cvar_t	*m_filter;
 float old_windowed_mouse;
 
 // The following X property format is defined in Motif 1.1's
@@ -71,9 +71,9 @@ typedef struct
 
 typedef struct
 {
-    int		modenum;
-    int		iscur;
-    char	desc[256];
+	int		modenum;
+	int		iscur;
+	char	desc[256];
 } modedesc_t;
 
 extern void M_Menu_Options_f (void);
@@ -149,7 +149,7 @@ static int verbose=1;
 
 static byte current_palette[768];
 
-cvar_t pixel_multiply = {"pixel_multiply", "2", true};
+cvar_t	*pixel_multiply;
 int current_pixel_multiply = 2;
 
 #define PM(a) (int)((current_pixel_multiply)?((a)*current_pixel_multiply):(a))
@@ -224,12 +224,12 @@ qboolean CheckPixelMultiply (void)
 {
 	int m;
 	int w, h;
-	XWindowAttributes wattr;   
+	XWindowAttributes wattr;
 	XWindowChanges chg;
 	unsigned int value_mask;
 	int old_pixel;
 
-	if ((m = (int)pixel_multiply.value) != current_pixel_multiply) {
+	if ((m = (int)pixel_multiply->value) != current_pixel_multiply) {
 		if (m < 1)
 			m = 1;
 		if (m > 4)
@@ -237,8 +237,8 @@ qboolean CheckPixelMultiply (void)
 
 		old_pixel = current_pixel_multiply;
 		current_pixel_multiply = m;
-		Cvar_SetValue("pixel_multiply", m);
-		
+		Cvar_SetValue(pixel_multiply, m);
+
 		if(XGetWindowAttributes(x_disp, x_win, & wattr) == 0)
 			return true; // ???
 
@@ -256,7 +256,7 @@ qboolean CheckPixelMultiply (void)
 		vid.width = MP(wattr.width) & ~3;
 		vid.height = MP(wattr.height);
 
-		if (vid.width < 320) 
+		if (vid.width < 320)
 			vid.width = 320;
 		if (vid.height < 200)
 			vid.height = 200;
@@ -284,7 +284,7 @@ void TragicDeath(int signal_num)
 
 static Cursor CreateNullCursor(Display *display, Window root)
 {
-	Pixmap cursormask; 
+	Pixmap cursormask;
 	XGCValues xgc;
 	GC gc;
 	XColor dummycolour;
@@ -298,7 +298,7 @@ static Cursor CreateNullCursor(Display *display, Window root)
 	dummycolour.red = 0;
 	dummycolour.flags = 04;
 	cursor = XCreatePixmapCursor(display, cursormask, cursormask,
-				     &dummycolour,&dummycolour, 0,0);
+					 &dummycolour,&dummycolour, 0,0);
 	XFreePixmap(display,cursormask);
 	XFreeGC(display,gc);
 	return cursor;
@@ -308,12 +308,12 @@ static Cursor CreateNullCursor(Display *display, Window root)
 void VID_MenuDraw( void )
 {
 	qpic_t		*p;
-    char		*ptr;
-    int			i, j, column, row, dup;
-    char		temp[100];
+	char		*ptr;
+	int			i, j, column, row, dup;
+	char		temp[100];
 
-    p = Draw_CachePic ("gfx/vidmodes.lmp");
-    M_DrawPic ( (320-p->width)/2, 4, p);
+	p = Draw_CachePic ("gfx/vidmodes.lmp");
+	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_Print (4*8, 36 + MAX_COLUMN_SIZE * 8 + 8, "Video mode switching unavailable");
 	M_Print (9*8, 36 + MAX_COLUMN_SIZE * 8 + 8*6, "Press any key...");
 }
@@ -335,21 +335,21 @@ void VID_SetWindowTitle( Window win, char *pszName )
 	XTextProperty	textprop;
 	XWMHints		*wmHints;
 
-    // Setup ICCCM properties
-    textprop.value = (unsigned char *)pszName;
-    textprop.encoding = XA_STRING;
-    textprop.format = 8;
-    textprop.nitems = strlen(pszName);
-    wmHints = XAllocWMHints();
-    wmHints->initial_state = NormalState;
-    wmHints->flags = StateHint;
-    XSetWMProperties( x_disp, win, &textprop, &textprop,
+	// Setup ICCCM properties
+	textprop.value = (unsigned char *)pszName;
+	textprop.encoding = XA_STRING;
+	textprop.format = 8;
+	textprop.nitems = strlen(pszName);
+	wmHints = XAllocWMHints();
+	wmHints->initial_state = NormalState;
+	wmHints->flags = StateHint;
+	XSetWMProperties( x_disp, win, &textprop, &textprop,
 					  // Only put WM_COMMAND property on first window.
 					  com_argv, com_argc, NULL, NULL, NULL );
-    XFree( wmHints );
+	XFree( wmHints );
 
-    aWMDelete = XInternAtom( x_disp, "WM_DELETE_WINDOW", False );
-    XSetWMProtocols( x_disp, win, &aWMDelete, 1 );
+	aWMDelete = XInternAtom( x_disp, "WM_DELETE_WINDOW", False );
+	XSetWMProtocols( x_disp, win, &aWMDelete, 1 );
 }
 
 //
@@ -365,7 +365,7 @@ qboolean VID_FullScreen( Window win )
 	if (aHints == None) {
 		Con_Printf( "Could not intern X atom for _MOTIF_WM_HINTS." );
 		return( false );
-    }
+	}
 
 	hints.flags = MWM_HINTS_DECORATIONS;
 	hints.decorations = 0; // Absolutely no decorations.
@@ -380,6 +380,18 @@ qboolean VID_FullScreen( Window win )
 	return( true );
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+	pixel_multiply = Cvar_Get ("pixel_multiply", "2", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void	VID_Init (unsigned char *palette)
 {
 
@@ -390,14 +402,14 @@ void	VID_Init (unsigned char *palette)
 	int w, h;
 
 	int desired_width=320, desired_height=200;
-	
+
 	Cmd_AddCommand ("gamma", VID_Gamma_f);
 
-	Cvar_RegisterVariable (&pixel_multiply);
+//	pixel_multiply = Cvar_Get ("pixel_multiply", "2", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes (Init)
 
-	if (pipe(render_pipeline) < 0) 
+	if (pipe(render_pipeline) < 0)
 		Sys_Error("VID_Init: pipe");
-	
+
 	for (i=0 ; i<256 ; i++)
 		vid_gamma[i] = i;
 
@@ -455,10 +467,10 @@ void	VID_Init (unsigned char *palette)
 		desired_width = Q_atoi(com_argv[pnum+1]);
 		desired_height = Q_atoi(com_argv[pnum+2]);
 		if (desired_width < 1 || desired_height < 1)
-			Sys_Error("VID: Bad window width/height\n");		
+			Sys_Error("VID: Bad window width/height\n");
 	}
 
-	template_mask = VisualScreenMask; // make sure we get the right one	
+	template_mask = VisualScreenMask; // make sure we get the right one
 	template.screen = x_screen;
 //
 // specify a visual id
@@ -508,9 +520,9 @@ void	VID_Init (unsigned char *palette)
 //
 // See if we're going to do pixel multiply
 //
-	if (pixel_multiply.value < 1 || pixel_multiply.value > 4)
-		Cvar_SetValue("pixel_multiply", 2);
-	current_pixel_multiply = pixel_multiply.value;
+	if (pixel_multiply->value < 1 || pixel_multiply->value > 4)
+		Cvar_Set (pixel_multiply, "2");
+	current_pixel_multiply = pixel_multiply->value;
 
 	w = 320*current_pixel_multiply; // minimum width
 	h = 200*current_pixel_multiply; // minimum height
@@ -526,7 +538,7 @@ void	VID_Init (unsigned char *palette)
 	// patch things up so game doesn't fail if window is too small
 	//
 
-	if (vid.width < 320) 
+	if (vid.width < 320)
 		vid.width = 320;
 	if (vid.height < 200)
 		vid.height = 200;
@@ -534,7 +546,7 @@ void	VID_Init (unsigned char *palette)
 //
 // see if we're going to use threads
 //
-	if(((sysconf(_SC_NPROCESSORS_ONLN) > 1) || COM_CheckParm("-mt")) &&  
+	if(((sysconf(_SC_NPROCESSORS_ONLN) > 1) || COM_CheckParm("-mt")) &&
 		(COM_CheckParm("-no_mt") == 0)) {
 		use_mt = 1;
 		printf("VID: Using multiple threads!\n");
@@ -611,22 +623,22 @@ void	VID_Init (unsigned char *palette)
 //
 // initialize XIL
 //
-	
+
 	state = xil_open();
-	
+
 	if(state == NULL) {
 		//
 		//  XIL's default error handler will print an error msg on stderr
 		//
 		Sys_Error("xil_open failed\n");
 	}
-	
+
 	X11_active = true;
 
 	VID_ResetFramebuffer();
 
 	D_InitCaches (surfcache, sizeof(surfcache));
-	
+
 	vid_menudrawfn = VID_MenuDraw;
 	vid_menukeyfn = VID_MenuKey;
 }
@@ -650,10 +662,10 @@ VID_ResetFramebuffer()
 	quake_image = xil_create(state, vid.width, vid.height, 1, XIL_BYTE);
 
 	xil_export(quake_image);
-	
+
 	if (xil_get_memory_storage(quake_image, &storage) == FALSE)
 		Sys_Error("xil_get_memory_storage");
-	
+
 	xil_import(quake_image, TRUE);
 	xil_export(quake_image);
 
@@ -666,7 +678,7 @@ VID_ResetFramebuffer()
 	vid.conrowbytes = vid.rowbytes;
 	vid.conwidth = vid.width;
 	vid.conheight = vid.height;
-	
+
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
 	vid.recalc_refdef = 1;				// force a surface cache flush
@@ -674,7 +686,7 @@ VID_ResetFramebuffer()
 	free(d_pzbuffer);
 
 	d_pzbuffer = malloc(PM(vid.width)*PM(vid.height)*sizeof(*d_pzbuffer));
-        //Hunk_HighAllocName(PM(vid.width)*PM(vid.height)*sizeof(*d_pzbuffer),"zbuff");
+		//Hunk_HighAllocName(PM(vid.width)*PM(vid.height)*sizeof(*d_pzbuffer),"zbuff");
 }
 
 VID_ResetFramebuffer_MT()
@@ -690,11 +702,11 @@ VID_ResetFramebuffer_MT()
 	old_display_image = display_image;
 
 	display_image = xil_create_from_window(state, x_disp, x_win);
-	
-	if (quake_image == NULL) 
+
+	if (quake_image == NULL)
 		if (thr_create(NULL, NULL, update_thread, NULL, THR_NEW_LWP, NULL) != 0)
-			Sys_Error("VID: thr_create");	
-	
+			Sys_Error("VID: thr_create");
+
 	quake_image = drain_renderpipeline(quake_image);
 
 	xil_destroy(old_display_image);
@@ -784,11 +796,11 @@ int XLateKey(XKeyEvent *ev)
 		case XK_Pause:	key = K_PAUSE;		 break;
 		case XK_Shift_L:
 		case XK_Shift_R:		key = K_SHIFT;		break;
-		case XK_Control_L: 
+		case XK_Control_L:
 		case XK_Control_R:	key = K_CTRL;		 break;
-		case XK_Alt_L:	
-		case XK_Meta_L: 
-		case XK_Alt_R:	
+		case XK_Alt_L:
+		case XK_Meta_L:
+		case XK_Alt_R:
 		case XK_Meta_R: key = K_ALT;			break;
 			// various other keys on the keyboard
 				   case XK_F27: key = K_HOME; break;
@@ -806,7 +818,7 @@ int XLateKey(XKeyEvent *ev)
 		default:
 			key = (unsigned char)*buf;
 			break;
-		} 
+		}
 
 	return key;
 
@@ -840,15 +852,15 @@ void GetEvent(void)
 
 		case MotionNotify:
 
-			if (_windowed_mouse.value) {
+			if (_windowed_mouse->value) {
 				mouse_x = (float) ((int)x_event.xmotion.x - (int)(vid.width/2));
 				mouse_y = (float) ((int)x_event.xmotion.y - (int)(vid.height/2));
-	//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n", 
+	//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n",
 	//	x_event.xmotion.x, x_event.xmotion.y, mouse_x, mouse_y);
 
 				/* move the mouse to the window center again */
 				XSelectInput( x_disp, x_win, x_std_event_mask & ~PointerMotionMask );
-				XWarpPointer(x_disp,None,x_win,0,0,0,0, 
+				XWarpPointer(x_disp,None,x_win,0,0,0,0,
 					(vid.width/2),(vid.height/2));
 				XSelectInput( x_disp, x_win, x_std_event_mask );
 			} else {
@@ -882,7 +894,7 @@ void GetEvent(void)
 			if (b>=0)
 				mouse_buttonstate &= ~(1<<b);
 			break;
-		
+
 		case ConfigureNotify:
 			//			printf("config notify\n");
 			config_notify_width = x_event.xconfigure.width;
@@ -890,7 +902,7 @@ void GetEvent(void)
 			config_notify = 1;
 			sb_updates = 0;
 			break;
-		case Expose:	
+		case Expose:
 			sb_updates = 0;
 			break;
 		case ClientMessage:
@@ -908,10 +920,10 @@ void GetEvent(void)
 #endif
 	}
 
-	if (old_windowed_mouse != _windowed_mouse.value) {
-		old_windowed_mouse = _windowed_mouse.value;
+	if (old_windowed_mouse != _windowed_mouse->value) {
+		old_windowed_mouse = _windowed_mouse->value;
 
-		if (!_windowed_mouse.value) {
+		if (!_windowed_mouse->value) {
 			/* ungrab the pointer */
 			XUngrabPointer(x_disp,CurrentTime);
 		} else {
@@ -960,7 +972,7 @@ VID_Update (vrect_t *rects)
 
 		w = 320*current_pixel_multiply; // minimum width
 		h = 200*current_pixel_multiply; // minimum height
-			
+
 		if (config_notify_width < w || config_notify_height < h) {
 			// We must resize the window
 			memset(&chg, 0, sizeof(chg));
@@ -982,11 +994,11 @@ VID_Update (vrect_t *rects)
 		vid.width = MP(config_notify_width) & ~3;
 		vid.height = MP(config_notify_height);
 
-		if (vid.width < 320) 
+		if (vid.width < 320)
 			vid.width = 320;
 		if (vid.height < 200)
 			vid.height = 200;
-		
+
 		VID_ResetFramebuffer();
 
 		return;
@@ -1032,7 +1044,7 @@ VID_Update_MT (vrect_t *rects)
 
 		w = 320*current_pixel_multiply; // minimum width
 		h = 200*current_pixel_multiply; // minimum height
-			
+
 		if (config_notify_width < w || config_notify_height < h) {
 			// We must resize the window
 			memset(&chg, 0, sizeof(chg));
@@ -1054,11 +1066,11 @@ VID_Update_MT (vrect_t *rects)
 		vid.width = MP(config_notify_width) & ~3;
 		vid.height = MP(config_notify_height);
 
-		if (vid.width < 320) 
+		if (vid.width < 320)
 			vid.width = 320;
 		if (vid.height < 200)
 			vid.height = 200;
-		
+
 		VID_ResetFramebuffer_MT();
 
 		return;
@@ -1076,8 +1088,8 @@ drain_renderpipeline(XilImage old)
 	XilImage new;
 
 	XilMemoryStorage storage;
-	
-	if (old) 
+
+	if (old)
 		if (read(render_pipeline[1], &new, sizeof(new)) != sizeof (new)) {
 			Sys_Error("drain_renderpipeline: read");
 			xil_destroy(new);
@@ -1087,8 +1099,8 @@ drain_renderpipeline(XilImage old)
 
 
 	new = xil_create(state, vid.width, vid.height, 1, XIL_BYTE);
-	
-	if (write(render_pipeline[0], &new, sizeof (new)) != sizeof(new)) 
+
+	if (write(render_pipeline[0], &new, sizeof (new)) != sizeof(new))
 		Sys_Error("drain_renderpipeline: write");
 
 	new = xil_create(state, vid.width, vid.height, 1, XIL_BYTE);
@@ -1104,7 +1116,7 @@ drain_renderpipeline(XilImage old)
 	vid.conrowbytes = vid.rowbytes;
 	vid.conwidth = vid.width;
 	vid.conheight = vid.height;
-	
+
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
 	vid.recalc_refdef = 1;				// force a surface cache flush
@@ -1119,7 +1131,7 @@ sched_update(XilImage image)
 	XilImage new;
 	XilMemoryStorage storage;
 
-	if (write(render_pipeline[1], &image, sizeof(image)) != sizeof (image)) 
+	if (write(render_pipeline[1], &image, sizeof(image)) != sizeof (image))
 		Sys_Error("sched_update:write");
 
 	if (read(render_pipeline[1], &new, sizeof(new)) != sizeof (new))
@@ -1156,7 +1168,7 @@ void *update_thread()
 			xil_scale(image, display_image, "nearest",
 				  (float)current_pixel_multiply, (float)current_pixel_multiply);
 
-		if (write(render_pipeline[0], &image, sizeof (image)) != sizeof(image)) 
+		if (write(render_pipeline[0], &image, sizeof (image)) != sizeof(image))
 			Sys_Error("update_thread: write");
 	}
 }
@@ -1205,36 +1217,54 @@ void I_DisplayWindow(int window)
 void Sys_SendKeyEvents(void)
 {
 	// get events from x server
-		   if (x_disp) {
-				   while (XPending(x_disp)) GetEvent();
-				   while (keyq_head != keyq_tail) {
-						   Key_Event(keyq[keyq_tail].key, keyq[keyq_tail].down);
-						   keyq_tail = (keyq_tail + 1) & 63;
-					   }
-			   }
+	if (x_disp) {
+		while (XPending(x_disp)) GetEvent();
+		while (keyq_head != keyq_tail) {
+			Key_Event(keyq[keyq_tail].key, keyq[keyq_tail].down);
+			keyq_tail = (keyq_tail + 1) & 63;
+		}
+	}
 }
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 void IN_Init (void)
 {
-	Cvar_RegisterVariable (&_windowed_mouse);
-	Cvar_RegisterVariable (&m_filter);
-   if ( COM_CheckParm ("-nomouse") )
-     return;
-   mouse_x = mouse_y = 0.0;
-   mouse_avail = 1;
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
+	if ( COM_CheckParm ("-nomouse") )
+		return;
+	mouse_x = mouse_y = 0.0;
+	mouse_avail = 1;
 }
 
 void IN_Shutdown (void)
 {
-   mouse_avail = 0;
+	mouse_avail = 0;
 }
 
 void IN_Commands (void)
 {
 	int i;
-   
+
 	if (!mouse_avail) return;
-   
+
 	for (i=0 ; i<mouse_buttons ; i++) {
 		if ( (mouse_buttonstate & (1<<i)) && !(mouse_oldbuttonstate & (1<<i)) )
 			Key_Event (K_MOUSE1 + i, true);
@@ -1249,40 +1279,39 @@ void IN_Move (usercmd_t *cmd)
 {
 	if (!mouse_avail)
 		return;
-   
-	if (m_filter.value) {
+
+	if (m_filter->value) {
 		mouse_x = (mouse_x + old_mouse_x) * 0.5;
 		mouse_y = (mouse_y + old_mouse_y) * 0.5;
 	}
 
 	old_mouse_x = mouse_x;
 	old_mouse_y = mouse_y;
-   
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
-   
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
+
+	mouse_x *= sensitivity->value;
+	mouse_y *= sensitivity->value;
+
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-   
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1)) {
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1)) {	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
 			cl.viewangles[PITCH] = -70;
 	} else {
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
+			cmd->upmove -= m_forward->value * mouse_y;
 		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
+			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 	mouse_x = mouse_y = 0.0;
 }
 
 //void VID_UnlockBuffer(void) { }
 //void VID_LockBuffer(void) { }
-

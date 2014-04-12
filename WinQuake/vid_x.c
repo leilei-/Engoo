@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -41,8 +41,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "d_local.h"
 
-cvar_t		_windowed_mouse = {"_windowed_mouse","0", true};
-cvar_t		m_filter = {"m_filter","0", true};
+cvar_t	*_windowed_mouse;
+cvar_t	*m_filter;
 float old_windowed_mouse;
 
 qboolean        mouse_avail;
@@ -116,68 +116,68 @@ static unsigned long r_mask,g_mask,b_mask;
 
 void shiftmask_init()
 {
-    unsigned int x;
-    r_mask=x_vis->red_mask;
-    g_mask=x_vis->green_mask;
-    b_mask=x_vis->blue_mask;
-    for(r_shift=-8,x=1;x<r_mask;x=x<<1)r_shift++;
-    for(g_shift=-8,x=1;x<g_mask;x=x<<1)g_shift++;
-    for(b_shift=-8,x=1;x<b_mask;x=x<<1)b_shift++;
-    shiftmask_fl=1;
+	unsigned int x;
+	r_mask=x_vis->red_mask;
+	g_mask=x_vis->green_mask;
+	b_mask=x_vis->blue_mask;
+	for(r_shift=-8,x=1;x<r_mask;x=x<<1)r_shift++;
+	for(g_shift=-8,x=1;x<g_mask;x=x<<1)g_shift++;
+	for(b_shift=-8,x=1;x<b_mask;x=x<<1)b_shift++;
+	shiftmask_fl=1;
 }
 
 PIXEL16 xlib_rgb16(int r,int g,int b)
 {
-    PIXEL16 p;
-    if(shiftmask_fl==0) shiftmask_init();
-    p=0;
+	PIXEL16 p;
+	if(shiftmask_fl==0) shiftmask_init();
+	p=0;
 
-    if(r_shift>0) {
-        p=(r<<(r_shift))&r_mask;
-    } else if(r_shift<0) {
-        p=(r>>(-r_shift))&r_mask;
-    } else p|=(r&r_mask);
+	if(r_shift>0) {
+		p=(r<<(r_shift))&r_mask;
+	} else if(r_shift<0) {
+		p=(r>>(-r_shift))&r_mask;
+	} else p|=(r&r_mask);
 
-    if(g_shift>0) {
-        p|=(g<<(g_shift))&g_mask;
-    } else if(g_shift<0) {
-        p|=(g>>(-g_shift))&g_mask;
-    } else p|=(g&g_mask);
+	if(g_shift>0) {
+		p|=(g<<(g_shift))&g_mask;
+	} else if(g_shift<0) {
+		p|=(g>>(-g_shift))&g_mask;
+	} else p|=(g&g_mask);
 
-    if(b_shift>0) {
-        p|=(b<<(b_shift))&b_mask;
-    } else if(b_shift<0) {
-        p|=(b>>(-b_shift))&b_mask;
-    } else p|=(b&b_mask);
+	if(b_shift>0) {
+		p|=(b<<(b_shift))&b_mask;
+	} else if(b_shift<0) {
+		p|=(b>>(-b_shift))&b_mask;
+	} else p|=(b&b_mask);
 
-    return p;
+	return p;
 }
 
 PIXEL24 xlib_rgb24(int r,int g,int b)
 {
-    PIXEL24 p;
-    if(shiftmask_fl==0) shiftmask_init();
-    p=0;
+	PIXEL24 p;
+	if(shiftmask_fl==0) shiftmask_init();
+	p=0;
 
-    if(r_shift>0) {
-        p=(r<<(r_shift))&r_mask;
-    } else if(r_shift<0) {
-        p=(r>>(-r_shift))&r_mask;
-    } else p|=(r&r_mask);
+	if(r_shift>0) {
+		p=(r<<(r_shift))&r_mask;
+	} else if(r_shift<0) {
+		p=(r>>(-r_shift))&r_mask;
+	} else p|=(r&r_mask);
 
-    if(g_shift>0) {
-        p|=(g<<(g_shift))&g_mask;
-    } else if(g_shift<0) {
-        p|=(g>>(-g_shift))&g_mask;
-    } else p|=(g&g_mask);
+	if(g_shift>0) {
+		p|=(g<<(g_shift))&g_mask;
+	} else if(g_shift<0) {
+		p|=(g>>(-g_shift))&g_mask;
+	} else p|=(g&g_mask);
 
-    if(b_shift>0) {
-        p|=(b<<(b_shift))&b_mask;
-    } else if(b_shift<0) {
-        p|=(b>>(-b_shift))&b_mask;
-    } else p|=(b&b_mask);
+	if(b_shift>0) {
+		p|=(b<<(b_shift))&b_mask;
+	} else if(b_shift<0) {
+		p|=(b>>(-b_shift))&b_mask;
+	} else p|=(b&b_mask);
 
-    return p;
+	return p;
 }
 
 void st2_fixup( XImage *framebuf, int x, int y, int width, int height)
@@ -270,24 +270,24 @@ void TragicDeath(int signal_num)
 
 static Cursor CreateNullCursor(Display *display, Window root)
 {
-    Pixmap cursormask; 
-    XGCValues xgc;
-    GC gc;
-    XColor dummycolour;
-    Cursor cursor;
+	Pixmap cursormask;
+	XGCValues xgc;
+	GC gc;
+	XColor dummycolour;
+	Cursor cursor;
 
-    cursormask = XCreatePixmap(display, root, 1, 1, 1/*depth*/);
-    xgc.function = GXclear;
-    gc =  XCreateGC(display, cursormask, GCFunction, &xgc);
-    XFillRectangle(display, cursormask, gc, 0, 0, 1, 1);
-    dummycolour.pixel = 0;
-    dummycolour.red = 0;
-    dummycolour.flags = 04;
-    cursor = XCreatePixmapCursor(display, cursormask, cursormask,
-          &dummycolour,&dummycolour, 0,0);
-    XFreePixmap(display,cursormask);
-    XFreeGC(display,gc);
-    return cursor;
+	cursormask = XCreatePixmap(display, root, 1, 1, 1/*depth*/);
+	xgc.function = GXclear;
+	gc =  XCreateGC(display, cursormask, GCFunction, &xgc);
+	XFillRectangle(display, cursormask, gc, 0, 0, 1, 1);
+	dummycolour.pixel = 0;
+	dummycolour.red = 0;
+	dummycolour.flags = 04;
+	cursor = XCreatePixmapCursor(display, cursormask, cursormask,
+		  &dummycolour,&dummycolour, 0,0);
+	XFreePixmap(display,cursormask);
+	XFreeGC(display,gc);
+	return cursor;
 }
 
 void ResetFrameBuffer(void)
@@ -439,6 +439,17 @@ void ResetSharedFrameBuffers(void)
 // the palette data will go away after the call, so it must be copied off if
 // the video driver will need it again
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void	VID_Init (unsigned char *palette)
 {
 
@@ -446,7 +457,7 @@ void	VID_Init (unsigned char *palette)
    XVisualInfo template;
    int num_visuals;
    int template_mask;
-   
+
    ignorenext=0;
    vid.width = 320;
    vid.height = 200;
@@ -457,7 +468,7 @@ void	VID_Init (unsigned char *palette)
    //	vid.cbits = VID_CBITS;
    //	vid.grades = VID_GRADES;
    vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
-   
+
 	srandom(getpid());
 
 	verbose=COM_CheckParm("-verbose");
@@ -568,13 +579,13 @@ void	VID_Init (unsigned char *palette)
 	   int attribmask = CWEventMask  | CWColormap | CWBorderPixel;
 	   XSetWindowAttributes attribs;
 	   Colormap tmpcmap;
-	   
+
 	   tmpcmap = XCreateColormap(x_disp, XRootWindow(x_disp,
 							 x_visinfo->screen), x_vis, AllocNone);
-	   
-           attribs.event_mask = StructureNotifyMask | KeyPressMask
-	     | KeyReleaseMask | ExposureMask | PointerMotionMask |
-	     ButtonPressMask | ButtonReleaseMask;
+
+		   attribs.event_mask = StructureNotifyMask | KeyPressMask
+		 | KeyReleaseMask | ExposureMask | PointerMotionMask |
+		 ButtonPressMask | ButtonReleaseMask;
 	   attribs.border_pixel = 0;
 	   attribs.colormap = tmpcmap;
 
@@ -793,13 +804,13 @@ int XLateKey(XKeyEvent *ev)
 		case XK_Shift_L:
 		case XK_Shift_R:	key = K_SHIFT;		break;
 
-		case XK_Execute: 
-		case XK_Control_L: 
+		case XK_Execute:
+		case XK_Control_L:
 		case XK_Control_R:	key = K_CTRL;		 break;
 
-		case XK_Alt_L:	
-		case XK_Meta_L: 
-		case XK_Alt_R:	
+		case XK_Alt_L:
+		case XK_Meta_L:
+		case XK_Alt_R:
 		case XK_Meta_R: key = K_ALT;			break;
 
 		case XK_KP_Begin: key = K_AUX30;	break;
@@ -841,7 +852,7 @@ int XLateKey(XKeyEvent *ev)
 				key = key - 'A' + 'a';
 //			fprintf(stdout, "case 0x0%x: key = ___;break;/* [%c] */\n", keysym);
 			break;
-	} 
+	}
 
 	return key;
 }
@@ -857,12 +868,12 @@ int keyq_tail=0;
 int config_notify=0;
 int config_notify_width;
 int config_notify_height;
-						      
+
 void GetEvent(void)
 {
 	XEvent x_event;
 	int b;
-   
+
 	XNextEvent(x_disp, &x_event);
 	switch(x_event.type) {
 	case KeyPress:
@@ -877,10 +888,10 @@ void GetEvent(void)
 		break;
 
 	case MotionNotify:
-		if (_windowed_mouse.value) {
+		if (_windowed_mouse->value) {
 			mouse_x = (float) ((int)x_event.xmotion.x - (int)(vid.width/2));
 			mouse_y = (float) ((int)x_event.xmotion.y - (int)(vid.height/2));
-//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n", 
+//printf("m: x=%d,y=%d, mx=%3.2f,my=%3.2f\n",
 //	x_event.xmotion.x, x_event.xmotion.y, mouse_x, mouse_y);
 
 			/* move the mouse to the window center again */
@@ -888,7 +899,7 @@ void GetEvent(void)
 				|KeyReleaseMask|ExposureMask
 				|ButtonPressMask
 				|ButtonReleaseMask);
-			XWarpPointer(x_disp,None,x_win,0,0,0,0, 
+			XWarpPointer(x_disp,None,x_win,0,0,0,0,
 				(vid.width/2),(vid.height/2));
 			XSelectInput(x_disp,x_win,StructureNotifyMask|KeyPressMask
 				|KeyReleaseMask|ExposureMask
@@ -925,7 +936,7 @@ void GetEvent(void)
 		if (b>=0)
 			mouse_buttonstate &= ~(1<<b);
 		break;
-	
+
 	case ConfigureNotify:
 //printf("config notify\n");
 		config_notify_width = x_event.xconfigure.width;
@@ -937,11 +948,11 @@ void GetEvent(void)
 		if (doShm && x_event.type == x_shmeventtype)
 			oktodraw = true;
 	}
-   
-	if (old_windowed_mouse != _windowed_mouse.value) {
-		old_windowed_mouse = _windowed_mouse.value;
 
-		if (!_windowed_mouse.value) {
+	if (old_windowed_mouse != _windowed_mouse->value) {
+		old_windowed_mouse = _windowed_mouse->value;
+
+		if (!_windowed_mouse->value) {
 			/* ungrab the pointer */
 			XUngrabPointer(x_disp,CurrentTime);
 		} else {
@@ -996,11 +1007,11 @@ void	VID_Update (vrect_t *rects)
 		while (rects)
 		{
 			if (x_visinfo->depth == 16)
-				st2_fixup( x_framebuffer[current_framebuffer], 
+				st2_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			else if (x_visinfo->depth == 24)
-				st3_fixup( x_framebuffer[current_framebuffer], 
+				st3_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			if (!XShmPutImage(x_disp, x_win, x_gc,
@@ -1021,11 +1032,11 @@ void	VID_Update (vrect_t *rects)
 		while (rects)
 		{
 			if (x_visinfo->depth == 16)
-				st2_fixup( x_framebuffer[current_framebuffer], 
+				st2_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			else if (x_visinfo->depth == 24)
-				st3_fixup( x_framebuffer[current_framebuffer], 
+				st3_fixup( x_framebuffer[current_framebuffer],
 					rects->x, rects->y, rects->width,
 					rects->height);
 			XPutImage(x_disp, x_win, x_gc, x_framebuffer[0], rects->x,
@@ -1041,20 +1052,20 @@ static int dither;
 
 void VID_DitherOn(void)
 {
-    if (dither == 0)
-    {
+	if (dither == 0)
+	{
 		vid.recalc_refdef = 1;
-        dither = 1;
-    }
+		dither = 1;
+	}
 }
 
 void VID_DitherOff(void)
 {
-    if (dither)
-    {
+	if (dither)
+	{
 		vid.recalc_refdef = 1;
-        dither = 0;
-    }
+		dither = 0;
+	}
 }
 
 int Sys_OpenWindow(void)
@@ -1115,7 +1126,7 @@ char *Sys_ConsoleInput (void)
 	}
 
 	return 0;
-	
+
 }
 #endif
 
@@ -1129,27 +1140,45 @@ void D_EndDirectRect (int x, int y, int width, int height)
 // direct drawing of the "accessing disk" icon isn't supported under Linux
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void IN_Init (void)
 {
-	Cvar_RegisterVariable (&_windowed_mouse);
-	Cvar_RegisterVariable (&m_filter);
-   if ( COM_CheckParm ("-nomouse") )
-     return;
-   mouse_x = mouse_y = 0.0;
-   mouse_avail = 1;
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
+	if ( COM_CheckParm ("-nomouse") )
+		return;
+	mouse_x = mouse_y = 0.0;
+	mouse_avail = 1;
 }
 
 void IN_Shutdown (void)
 {
-   mouse_avail = 0;
+	mouse_avail = 0;
 }
 
 void IN_Commands (void)
 {
 	int i;
-   
+
 	if (!mouse_avail) return;
-   
+
 	for (i=0 ; i<mouse_buttons ; i++) {
 		if ( (mouse_buttonstate & (1<<i)) && !(mouse_oldbuttonstate & (1<<i)) )
 			Key_Event (K_MOUSE1 + i, true);
@@ -1164,36 +1193,36 @@ void IN_Move (usercmd_t *cmd)
 {
 	if (!mouse_avail)
 		return;
-   
-	if (m_filter.value) {
+
+	if (m_filter->value) {
 		mouse_x = (mouse_x + old_mouse_x) * 0.5;
 		mouse_y = (mouse_y + old_mouse_y) * 0.5;
 	}
 
 	old_mouse_x = mouse_x;
 	old_mouse_y = mouse_y;
-   
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
-   
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
+
+	mouse_x *= sensitivity->value;
+	mouse_y *= sensitivity->value;
+
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-   
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1)) {
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1)) {	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
 			cl.viewangles[PITCH] = -70;
 	} else {
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
+			cmd->upmove -= m_forward->value * mouse_y;
 		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
+			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 	mouse_x = mouse_y = 0.0;
 }

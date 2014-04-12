@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "r_local.h"
 
-// only the refresh window will be updated unless these variables are flagged 
+// only the refresh window will be updated unless these variables are flagged
 int			scr_copytop;
 int			scr_copyeverything;
 
@@ -30,14 +30,15 @@ float		scr_con_current;
 float		scr_conlines;		// lines of console to display
 
 float		oldscreensize, oldfov;
-cvar_t		scr_viewsize = {"viewsize","100", true};
-cvar_t		scr_fov = {"fov","90"};	// 10 - 170
-cvar_t		scr_conspeed = {"scr_conspeed","300"};
-cvar_t		scr_centertime = {"scr_centertime","2"};
-cvar_t		scr_showram = {"showram","1"};
-cvar_t		scr_showturtle = {"showturtle","0"};
-cvar_t		scr_showpause = {"showpause","1"};
-cvar_t		scr_printspeed = {"scr_printspeed","8"};
+cvar_t	*scr_viewsize;
+cvar_t	*scr_fov;	// 10 - 170
+cvar_t	*scr_conspeed;
+cvar_t	*scr_centertime;
+cvar_t	*scr_showram;
+cvar_t	*scr_showturtle;
+cvar_t	*scr_showpause;
+cvar_t	*scr_printspeed;
+cvar_t	*scr_conheight;	// 2000-01-12 Variable console height by Fett
 
 qboolean	scr_initialized;		// ready to draw
 
@@ -90,7 +91,7 @@ for a few moments
 void SCR_CenterPrint (char *str)
 {
 	strncpy (scr_centerstring, str, sizeof(scr_centerstring)-1);
-	scr_centertime_off = scr_centertime.value;
+	scr_centertime_off = scr_centertime->value;
 	scr_centertime_start = cl.time;
 
 // count the number of lines for centering
@@ -132,7 +133,7 @@ void SCR_DrawCenterString (void)
 
 // the finale prints the characters one at a time
 	if (cl.intermission)
-		remaining = scr_printspeed.value * (cl.time - scr_centertime_start);
+		remaining = scr_printspeed->value * (cl.time - scr_centertime_start);
 	else
 		remaining = 9999;
 
@@ -144,7 +145,7 @@ void SCR_DrawCenterString (void)
 	else
 		y = 48;
 
-	do	
+	do
 	{
 	// scan the width of the line
 		for (l=0 ; l<40 ; l++)
@@ -153,11 +154,11 @@ void SCR_DrawCenterString (void)
 		x = (vid.width - l*8)/2;
 		for (j=0 ; j<l ; j++, x+=8)
 		{
-			Draw_Character (x, y, start[j]);	
+			Draw_Character (x, y, start[j]);
 			if (!remaining--)
 				return;
 		}
-			
+
 		y += 8;
 
 		while (*start && *start != '\n')
@@ -175,8 +176,11 @@ void SCR_CheckDrawCenterString (void)
 	if (scr_center_lines > scr_erase_lines)
 		scr_erase_lines = scr_center_lines;
 
-	scr_centertime_off -= host_frametime;
-	
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	scr_centertime_off -= host_frametime;
+	scr_centertime_off -= host_cpu_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
+
 	if (scr_centertime_off <= 0 && !cl.intermission)
 		return;
 	if (key_dest != key_game)
@@ -194,19 +198,19 @@ CalcFov
 */
 float CalcFov (float fov_x, float width, float height)
 {
-        float   a;
-        float   x;
+	float	a;
+	float	x;
 
-        if (fov_x < 1 || fov_x > 179)
-                Sys_Error ("Bad fov: %f", fov_x);
+	if (fov_x < 1 || fov_x > 179)
+		Sys_Error ("Bad fov: %f", fov_x);
 
-        x = width/tan(fov_x/360*M_PI);
+	x = width/tan(fov_x/360*M_PI);
 
-        a = atan (height/x);
+	a = atan (height/x);
 
-        a = a*360/M_PI;
+	a = a*360/M_PI;
 
-        return a;
+	return a;
 }
 
 /*
@@ -229,27 +233,27 @@ static void SCR_CalcRefdef (void)
 	Sbar_Changed ();
 
 //========================================
-	
+
 // bound viewsize
-	if (scr_viewsize.value < 30)
-		Cvar_Set ("viewsize","30");
-	if (scr_viewsize.value > 120)
-		Cvar_Set ("viewsize","120");
+	if (scr_viewsize->value < 30)
+		Cvar_Set (scr_viewsize, "30");
+	if (scr_viewsize->value > 120)
+		Cvar_Set (scr_viewsize, "120");
 
 // bound field of view
-	if (scr_fov.value < 10)
-		Cvar_Set ("fov","10");
-	if (scr_fov.value > 170)
-		Cvar_Set ("fov","170");
+	if (scr_fov->value < 10)
+		Cvar_Set (scr_fov,"10");
+	if (scr_fov->value > 170)
+		Cvar_Set (scr_fov,"170");
 
-	r_refdef.fov_x = scr_fov.value;
+	r_refdef.fov_x = scr_fov->value;
 	r_refdef.fov_y = CalcFov (r_refdef.fov_x, r_refdef.vrect.width, r_refdef.vrect.height);
 
-// intermission is always full screen	
+// intermission is always full screen
 	if (cl.intermission)
 		size = 120;
 	else
-		size = scr_viewsize.value;
+		size = scr_viewsize->value;
 
 	if (size >= 120)
 		sb_lines = 0;		// no status bar at all
@@ -286,7 +290,7 @@ Keybinding command
 */
 void SCR_SizeUp_f (void)
 {
-	Cvar_SetValue ("viewsize",scr_viewsize.value+10);
+	Cvar_SetValue (scr_viewsize, scr_viewsize->value+10);
 	vid.recalc_refdef = 1;
 }
 
@@ -300,11 +304,35 @@ Keybinding command
 */
 void SCR_SizeDown_f (void)
 {
-	Cvar_SetValue ("viewsize",scr_viewsize.value-10);
+	Cvar_SetValue (scr_viewsize, scr_viewsize->value-10);
 	vid.recalc_refdef = 1;
 }
 
 //============================================================================
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+==================
+SCR_Init_Cvars
+==================
+*/
+void SCR_Init_Cvars (void)
+{
+ 	scr_fov = Cvar_Get ("fov", "90", CVAR_ORIGINAL);
+	scr_viewsize = Cvar_Get ("viewsize", "100", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	scr_conspeed = Cvar_Get ("scr_conspeed", "300", CVAR_ORIGINAL);
+	scr_showram = Cvar_Get ("showram", "1", CVAR_ORIGINAL);
+	scr_showturtle = Cvar_Get ("showturtle", "0", CVAR_ORIGINAL);
+	scr_showpause = Cvar_Get ("showpause", "1", CVAR_ORIGINAL);
+	scr_centertime = Cvar_Get ("scr_centertime", "2", CVAR_ORIGINAL);
+	scr_printspeed = Cvar_Get ("scr_printspeed", "8", CVAR_ORIGINAL);
+// 2000-01-12 Variable console height by Fett  start
+	scr_conheight = Cvar_Get ("scr_conheight", "0.5", CVAR_ARCHIVE);
+	Cvar_SetRangecheck (scr_conheight, Cvar_RangecheckFloat, 0, 1);
+	Cvar_Set(scr_conheight, scr_conheight->string);	// do rangecheck
+// 2000-01-12 Variable console height by Fett  end
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 /*
 ==================
@@ -313,14 +341,23 @@ SCR_Init
 */
 void SCR_Init (void)
 {
-	Cvar_RegisterVariable (&scr_fov);
-	Cvar_RegisterVariable (&scr_viewsize);
-	Cvar_RegisterVariable (&scr_conspeed);
-	Cvar_RegisterVariable (&scr_showram);
-	Cvar_RegisterVariable (&scr_showturtle);
-	Cvar_RegisterVariable (&scr_showpause);
-	Cvar_RegisterVariable (&scr_centertime);
-	Cvar_RegisterVariable (&scr_printspeed);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+ 	scr_fov = Cvar_Get ("fov", "90", CVAR_ORIGINAL);
+	scr_viewsize = Cvar_Get ("viewsize", "100", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	scr_conspeed = Cvar_Get ("scr_conspeed", "300", CVAR_ORIGINAL);
+	scr_showram = Cvar_Get ("showram", "1", CVAR_ORIGINAL);
+	scr_showturtle = Cvar_Get ("showturtle", "0", CVAR_ORIGINAL);
+	scr_showpause = Cvar_Get ("showpause", "1", CVAR_ORIGINAL);
+	scr_centertime = Cvar_Get ("scr_centertime", "2", CVAR_ORIGINAL);
+	scr_printspeed = Cvar_Get ("scr_printspeed", "8", CVAR_ORIGINAL);
+// 2000-01-12 Variable console height by Fett  start
+	scr_conheight = Cvar_Get ("scr_conheight", "0.5", CVAR_ARCHIVE);
+	Cvar_SetRangecheck (scr_conheight, Cvar_RangecheckFloat, 0, 1);
+	Cvar_Set(scr_conheight, scr_conheight->string);	// do rangecheck
+// 2000-01-12 Variable console height by Fett  end
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 //
 // register our commands
@@ -345,7 +382,7 @@ SCR_DrawRam
 */
 void SCR_DrawRam (void)
 {
-	if (!scr_showram.value)
+	if (!scr_showram->value)
 		return;
 
 	if (!r_cache_thrash)
@@ -362,11 +399,14 @@ SCR_DrawTurtle
 void SCR_DrawTurtle (void)
 {
 	static int	count;
-	
-	if (!scr_showturtle.value)
+
+	if (!scr_showturtle->value)
 		return;
 
-	if (host_frametime < 0.1)
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	if (host_frametime < 0.1)
+	if (host_cpu_frametime < 0.1)
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 	{
 		count = 0;
 		return;
@@ -394,6 +434,40 @@ void SCR_DrawNet (void)
 	Draw_Pic (scr_vrect.x+64, scr_vrect.y, scr_net);
 }
 
+// 2001-11-31 FPS display by QuakeForge/Muff  start
+/*
+==============
+SCR_DrawFPS
+==============
+*/
+//muff - hacked out of SourceForge implementation + modified
+void SCR_DrawFPS (void)
+{
+	static double lastframetime;
+	double t;
+	static int lastfps;
+	int x, y;
+	char st[80];
+
+	if (!cl_showfps->value)
+		return;
+
+	t = Sys_FloatTime ();
+	if ((t - lastframetime) >= 1.0) {
+		lastfps = fps_count;
+		fps_count = 0;
+		lastframetime = t;
+	}
+
+	sprintf(st, "%3d FPS", lastfps);
+
+	x = vid.width - strlen(st) * 16 - 16;
+	y = 0 ; //vid.height - (sb_lines * (vid.height/240) )- 16;
+//	Draw_TileClear(x, y, strlen(st)*16, 16);
+	Draw_String(x, y, st);
+}
+// 2001-11-31 FPS display by QuakeForge/Muff  end
+
 /*
 ==============
 DrawPause
@@ -403,14 +477,14 @@ void SCR_DrawPause (void)
 {
 	qpic_t	*pic;
 
-	if (!scr_showpause.value)		// turn off for screenshots
+	if (!scr_showpause->value)		// turn off for screenshots
 		return;
 
 	if (!cl.paused)
 		return;
 
 	pic = Draw_CachePic ("gfx/pause.lmp");
-	Draw_Pic ( (vid.width - pic->width)/2, 
+	Draw_Pic ( (vid.width - pic->width)/2,
 		(vid.height - 48 - pic->height)/2, pic);
 }
 
@@ -427,9 +501,9 @@ void SCR_DrawLoading (void)
 
 	if (!scr_drawloading)
 		return;
-		
+
 	pic = Draw_CachePic ("gfx/loading.lmp");
-	Draw_Pic ( (vid.width - pic->width)/2, 
+	Draw_Pic ( (vid.width - pic->width)/2,
 		(vid.height - 48 - pic->height)/2, pic);
 }
 
@@ -443,13 +517,15 @@ void SCR_DrawLoading (void)
 SCR_SetUpToDrawConsole
 ==================
 */
+extern cvar_t	*con_alpha;	// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes
+
 void SCR_SetUpToDrawConsole (void)
 {
 	Con_CheckResize ();
-	
+
 	if (scr_drawloading)
 		return;		// never a console with loading plaque
-		
+
 // decide on the height of the console
 	con_forcedup = !cl.worldmodel || cls.signon != SIGNONS;
 
@@ -459,20 +535,40 @@ void SCR_SetUpToDrawConsole (void)
 		scr_con_current = scr_conlines;
 	}
 	else if (key_dest == key_console)
-		scr_conlines = vid.height/2;	// half screen
+// 2000-01-12 Variable console height by Fett/Maddes  start
+	{
+//		scr_conlines = vid.height/2;	// half screen
+		scr_conlines = vid.height*scr_conheight->value;	// in-game console
+
+		if (scr_conlines < (3*8+8+8))		// always leave three lines visible (plus command line and border)
+		{
+			scr_conlines = (3*8+8+8);
+		}
+		if (scr_conlines >= vid.height)
+		{
+			scr_conlines = vid.height - 1;	// maximum is full screen
+		}
+	}
+// 2000-01-12 Variable console height by Fett/Maddes  end
 	else
 		scr_conlines = 0;				// none visible
-	
+
 	if (scr_conlines < scr_con_current)
 	{
-		scr_con_current -= scr_conspeed.value*host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//		scr_con_current -= scr_conspeed->value*host_frametime;
+		scr_con_current -= scr_conspeed->value*host_cpu_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 		if (scr_conlines > scr_con_current)
 			scr_con_current = scr_conlines;
 
 	}
 	else if (scr_conlines > scr_con_current)
 	{
-		scr_con_current += scr_conspeed.value*host_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//		scr_con_current += scr_conspeed->value*host_frametime;
+		scr_con_current += scr_conspeed->value*host_cpu_frametime;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 		if (scr_conlines < scr_con_current)
 			scr_con_current = scr_conlines;
 	}
@@ -480,7 +576,19 @@ void SCR_SetUpToDrawConsole (void)
 	if (clearconsole++ < vid.numpages)
 	{
 		scr_copytop = 1;
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  start
+		if (con_alpha->value == 1.0)
+		{
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  end
 		Draw_TileClear (0,(int)scr_con_current,vid.width, vid.height - (int)scr_con_current);
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  start
+		}
+		else
+		{
+			// Draw full valid screen
+			Draw_TileClear (0, 0, vid.width, vid.height );
+		}
+// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes  end
 		Sbar_Changed ();
 	}
 	else if (clearnotify++ < vid.numpages)
@@ -491,7 +599,7 @@ void SCR_SetUpToDrawConsole (void)
 	else
 		con_notifylines = 0;
 }
-	
+
 /*
 ==================
 SCR_DrawConsole
@@ -513,14 +621,14 @@ void SCR_DrawConsole (void)
 }
 
 
-/* 
-============================================================================== 
- 
-						SCREEN SHOTS 
- 
-============================================================================== 
-*/ 
- 
+/*
+==============================================================================
+
+						SCREEN SHOTS
+
+==============================================================================
+*/
+
 
 typedef struct
 {
@@ -539,25 +647,25 @@ typedef struct
     unsigned char	data;			// unbounded
 } pcx_t;
 
-/* 
-============== 
-WritePCXfile 
-============== 
-*/ 
+/*
+==============
+WritePCXfile
+==============
+*/
 void WritePCXfile (char *filename, byte *data, int width, int height,
-	int rowbytes, byte *palette) 
+	int rowbytes, byte *palette)
 {
 	int		i, j, length;
 	pcx_t	*pcx;
 	byte		*pack;
-	  
+
 	pcx = Hunk_TempAlloc (width*height*2+1000);
 	if (pcx == NULL)
 	{
 		Con_Printf("SCR_ScreenShot_f: not enough memory\n");
 		return;
-	} 
- 
+	}
+
 	pcx->manufacturer = 0x0a;	// PCX id
 	pcx->version = 5;			// 256 color
  	pcx->encoding = 1;		// uncompressed
@@ -576,7 +684,7 @@ void WritePCXfile (char *filename, byte *data, int width, int height,
 
 // pack the image
 	pack = &pcx->data;
-	
+
 	for (i=0 ; i<height ; i++)
 	{
 		for (j=0 ; j<width ; j++)
@@ -592,52 +700,52 @@ void WritePCXfile (char *filename, byte *data, int width, int height,
 
 		data += rowbytes - width;
 	}
-			
+
 // write the palette
 	*pack++ = 0x0c;	// palette ID byte
 	for (i=0 ; i<768 ; i++)
 		*pack++ = *palette++;
-		
-// write output file 
+
+// write output file
 	length = pack - (byte *)pcx;
 	COM_WriteFile (filename, pcx, length);
-} 
- 
+}
 
 
-/* 
-================== 
+
+/*
+==================
 SCR_ScreenShot_f
-================== 
-*/  
-void SCR_ScreenShot_f (void) 
-{ 
-	int     i; 
-	char		pcxname[80]; 
-	char		checkname[MAX_OSPATH];
+==================
+*/
+void SCR_ScreenShot_f (void)
+{
+	int		i;
+	char	pcxname[80];
+	char	checkname[MAX_OSPATH];
 
-// 
-// find a file name to save it to 
-// 
+//
+// find a file name to save it to
+//
 	strcpy(pcxname,"quake00.pcx");
-		
-	for (i=0 ; i<=99 ; i++) 
-	{ 
-		pcxname[5] = i/10 + '0'; 
-		pcxname[6] = i%10 + '0'; 
+
+	for (i=0 ; i<=99 ; i++)
+	{
+		pcxname[5] = i/10 + '0';
+		pcxname[6] = i%10 + '0';
 		sprintf (checkname, "%s/%s", com_gamedir, pcxname);
 		if (Sys_FileTime(checkname) == -1)
 			break;	// file doesn't exist
-	} 
-	if (i==100) 
+	}
+	if (i==100)
 	{
-		Con_Printf ("SCR_ScreenShot_f: Couldn't create a PCX file\n"); 
+		Con_Printf ("SCR_ScreenShot_f: Couldn't create a PCX file\n");
 		return;
  	}
 
-// 
-// save the pcx file 
-// 
+//
+// save the pcx file
+//
 	D_EnableBackBufferAccess ();	// enable direct drawing of console to back
 									//  buffer
 
@@ -648,7 +756,7 @@ void SCR_ScreenShot_f (void)
 									//  for linear writes all the time
 
 	Con_Printf ("Wrote %s\n", pcxname);
-} 
+}
 
 
 //=============================================================================
@@ -668,7 +776,7 @@ void SCR_BeginLoadingPlaque (void)
 		return;
 	if (cls.signon != SIGNONS)
 		return;
-	
+
 // redraw with no console and the loading plaque
 	Con_ClearNotify ();
 	scr_centertime_off = 0;
@@ -714,7 +822,7 @@ void SCR_DrawNotifyString (void)
 
 	y = vid.height*0.35;
 
-	do	
+	do
 	{
 	// scan the width of the line
 		for (l=0 ; l<40 ; l++)
@@ -722,8 +830,8 @@ void SCR_DrawNotifyString (void)
 				break;
 		x = (vid.width - l*8)/2;
 		for (j=0 ; j<l ; j++, x+=8)
-			Draw_Character (x, y, start[j]);	
-			
+			Draw_Character (x, y, start[j]);
+
 		y += 8;
 
 		while (*start && *start != '\n')
@@ -740,7 +848,7 @@ void SCR_DrawNotifyString (void)
 SCR_ModalMessage
 
 Displays a text string in the center of the screen and waits for a Y or N
-keypress.  
+keypress.
 ==================
 */
 int SCR_ModalMessage (char *text)
@@ -749,13 +857,13 @@ int SCR_ModalMessage (char *text)
 		return true;
 
 	scr_notifystring = text;
- 
+
 // draw a fresh screen
 	scr_fullupdate = 0;
 	scr_drawdialog = true;
 	SCR_UpdateScreen ();
 	scr_drawdialog = false;
-	
+
 	S_ClearBuffer ();		// so dma doesn't loop current sound
 
 	do
@@ -783,9 +891,9 @@ Brings the console down and fades the palettes back to normal
 void SCR_BringDownConsole (void)
 {
 	int		i;
-	
+
 	scr_centertime_off = 0;
-	
+
 	for (i=0 ; i<20 && scr_conlines != scr_con_current ; i++)
 		SCR_UpdateScreen ();
 
@@ -810,7 +918,7 @@ void SCR_UpdateScreen (void)
 	static float	oldscr_viewsize;
 	static float	oldlcd_x;
 	vrect_t		vrect;
-	
+
 	if (scr_skipupdate || block_drawing)
 		return;
 
@@ -834,33 +942,33 @@ void SCR_UpdateScreen (void)
 	if (!scr_initialized || !con_initialized)
 		return;				// not initialized yet
 
-	if (scr_viewsize.value != oldscr_viewsize)
+	if (scr_viewsize->value != oldscr_viewsize)
 	{
-		oldscr_viewsize = scr_viewsize.value;
+		oldscr_viewsize = scr_viewsize->value;
 		vid.recalc_refdef = 1;
 	}
-	
+
 //
 // check for vid changes
 //
-	if (oldfov != scr_fov.value)
+	if (oldfov != scr_fov->value)
 	{
-		oldfov = scr_fov.value;
+		oldfov = scr_fov->value;
 		vid.recalc_refdef = true;
 	}
-	
-	if (oldlcd_x != lcd_x.value)
+
+	if (oldlcd_x != lcd_x->value)
 	{
-		oldlcd_x = lcd_x.value;
+		oldlcd_x = lcd_x->value;
 		vid.recalc_refdef = true;
 	}
-	
-	if (oldscreensize != scr_viewsize.value)
+
+	if (oldscreensize != scr_viewsize->value)
 	{
-		oldscreensize = scr_viewsize.value;
+		oldscreensize = scr_viewsize->value;
 		vid.recalc_refdef = true;
 	}
-	
+
 	if (vid.recalc_refdef)
 	{
 	// something changed, so reorder the screen
@@ -926,6 +1034,7 @@ void SCR_UpdateScreen (void)
 		SCR_DrawRam ();
 		SCR_DrawNet ();
 		SCR_DrawTurtle ();
+		SCR_DrawFPS ();	// 2001-11-31 FPS display by QuakeForge/Muff
 		SCR_DrawPause ();
 		SCR_CheckDrawCenterString ();
 		Sbar_Draw ();
@@ -953,7 +1062,7 @@ void SCR_UpdateScreen (void)
 		vrect.width = vid.width;
 		vrect.height = vid.height;
 		vrect.pnext = 0;
-	
+
 		VID_Update (&vrect);
 	}
 	else if (scr_copytop)
@@ -963,9 +1072,9 @@ void SCR_UpdateScreen (void)
 		vrect.width = vid.width;
 		vrect.height = vid.height - sb_lines;
 		vrect.pnext = 0;
-	
+
 		VID_Update (&vrect);
-	}	
+	}
 	else
 	{
 		vrect.x = scr_vrect.x;
@@ -973,7 +1082,7 @@ void SCR_UpdateScreen (void)
 		vrect.width = scr_vrect.width;
 		vrect.height = scr_vrect.height;
 		vrect.pnext = 0;
-	
+
 		VID_Update (&vrect);
 	}
 }

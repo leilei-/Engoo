@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -50,23 +50,23 @@ void Loop_SearchForHosts (qboolean xmit)
 		return;
 
 	hostCacheCount = 1;
-	if (Q_strcmp(hostname.string, "UNNAMED") == 0)
-		Q_strcpy(hostcache[0].name, "local");
+	if (strcmp(hostname->string, "UNNAMED") == 0)
+		strcpy(hostcache[0].name, "local");
 	else
-		Q_strcpy(hostcache[0].name, hostname.string);
-	Q_strcpy(hostcache[0].map, sv.name);
+		strcpy(hostcache[0].name, hostname->string);
+	strcpy(hostcache[0].map, sv.name);
 	hostcache[0].users = net_activeconnections;
 	hostcache[0].maxusers = svs.maxclients;
 	hostcache[0].driver = net_driverlevel;
-	Q_strcpy(hostcache[0].cname, "local");
+	strcpy(hostcache[0].cname, "local");
 }
 
 
 qsocket_t *Loop_Connect (char *host)
 {
-	if (Q_strcmp(host,"local") != 0)
+	if (strcmp(host,"local") != 0)
 		return NULL;
-	
+
 	localconnectpending = true;
 
 	if (!loop_client)
@@ -76,7 +76,7 @@ qsocket_t *Loop_Connect (char *host)
 			Con_Printf("Loop_Connect: no qsocket available\n");
 			return NULL;
 		}
-		Q_strcpy (loop_client->address, "localhost");
+		strcpy (loop_client->address, "localhost");
 	}
 	loop_client->receiveMessageLength = 0;
 	loop_client->sendMessageLength = 0;
@@ -89,7 +89,7 @@ qsocket_t *Loop_Connect (char *host)
 			Con_Printf("Loop_Connect: no qsocket available\n");
 			return NULL;
 		}
-		Q_strcpy (loop_server->address, "LOCAL");
+		strcpy (loop_server->address, "LOCAL");
 	}
 	loop_server->receiveMessageLength = 0;
 	loop_server->sendMessageLength = 0;
@@ -97,8 +97,8 @@ qsocket_t *Loop_Connect (char *host)
 
 	loop_client->driverdata = (void *)loop_server;
 	loop_server->driverdata = (void *)loop_client;
-	
-	return loop_client;	
+
+	return loop_client;
 }
 
 

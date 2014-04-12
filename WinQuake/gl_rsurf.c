@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -32,7 +32,10 @@ int		lightmap_bytes;		// 1, 2, or 4
 
 int		lightmap_textures;
 
-unsigned		blocklights[18*18];
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//unsigned	blocklights[18*18];
+unsigned	blocklights[18*18*3];	// (*3 for RGB)
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 #define	BLOCK_WIDTH		128
 #define	BLOCK_HEIGHT	128
@@ -67,14 +70,18 @@ R_AddDynamicLights
 */
 void R_AddDynamicLights (msurface_t *surf)
 {
-	int			lnum;
-	int			sd, td;
+	int		lnum;
+	int		sd, td;
 	float		dist, rad, minlight;
 	vec3_t		impact, local;
-	int			s, t;
-	int			i;
-	int			smax, tmax;
+	int		s, t;
+	int		i;
+	int		smax, tmax;
 	mtexinfo_t	*tex;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+	float		cred, cgreen, cblue, brightness;
+	unsigned	*bl;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	smax = (surf->extents[0]>>4)+1;
 	tmax = (surf->extents[1]>>4)+1;
@@ -105,7 +112,15 @@ void R_AddDynamicLights (msurface_t *surf)
 
 		local[0] -= surf->texturemins[0];
 		local[1] -= surf->texturemins[1];
-		
+
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+		cred = cl_dlights[lnum].color[0] * 256.0f;
+		cgreen = cl_dlights[lnum].color[1] * 256.0f;
+		cblue = cl_dlights[lnum].color[2] * 256.0f;
+
+		bl = blocklights;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
+
 		for (t = 0 ; t<tmax ; t++)
 		{
 			td = local[1] - t*16;
@@ -121,7 +136,16 @@ void R_AddDynamicLights (msurface_t *surf)
 				else
 					dist = td + (sd>>1);
 				if (dist < minlight)
-					blocklights[t*smax + s] += (rad - dist)*256;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//					blocklights[t*smax + s] += (rad - dist)*256;
+				{
+					brightness = rad - dist;
+					bl[0] += (int) (brightness * cred);
+					bl[1] += (int) (brightness * cgreen);
+					bl[2] += (int) (brightness * cblue);
+				}
+				bl += 3;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 			}
 		}
 	}
@@ -137,13 +161,13 @@ Combine and scale multiple lightmaps into the 8.8 format in blocklights
 */
 void R_BuildLightMap (msurface_t *surf, byte *dest, int stride)
 {
-	int			smax, tmax;
-	int			t;
-	int			i, j, size;
+	int		smax, tmax;
+	int		t;
+	int		i, j, size;
 	byte		*lightmap;
 	unsigned	scale;
-	int			maps;
-	int			lightadj[4];
+	int		maps;
+	int		lightadj[4];
 	unsigned	*bl;
 
 	surf->cached_dlight = (surf->dlightframe == r_framecount);
@@ -154,27 +178,52 @@ void R_BuildLightMap (msurface_t *surf, byte *dest, int stride)
 	lightmap = surf->samples;
 
 // set to full bright if no light data
-	if (r_fullbright.value || !cl.worldmodel->lightdata)
+	if (r_fullbright->value || !cl.worldmodel->lightdata)
 	{
+		bl = blocklights;	// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes
 		for (i=0 ; i<size ; i++)
-			blocklights[i] = 255*256;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//			blocklights[i] = 255*256;
+		{
+			*bl++ = 255*256;
+			*bl++ = 255*256;
+			*bl++ = 255*256;
+		}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 		goto store;
 	}
 
 // clear to no light
+	bl = blocklights;	// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes
 	for (i=0 ; i<size ; i++)
-		blocklights[i] = 0;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//		blocklights[i] = 0;
+	{
+		*bl++ = 0;
+		*bl++ = 0;
+		*bl++ = 0;
+	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 // add all the lightmaps
 	if (lightmap)
-		for (maps = 0 ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255 ;
-			 maps++)
+		for (maps = 0 ; maps < MAXLIGHTMAPS && surf->styles[maps] != 255 ; maps++)
 		{
 			scale = d_lightstylevalue[surf->styles[maps]];
 			surf->cached_light[maps] = scale;	// 8.8 fraction
+			bl = blocklights;	// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes
 			for (i=0 ; i<size ; i++)
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 				blocklights[i] += lightmap[i] * scale;
 			lightmap += size;	// skip to next lightmap
+*/
+			{
+				*bl++ += *lightmap++ * scale;
+				*bl++ += *lightmap++ * scale;
+				*bl++ += *lightmap++ * scale;
+			}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 		}
 
 // add all the dynamic lights
@@ -192,12 +241,33 @@ store:
 		{
 			for (j=0 ; j<smax ; j++)
 			{
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 				t = *bl++;
 				t >>= 7;
 				if (t > 255)
 					t = 255;
 				dest[3] = 255-t;
 				dest += 4;
+*/
+				// positive lighting (would be 255-t if it were inverse like glquake was)
+				t = *bl++ >> 7;
+				if (t > 255)
+					t = 255;
+				*dest++ = t;
+
+				t = *bl++ >> 7;
+				if (t > 255)
+					t = 255;
+				*dest++ = t;
+
+				t = *bl++ >> 7;
+				if (t > 255)
+					t = 255;
+				*dest++ = t;
+
+				*dest++ = 255;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 			}
 		}
 		break;
@@ -209,8 +279,14 @@ store:
 		{
 			for (j=0 ; j<smax ; j++)
 			{
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 				t = *bl++;
 				t >>= 7;
+*/
+				t = ((bl[0] + bl[1] + bl[2]) * 85) >> 15;	// basically / 3, but faster and combined with >> 7 shift down, note: actual number would be 85.3333...
+				bl += 3;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 				if (t > 255)
 					t = 255;
 				dest[j] = 255-t;
@@ -240,13 +316,13 @@ texture_t *R_TextureAnimation (texture_t *base)
 		if (base->alternate_anims)
 			base = base->alternate_anims;
 	}
-	
+
 	if (!base->anim_total)
 		return base;
 
 	reletive = (int)(cl.time*10) % base->anim_total;
 
-	count = 0;	
+	count = 0;
 	while (base->anim_min > reletive || base->anim_max <= reletive)
 	{
 		base = base->anim_next;
@@ -283,7 +359,7 @@ qboolean mtexenabled = false;
 
 void GL_SelectTexture (GLenum target);
 
-void GL_DisableMultitexture(void) 
+void GL_DisableMultitexture(void)
 {
 	if (mtexenabled) {
 		glDisable(GL_TEXTURE_2D);
@@ -292,7 +368,7 @@ void GL_DisableMultitexture(void)
 	}
 }
 
-void GL_EnableMultitexture(void) 
+void GL_EnableMultitexture(void)
 {
 	if (gl_mtexable) {
 		GL_SelectTexture(TEXTURE1_SGIS);
@@ -320,7 +396,10 @@ void R_DrawSequentialPoly (msurface_t *s)
 	//
 	// normal lightmaped poly
 	//
-	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWTURB|SURF_UNDERWATER) ) )
+// 2000-01-02 Missing R_WATERWARP fix by Radix  start
+//	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWTURB|SURF_UNDERWATER) ) )
+	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWTURB|(r_waterwarp->value ? SURF_UNDERWATER : 0)) ) )
+// 2000-01-02 Missing R_WATERWARP fix by Radix  end
 	{
 		p = s->polys;
 
@@ -421,11 +500,14 @@ void R_DrawSequentialPoly (msurface_t *s)
 	//
 	// normal lightmaped poly
 	//
-
-	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWTURB|SURF_UNDERWATER) ) )
+// 2000-01-02 Missing R_WATERWARP fix by Radix  start
+//	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWTURB|SURF_UNDERWATER) ) )
+	if (! (s->flags & (SURF_DRAWSKY|SURF_DRAWTURB|(r_waterwarp->value ? SURF_UNDERWATER : 0)) ) )
+// 2000-01-02 Missing R_WATERWARP fix by Radix  end
 	{
 		R_RenderDynamicLightmaps (s);
-		if (gl_mtexable) {
+		if (gl_mtexable)
+		{
 			p = s->polys;
 
 			t = R_TextureAnimation (s->texinfo->texture);
@@ -441,7 +523,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 			{
 				lightmap_modified[i] = false;
 				theRect = &lightmap_rectchange[i];
-				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t, 
+				glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t,
 					BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
 					lightmaps+(i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
 				theRect->l = BLOCK_WIDTH;
@@ -449,6 +531,11 @@ void R_DrawSequentialPoly (msurface_t *s)
 				theRect->h = 0;
 				theRect->w = 0;
 			}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+			if (gl_lightmap_format == GL_RGBA)
+				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);	// not inverse lighting
+			else
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 			glBegin(GL_POLYGON);
 			v = p->verts[0];
@@ -459,8 +546,38 @@ void R_DrawSequentialPoly (msurface_t *s)
 				glVertex3fv (v);
 			}
 			glEnd ();
-			return;
-		} else {
+
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+			if (t->flags & FLAG_HAS_GLOWMAP)
+			{
+				GL_DisableMultitexture();
+				GL_Bind (t->gl_glowtexnum);
+
+				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+				glEnable (GL_BLEND);
+				glBlendFunc (GL_ONE, GL_ONE);
+
+				glBegin (GL_POLYGON);
+				v = p->verts[0];
+				for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
+				{
+					glTexCoord2f (v[3], v[4]);
+					glVertex3fv (v);
+				}
+				glEnd ();
+
+				// restore it to Quake's default
+				glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+				glDisable (GL_BLEND);
+			}
+
+//			return;
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
+		}
+		else
+		{
 			p = s->polys;
 
 			t = R_TextureAnimation (s->texinfo->texture);
@@ -487,7 +604,6 @@ void R_DrawSequentialPoly (msurface_t *s)
 
 			glDisable (GL_BLEND);
 		}
-
 		return;
 	}
 
@@ -529,7 +645,8 @@ void R_DrawSequentialPoly (msurface_t *s)
 	// underwater warped with lightmap
 	//
 	R_RenderDynamicLightmaps (s);
-	if (gl_mtexable) {
+	if (gl_mtexable)
+	{
 		p = s->polys;
 
 		t = R_TextureAnimation (s->texinfo->texture);
@@ -543,7 +660,7 @@ void R_DrawSequentialPoly (msurface_t *s)
 		{
 			lightmap_modified[i] = false;
 			theRect = &lightmap_rectchange[i];
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t, 
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t,
 				BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
 				lightmaps+(i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
 			theRect->l = BLOCK_WIDTH;
@@ -551,6 +668,11 @@ void R_DrawSequentialPoly (msurface_t *s)
 			theRect->h = 0;
 			theRect->w = 0;
 		}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+		if (gl_lightmap_format == GL_RGBA)
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);	// not inverse lighting
+		else
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_BLEND);
 		glBegin (GL_TRIANGLE_FAN);
 		v = p->verts[0];
@@ -567,7 +689,45 @@ void R_DrawSequentialPoly (msurface_t *s)
 		}
 		glEnd ();
 
-	} else {
+// 1999-12-28 OpenGL fullbright fix by Neal White III  start
+		if (t->flags & FLAG_HAS_GLOWMAP)
+		{
+			GL_DisableMultitexture();
+			GL_Bind (t->gl_glowtexnum);
+
+			glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+
+			glEnable (GL_BLEND);
+			glBlendFunc (GL_ONE, GL_ONE);
+
+			glBegin (GL_POLYGON);
+			v = p->verts[0];
+			for (i=0 ; i<p->numverts ; i++, v+= VERTEXSIZE)
+			{
+				glTexCoord2f (v[3], v[4]);
+
+				// Neal - DON'T DELETE - leaves unmoving glowmap on top
+				// I think this is a clue to the "underwater cracks" bug
+				//
+				//glVertex3fv (v);
+
+				nv[0] = v[0] + 8*sin(v[1]*0.05+realtime)*sin(v[2]*0.05+realtime);
+				nv[1] = v[1] + 8*sin(v[0]*0.05+realtime)*sin(v[2]*0.05+realtime);
+				nv[2] = v[2];
+
+				glVertex3fv (nv);
+			}
+			glEnd ();
+
+			// restore it to Quake's default
+			glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			glDisable (GL_BLEND);
+		}
+// 1999-12-28 OpenGL fullbright fix by Neal White III  end
+	}
+	else
+	{
 		p = s->polys;
 
 		t = R_TextureAnimation (s->texinfo->texture);
@@ -671,9 +831,9 @@ void R_BlendLightmaps (void)
 	float		*v;
 	glRect_t	*theRect;
 
-	if (r_fullbright.value)
+	if (r_fullbright->value)
 		return;
-	if (!gl_texsort.value)
+	if (!gl_texsort->value)
 		return;
 
 	glDepthMask (0);		// don't bother writing Z
@@ -686,8 +846,22 @@ void R_BlendLightmaps (void)
 		glColor4f (0,0,0,1);
 		glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+	else if (gl_lightmap_format == GL_RGBA)
+	{
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+		glColor3f (1,1,1);
+		glBlendFunc(GL_ZERO, GL_SRC_COLOR);
+	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
+// 2000-05-02 White effect fix by QSG  start
+	else
+	{
+		glBlendFunc (GL_ZERO, GL_ONE_MINUS_SRC_COLOR);
+	}
+// 2000-05-02 White effect fix by QSG  end
 
-	if (!r_lightmap.value)
+	if (!r_lightmap->value)
 	{
 		glEnable (GL_BLEND);
 	}
@@ -703,12 +877,12 @@ void R_BlendLightmaps (void)
 			lightmap_modified[i] = false;
 			theRect = &lightmap_rectchange[i];
 //			glTexImage2D (GL_TEXTURE_2D, 0, lightmap_bytes
-//			, BLOCK_WIDTH, BLOCK_HEIGHT, 0, 
+//			, BLOCK_WIDTH, BLOCK_HEIGHT, 0,
 //			gl_lightmap_format, GL_UNSIGNED_BYTE, lightmaps+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 //			glTexImage2D (GL_TEXTURE_2D, 0, lightmap_bytes
-//				, BLOCK_WIDTH, theRect->h, 0, 
+//				, BLOCK_WIDTH, theRect->h, 0,
 //				gl_lightmap_format, GL_UNSIGNED_BYTE, lightmaps+(i*BLOCK_HEIGHT+theRect->t)*BLOCK_WIDTH*lightmap_bytes);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t, 
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, theRect->t,
 				BLOCK_WIDTH, theRect->h, gl_lightmap_format, GL_UNSIGNED_BYTE,
 				lightmaps+(i* BLOCK_HEIGHT + theRect->t) *BLOCK_WIDTH*lightmap_bytes);
 			theRect->l = BLOCK_WIDTH;
@@ -742,6 +916,18 @@ void R_BlendLightmaps (void)
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		glColor4f (1,1,1,1);
 	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+	else if (gl_lightmap_format == GL_RGBA)
+	{
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
+// 2000-05-02 White effect fix by QSG  start
+	else
+	{
+		glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
+// 2000-05-02 White effect fix by QSG  end
 
 	glDepthMask (1);		// back to normal Z buffering
 }
@@ -756,7 +942,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 	texture_t	*t;
 	byte		*base;
 	int			maps;
-	glRect_t    *theRect;
+	glRect_t	*theRect;
 	int smax, tmax;
 
 	c_brush_polys++;
@@ -766,7 +952,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 		EmitBothSkyLayers (fa);
 		return;
 	}
-		
+
 	t = R_TextureAnimation (fa->texinfo->texture);
 	GL_Bind (t->gl_texturenum);
 
@@ -796,7 +982,7 @@ void R_RenderBrushPoly (msurface_t *fa)
 		|| fa->cached_dlight)			// dynamic previously
 	{
 dynamic:
-		if (r_dynamic.value)
+		if (r_dynamic->value)
 		{
 			lightmap_modified[fa->lightmaptexturenum] = true;
 			theRect = &lightmap_rectchange[fa->lightmaptexturenum];
@@ -834,14 +1020,14 @@ void R_RenderDynamicLightmaps (msurface_t *fa)
 	texture_t	*t;
 	byte		*base;
 	int			maps;
-	glRect_t    *theRect;
+	glRect_t	*theRect;
 	int smax, tmax;
 
 	c_brush_polys++;
 
 	if (fa->flags & ( SURF_DRAWSKY | SURF_DRAWTURB) )
 		return;
-		
+
 	fa->polys->chain = lightmap_polys[fa->lightmaptexturenum];
 	lightmap_polys[fa->lightmaptexturenum] = fa->polys;
 
@@ -855,7 +1041,7 @@ void R_RenderDynamicLightmaps (msurface_t *fa)
 		|| fa->cached_dlight)			// dynamic previously
 	{
 dynamic:
-		if (r_dynamic.value)
+		if (r_dynamic->value)
 		{
 			lightmap_modified[fa->lightmaptexturenum] = true;
 			theRect = &lightmap_rectchange[fa->lightmaptexturenum];
@@ -908,16 +1094,16 @@ void R_DrawWaterSurfaces (void)
 	msurface_t	*s;
 	texture_t	*t;
 
-	if (r_wateralpha.value == 1.0)
+	if (r_wateralpha->value == 1.0)
 		return;
 
 	//
 	// go back to the world matrix
 	//
-    glLoadMatrixf (r_world_matrix);
+	glLoadMatrixf (r_world_matrix);
 
 	glEnable (GL_BLEND);
-	glColor4f (1,1,1,r_wateralpha.value);
+	glColor4f (1,1,1,r_wateralpha->value);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
 	for (i=0 ; i<cl.worldmodel->numtextures ; i++)
@@ -957,22 +1143,22 @@ void R_DrawWaterSurfaces (void)
 	msurface_t	*s;
 	texture_t	*t;
 
-	if (r_wateralpha.value == 1.0 && gl_texsort.value)
+	if (r_wateralpha->value == 1.0 && gl_texsort->value)
 		return;
 
 	//
 	// go back to the world matrix
 	//
 
-    glLoadMatrixf (r_world_matrix);
+	glLoadMatrixf (r_world_matrix);
 
-	if (r_wateralpha.value < 1.0) {
+	if (r_wateralpha->value < 1.0) {
 		glEnable (GL_BLEND);
-		glColor4f (1,1,1,r_wateralpha.value);
+		glColor4f (1,1,1,r_wateralpha->value);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	}
 
-	if (!gl_texsort.value) {
+	if (!gl_texsort->value) {
 		if (!waterchain)
 			return;
 
@@ -980,7 +1166,7 @@ void R_DrawWaterSurfaces (void)
 			GL_Bind (s->texinfo->texture->gl_texturenum);
 			EmitWaterPolys (s);
 		}
-		
+
 		waterchain = NULL;
 	} else {
 
@@ -996,18 +1182,18 @@ void R_DrawWaterSurfaces (void)
 				continue;
 
 			// set modulate mode explicitly
-			
+
 			GL_Bind (t->gl_texturenum);
 
 			for ( ; s ; s=s->texturechain)
 				EmitWaterPolys (s);
-			
+
 			t->texturechain = NULL;
 		}
 
 	}
 
-	if (r_wateralpha.value < 1.0) {
+	if (r_wateralpha->value < 1.0) {
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
 		glColor4f (1,1,1,1);
@@ -1029,7 +1215,7 @@ void DrawTextureChains (void)
 	msurface_t	*s;
 	texture_t	*t;
 
-	if (!gl_texsort.value) {
+	if (!gl_texsort->value) {
 		GL_DisableMultitexture();
 
 		if (skychain) {
@@ -1038,7 +1224,7 @@ void DrawTextureChains (void)
 		}
 
 		return;
-	} 
+	}
 
 	for (i=0 ; i<cl.worldmodel->numtextures ; i++)
 	{
@@ -1050,14 +1236,14 @@ void DrawTextureChains (void)
 			continue;
 		if (i == skytexturenum)
 			R_DrawSkyChain (s);
-		else if (i == mirrortexturenum && r_mirroralpha.value != 1.0)
+		else if (i == mirrortexturenum && r_mirroralpha->value != 1.0)
 		{
 			R_MirrorChain (s);
 			continue;
 		}
 		else
 		{
-			if ((s->flags & SURF_DRAWTURB) && r_wateralpha.value != 1.0)
+			if ((s->flags & SURF_DRAWTURB) && r_wateralpha->value != 1.0)
 				continue;	// draw translucent water later
 			for ( ; s ; s=s->texturechain)
 				R_RenderBrushPoly (s);
@@ -1127,7 +1313,7 @@ void R_DrawBrushModel (entity_t *e)
 
 // calculate dynamic lighting for bmodel if it's not an
 // instanced model
-	if (clmodel->firstmodelsurface != 0 && !gl_flashblend.value)
+	if (clmodel->firstmodelsurface != 0 && !gl_flashblend->value)
 	{
 		for (k=0 ; k<MAX_DLIGHTS ; k++)
 		{
@@ -1140,10 +1326,10 @@ void R_DrawBrushModel (entity_t *e)
 		}
 	}
 
-    glPushMatrix ();
-e->angles[0] = -e->angles[0];	// stupid quake bug
+	glPushMatrix ();
+	e->angles[0] = -e->angles[0];	// stupid quake bug
 	R_RotateForEntity (e);
-e->angles[0] = -e->angles[0];	// stupid quake bug
+	e->angles[0] = -e->angles[0];	// stupid quake bug
 
 	//
 	// draw texture
@@ -1159,7 +1345,7 @@ e->angles[0] = -e->angles[0];	// stupid quake bug
 		if (((psurf->flags & SURF_PLANEBACK) && (dot < -BACKFACE_EPSILON)) ||
 			(!(psurf->flags & SURF_PLANEBACK) && (dot > BACKFACE_EPSILON)))
 		{
-			if (gl_texsort.value)
+			if (gl_texsort->value)
 				R_RenderBrushPoly (psurf);
 			else
 				R_DrawSequentialPoly (psurf);
@@ -1201,7 +1387,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		return;
 	if (R_CullBox (node->minmaxs, node->minmaxs+3))
 		return;
-	
+
 // if a leaf node, draw stuff
 	if (node->contents < 0)
 	{
@@ -1277,7 +1463,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 					continue;		// wrong side
 
 				// if sorting by texture, just store it out
-				if (gl_texsort.value)
+				if (gl_texsort->value)
 				{
 					if (!mirror
 					|| surf->texinfo->texture != cl.worldmodel->textures[mirrortexturenum])
@@ -1353,23 +1539,23 @@ void R_MarkLeaves (void)
 	int		i;
 	byte	solid[4096];
 
-	if (r_oldviewleaf == r_viewleaf && !r_novis.value)
+	if (r_oldviewleaf == r_viewleaf && !r_novis->value)
 		return;
-	
+
 	if (mirror)
 		return;
 
 	r_visframecount++;
 	r_oldviewleaf = r_viewleaf;
 
-	if (r_novis.value)
+	if (r_novis->value)
 	{
 		vis = solid;
 		memset (solid, 0xff, (cl.worldmodel->numleafs+7)>>3);
 	}
 	else
 		vis = Mod_LeafPVS (r_viewleaf, cl.worldmodel);
-		
+
 	for (i=0 ; i<cl.worldmodel->numleafs ; i++)
 	{
 		if (vis[i>>3] & (1<<(i&7)))
@@ -1436,6 +1622,7 @@ int AllocBlock (int w, int h, int *x, int *y)
 	}
 
 	Sys_Error ("AllocBlock: full");
+	return 0;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 }
 
 
@@ -1457,7 +1644,7 @@ void BuildSurfaceDisplayList (msurface_t *fa)
 	vec3_t		local, transformed;
 	medge_t		*pedges, *r_pedge;
 	mplane_t	*pplane;
-	int			vertpage, newverts, newpage, lastvert;
+	int			newverts, newpage, lastvert;	//vertpage,  // 2001-12-10 Reduced compiler warnings by Jeff Ford
 	qboolean	visible;
 	float		*vec;
 	float		s, t;
@@ -1466,7 +1653,7 @@ void BuildSurfaceDisplayList (msurface_t *fa)
 // reconstruct the polygon
 	pedges = currentmodel->edges;
 	lnumverts = fa->numedges;
-	vertpage = 0;
+//	vertpage = 0;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	//
 	// draw texture
@@ -1523,7 +1710,7 @@ void BuildSurfaceDisplayList (msurface_t *fa)
 	//
 	// remove co-linear points - Ed
 	//
-	if (!gl_keeptjunctions.value && !(fa->flags & SURF_UNDERWATER) )
+	if (!gl_keeptjunctions->value && !(fa->flags & SURF_UNDERWATER) )
 	{
 		for (i = 0 ; i < lnumverts ; ++i)
 		{
@@ -1543,7 +1730,7 @@ void BuildSurfaceDisplayList (msurface_t *fa)
 			// skip co-linear points
 			#define COLINEAR_EPSILON 0.001
 			if ((fabs( v1[0] - v2[0] ) <= COLINEAR_EPSILON) &&
-				(fabs( v1[1] - v2[1] ) <= COLINEAR_EPSILON) && 
+				(fabs( v1[1] - v2[1] ) <= COLINEAR_EPSILON) &&
 				(fabs( v1[2] - v2[2] ) <= COLINEAR_EPSILON))
 			{
 				int j;
@@ -1611,9 +1798,15 @@ void GL_BuildLightmaps (void)
 		texture_extension_number += MAX_LIGHTMAPS;
 	}
 
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 	gl_lightmap_format = GL_LUMINANCE;
 	// default differently on the Permedia
 	if (isPermedia)
+*/
+
+// default to colored lighting
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 		gl_lightmap_format = GL_RGBA;
 
 	if (COM_CheckParm ("-lm_1"))
@@ -1664,7 +1857,7 @@ void GL_BuildLightmaps (void)
 		}
 	}
 
- 	if (!gl_texsort.value)
+ 	if (!gl_texsort->value)
  		GL_SelectTexture(TEXTURE1_SGIS);
 
 	//
@@ -1683,11 +1876,11 @@ void GL_BuildLightmaps (void)
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexImage2D (GL_TEXTURE_2D, 0, lightmap_bytes
-		, BLOCK_WIDTH, BLOCK_HEIGHT, 0, 
+		, BLOCK_WIDTH, BLOCK_HEIGHT, 0,
 		gl_lightmap_format, GL_UNSIGNED_BYTE, lightmaps+i*BLOCK_WIDTH*BLOCK_HEIGHT*lightmap_bytes);
 	}
 
- 	if (!gl_texsort.value)
+ 	if (!gl_texsort->value)
  		GL_SelectTexture(TEXTURE0_SGIS);
 
 }

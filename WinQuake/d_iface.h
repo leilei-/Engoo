@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -91,7 +91,7 @@ typedef struct {
 typedef struct
 {
 	int			nump;
-	emitpoint_t	*pverts;	// there's room for an extra element at [nump], 
+	emitpoint_t	*pverts;	// there's room for an extra element at [nump],
 							//  if the driver wants to duplicate element [0] at
 							//  element [nump] to avoid dealing with wrapping
 	mspriteframe_t	*pspriteframe;
@@ -106,7 +106,7 @@ typedef struct
 	int		color;
 } zpointdesc_t;
 
-extern cvar_t	r_drawflat;
+extern cvar_t	*r_drawflat;
 extern int		d_spanpixcount;
 extern int		r_framecount;		// sequence # of current frame since Quake
 									//  started
@@ -121,7 +121,7 @@ extern qboolean	r_recursiveaffinetriangles;	// true if a driver wants to use
 											//  recursive triangular subdivison
 											//  and vertex drawing via
 											//  D_PolysetDrawFinalVerts() past
-											//  a certain distance (normally 
+											//  a certain distance (normally
 											//  only used by the software
 											//  driver)
 extern float	r_aliasuvscale;		// scale-up factor for screen u and v

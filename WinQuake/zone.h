@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -83,8 +83,33 @@ Zone block
 
 */
 
+#define ZONE_MIN_SIZE	128*1024	// 128K	// 2001-09-20 Increased default zone by Maddes
+
+// 2001-09-20 Enhanced zone handling by Maddes  start
+typedef struct memblock_s
+{
+	int		size;		// including the header and possibly tiny fragments
+	int		tag;		// a tag of 0 is a free block
+	int		id;			// should be ZONEID
+	struct	memblock_s	*next, *prev;
+//	int		pad;		// pad to 64-bit / 8-byte boundary
+	struct	memzone_s	*zone;
+} memblock_t;
+
+typedef struct memzone_s
+{
+	int		size;		// total bytes malloced, including header
+	memblock_t	blocklist;		// start / end cap for linked list
+	memblock_t	*rover;
+} memzone_t;
+
+extern	memzone_t	*mainzone;
+// 2001-09-20 Enhanced zone handling by Maddes  end
+
 void Memory_Init (void *buf, int size);
 
+// 2001-09-20 Enhanced zone handling by Maddes  start
+/*
 void Z_Free (void *ptr);
 void *Z_Malloc (int size);			// returns 0 filled memory
 void *Z_TagMalloc (int size, int tag);
@@ -92,6 +117,15 @@ void *Z_TagMalloc (int size, int tag);
 void Z_DumpHeap (void);
 void Z_CheckHeap (void);
 int Z_FreeMemory (void);
+*/
+void Z_ClearZone (memzone_t *zone, int size);
+void Z_Free (memzone_t *zone, void *ptr);
+void *Z_Malloc (memzone_t *zone, int size);			// returns 0 filled memory
+void *Z_TagMalloc (memzone_t *zone, int size, int tag);
+
+void Z_Print (memzone_t *zone);
+void Z_CheckHeap (memzone_t *zone);
+// 2001-09-20 Enhanced zone handling by Maddes  end
 
 void *Hunk_Alloc (int size);		// returns 0 filled memory
 void *Hunk_AllocName (int size, char *name);
@@ -126,6 +160,3 @@ void *Cache_Alloc (cache_user_t *c, int size, char *name);
 // wasn't enough room.
 
 void Cache_Report (void);
-
-
-

@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -23,13 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-#define GL_COLOR_INDEX8_EXT     0x80E5
+#define GL_COLOR_INDEX8_EXT	0x80E5
 
 extern unsigned char d_15to8table[65536];
 
-cvar_t		gl_nobind = {"gl_nobind", "0"};
-cvar_t		gl_max_size = {"gl_max_size", "1024"};
-cvar_t		gl_picmip = {"gl_picmip", "0"};
+cvar_t		*gl_nobind;
+cvar_t		*gl_max_size;
+cvar_t		*gl_picmip;
 
 byte		*draw_chars;				// 8*8 graphic characters
 qpic_t		*draw_disc;
@@ -63,6 +63,7 @@ typedef struct
 	char	identifier[64];
 	int		width, height;
 	qboolean	mipmap;
+	int		lhcsum;	// 2001-09-09 GL Texture memory leak fix by LordHavoc
 } gltexture_t;
 
 #define	MAX_GLTEXTURES	1024
@@ -72,7 +73,7 @@ int			numgltextures;
 
 void GL_Bind (int texnum)
 {
-	if (gl_nobind.value)
+	if (gl_nobind->value)
 		texnum = char_texture;
 	if (currenttexture == texnum)
 		return;
@@ -145,6 +146,7 @@ int Scrap_AllocBlock (int w, int h, int *x, int *y)
 	}
 
 	Sys_Error ("Scrap_AllocBlock: full");
+	return (0);	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 }
 
 int	scrap_uploads;
@@ -235,6 +237,7 @@ qpic_t	*Draw_CachePic (char *path)
 	int			i;
 	qpic_t		*dat;
 	glpic_t		*gl;
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
 
 	for (pic=menu_cachepics, i=0 ; i<menu_numcachepics ; pic++, i++)
 		if (!strcmp (path, pic->name))
@@ -248,9 +251,16 @@ qpic_t	*Draw_CachePic (char *path)
 //
 // load the pic from disk
 //
-	dat = (qpic_t *)COM_LoadTempFile (path);	
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
+	dat = (qpic_t *)COM_LoadTempFile (path);
 	if (!dat)
+*/
+	fileinfo = COM_LoadTempFile (path);
+	if (!fileinfo)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 		Sys_Error ("Draw_CachePic: failed to load %s", path);
+	dat = (qpic_t *)fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
 	SwapPic (dat);
 
 	// HACK HACK HACK --- we need to keep the bytes for
@@ -360,6 +370,26 @@ void Draw_TextureMode_f (void)
 	}
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===============
+Draw_Init_Cvars
+===============
+*/
+void
+Draw_Init_Cvars (void)
+{
+	gl_nobind = Cvar_Get ("gl_nobind", "0", CVAR_ORIGINAL);
+	gl_max_size = Cvar_Get ("gl_max_size", "1024", CVAR_ORIGINAL);
+	gl_picmip = Cvar_Get ("gl_picmip", "0", CVAR_ORIGINAL);
+
+	// 3dfx can only handle 256 wide textures
+	if (!Q_strncasecmp ((char *)gl_renderer, "3dfx",4) ||
+		strstr((char *)gl_renderer, "Glide"))
+		Cvar_Set (gl_max_size, "256");
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 /*
 ===============
 Draw_Init
@@ -376,16 +406,20 @@ void Draw_Init (void)
 	int		start;
 	byte	*ncdata;
 	int		f, fstep;
+	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
 
-
-	Cvar_RegisterVariable (&gl_nobind);
-	Cvar_RegisterVariable (&gl_max_size);
-	Cvar_RegisterVariable (&gl_picmip);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	gl_nobind = Cvar_Get ("gl_nobind", "0", CVAR_ORIGINAL);
+	gl_max_size = Cvar_Get ("gl_max_size", "1024", CVAR_ORIGINAL);
+	gl_picmip = Cvar_Get ("gl_picmip", "0", CVAR_ORIGINAL);
 
 	// 3dfx can only handle 256 wide textures
 	if (!Q_strncasecmp ((char *)gl_renderer, "3dfx",4) ||
 		strstr((char *)gl_renderer, "Glide"))
-		Cvar_Set ("gl_max_size", "256");
+		Cvar_Set (gl_max_size, "256");
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("gl_texturemode", &Draw_TextureMode_f);
 
@@ -403,16 +437,23 @@ void Draw_Init (void)
 
 	start = Hunk_LowMark();
 
-	cb = (qpic_t *)COM_LoadTempFile ("gfx/conback.lmp");	
+// 2001-09-12 Returning information about loaded file by Maddes  start
+/*
+	cb = (qpic_t *)COM_LoadTempFile ("gfx/conback.lmp");
 	if (!cb)
+*/
+	fileinfo = COM_LoadTempFile ("gfx/conback.lmp");
+	if (!fileinfo)
+// 2001-09-12 Returning information about loaded file by Maddes  end
 		Sys_Error ("Couldn't load gfx/conback.lmp");
+	cb = (qpic_t *)fileinfo->data;	// 2001-09-12 Returning information about loaded file by Maddes
 	SwapPic (cb);
 
 	// hack the version number directly into the pic
 #if defined(__linux__)
-	sprintf (ver, "(Linux %2.2f, gl %4.2f) %4.2f", (float)LINUX_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);
+	sprintf (ver, "(%s, Linux %2.2f, gl %4.2f) %4.2f", QIP_VERSION, (float)LINUX_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);	// 2001-10-25 QIP version in the console background by Maddes
 #else
-	sprintf (ver, "(gl %4.2f) %4.2f", (float)GLQUAKE_VERSION, (float)VERSION);
+	sprintf (ver, "(%s, gl %4.2f) %4.2f", QIP_VERSION, (float)GLQUAKE_VERSION, (float)VERSION);	// 2001-10-25 QIP version in the console background by Maddes
 #endif
 	dest = cb->data + 320*186 + 320 - 11 - 8*strlen(ver);
 	y = strlen(ver);
@@ -425,7 +466,7 @@ void Draw_Init (void)
 
  	// scale console to vid size
  	dest = ncdata = Hunk_AllocName(vid.conwidth * vid.conheight, "conback");
- 
+
  	for (y=0 ; y<vid.conheight ; y++, dest += vid.conwidth)
  	{
  		src = cb->data + cb->width * (y*cb->height/vid.conheight);
@@ -499,7 +540,7 @@ void Draw_Character (int x, int y, int num)
 	byte			*dest;
 	byte			*source;
 	unsigned short	*pusdest;
-	int				drawline;	
+	int				drawline;
 	int				row, col;
 	float			frow, fcol, size;
 
@@ -507,7 +548,7 @@ void Draw_Character (int x, int y, int num)
 		return;		// space
 
 	num &= 255;
-	
+
 	if (y <= -8)
 		return;			// totally off screen
 
@@ -643,7 +684,7 @@ void Draw_TransPic (int x, int y, qpic_t *pic)
 	{
 		Sys_Error ("Draw_TransPic: bad coordinates");
 	}
-		
+
 	Draw_Pic (x, y, pic);
 }
 
@@ -664,7 +705,7 @@ void Draw_TransPicTranslate (int x, int y, qpic_t *pic, byte *translation)
 
 	GL_Bind (translate_texture);
 
-	c = pic->width * pic->height;
+//	c = pic->width * pic->height;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	dest = trans;
 	for (v=0 ; v<64 ; v++, dest += 64)
@@ -705,14 +746,47 @@ Draw_ConsoleBackground
 
 ================
 */
+extern cvar_t	*con_alpha;	// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes
+							// 2000-01-11 Transparent console by Radix
+
 void Draw_ConsoleBackground (int lines)
 {
-	int y = (vid.height * 3) >> 2;
+// 2000-01-12 Variable console height by Fett/Maddes  start
+//	int y = (vid.height * 3) >> 2;
+	int y;
 
-	if (lines > y)
+//	if (lines > y)
+	if (con_forcedup)
+// 2000-01-12 Variable console height by Fett/Maddes  end
 		Draw_Pic(0, lines - vid.height, conback);
 	else
-		Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y);
+// 2000-01-11 Transparent console by Radix  start
+	{
+//		Draw_AlphaPic (0, lines - vid.height, conback, (float)(1.2 * lines)/y);
+// 2000-01-12 Variable console height by Fett/Maddes  start
+//		Draw_AlphaPic (0, lines - vid.height, conback, (float)(2 * con_alpha->value * lines)/y);
+		if (scr_conlines > 0)	// moving down
+		{
+			y = scr_conlines;
+		}
+		else			// moving up
+		{
+			y = vid.height*scr_conheight->value;	// in-game console
+
+			if (y < 32)
+			{
+				y = 32;		// always leave two lines visible
+			}
+			if (y >= vid.height)
+			{
+				y = vid.height - 1;	// maximum is full screen
+			}
+		}
+
+		Draw_AlphaPic (0, lines - vid.height, conback, (float)(con_alpha->value*lines)/y);
+// 2000-01-12 Variable console height by Fett/Maddes  end
+	}
+// 2000-01-11 Transparent console by Radix  end
 }
 
 
@@ -838,11 +912,11 @@ void GL_Set2D (void)
 	glViewport (glx, gly, glwidth, glheight);
 
 	glMatrixMode(GL_PROJECTION);
-    glLoadIdentity ();
+	glLoadIdentity ();
 	glOrtho  (0, vid.width, vid.height, 0, -99999, 99999);
 
 	glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity ();
+	glLoadIdentity ();
 
 	glDisable (GL_DEPTH_TEST);
 	glDisable (GL_CULL_FACE);
@@ -972,7 +1046,7 @@ Mipping for 8 bit textures
 void GL_MipMap8Bit (byte *in, int width, int height)
 {
 	int		i, j;
-	unsigned short     r,g,b;
+	unsigned short	r,g,b;
 	byte	*out, *at1, *at2, *at3, *at4;
 
 //	width <<=2;
@@ -1012,13 +1086,13 @@ static	unsigned	scaled[1024*512];	// [512*256];
 	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
 		;
 
-	scaled_width >>= (int)gl_picmip.value;
-	scaled_height >>= (int)gl_picmip.value;
+	scaled_width >>= (int)gl_picmip->value;
+	scaled_height >>= (int)gl_picmip->value;
 
-	if (scaled_width > gl_max_size.value)
-		scaled_width = gl_max_size.value;
-	if (scaled_height > gl_max_size.value)
-		scaled_height = gl_max_size.value;
+	if (scaled_width > gl_max_size->value)
+		scaled_width = gl_max_size->value;
+	if (scaled_height > gl_max_size->value)
+		scaled_height = gl_max_size->value;
 
 	if (scaled_width * scaled_height > sizeof(scaled)/4)
 		Sys_Error ("GL_LoadTexture: too big");
@@ -1086,14 +1160,14 @@ done: ;
 	}
 }
 
-void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha) 
+void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboolean alpha)
 {
 	int			i, s;
 	qboolean	noalpha;
 	int			p;
-	static unsigned j;
+//	static unsigned j;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	int			samples;
-    static	unsigned char scaled[1024*512];	// [512*256];
+	static unsigned char	scaled[1024*512];	// [512*256];
 	int			scaled_width, scaled_height;
 
 	s = width*height;
@@ -1116,13 +1190,13 @@ void GL_Upload8_EXT (byte *data, int width, int height,  qboolean mipmap, qboole
 	for (scaled_height = 1 ; scaled_height < height ; scaled_height<<=1)
 		;
 
-	scaled_width >>= (int)gl_picmip.value;
-	scaled_height >>= (int)gl_picmip.value;
+	scaled_width >>= (int)gl_picmip->value;
+	scaled_height >>= (int)gl_picmip->value;
 
-	if (scaled_width > gl_max_size.value)
-		scaled_width = gl_max_size.value;
-	if (scaled_height > gl_max_size.value)
-		scaled_height = gl_max_size.value;
+	if (scaled_width > gl_max_size->value)
+		scaled_width = gl_max_size->value;
+	if (scaled_height > gl_max_size->value)
+		scaled_height = gl_max_size->value;
 
 	if (scaled_width * scaled_height > sizeof(scaled))
 		Sys_Error ("GL_LoadTexture: too big");
@@ -1231,43 +1305,105 @@ static	unsigned	trans[640*480];		// FIXME, temporary
 GL_LoadTexture
 ================
 */
+int lhcsumtable[256];	// 2001-09-09 GL Texture memory leak fix by LordHavoc
 int GL_LoadTexture (char *identifier, int width, int height, byte *data, qboolean mipmap, qboolean alpha)
 {
 	qboolean	noalpha;
 	int			i, p, s;
 	gltexture_t	*glt;
 
-	// see if the texture is allready present
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  start
+	int			lhcsum;
+
+	// do a checksum to confirm the data really is the same as previous
+	// occurances. well this isn't exactly a checksum, it's better than
+	// that but not following any standards.
+	for (i=0 ; i<256 ; i++)
+	{
+		lhcsumtable[i] = i + 1;
+	}
+
+	s = width * height;
+	lhcsum = 0;
+	for (i=0; i<s ; i++)
+	{
+		lhcsum += (lhcsumtable[data[i] & 255]++);
+	}
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  end
+
+	// see if the texture is already present
 	if (identifier[0])
 	{
 		for (i=0, glt=gltextures ; i<numgltextures ; i++, glt++)
 		{
 			if (!strcmp (identifier, glt->identifier))
 			{
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  start
+/*
 				if (width != glt->width || height != glt->height)
 					Sys_Error ("GL_LoadTexture: cache mismatch");
 				return gltextures[i].texnum;
+*/
+				// everyone hates cache mismatchs, so I fixed it
+				if (lhcsum != glt->lhcsum || width != glt->width || height != glt->height)
+				{
+					Con_DPrintf("GL_LoadTexture: cache mismatch, replacing old texture\n");
+					goto GL_LoadTexture_setup;	// drop out with glt pointing to the texture to replace
+				}
+				return glt->texnum;
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  end
 			}
 		}
 	}
-	else {
+// 2001-09-09 GL Texture memory leak fix by LordHavoc/Maddes  start
+	// this was an else condition, causing disasterous results,
+	// whoever at id or threewave must've been half asleep...
+//	else {
+
+	// additional leak check by Maddes  start
+	if (numgltextures >= MAX_GLTEXTURES)
+	{
+		Sys_Error ("GL_LoadTexture: cache full, max is %i textures", MAX_GLTEXTURES);
+	}
+	// additional leak check by Maddes  end
+// 2001-09-09 GL Texture memory leak fix by LordHavoc/Maddes  end
 		glt = &gltextures[numgltextures];
 		numgltextures++;
-	}
+//	}	// 2001-09-09 GL Texture memory leak fix by LordHavoc
 
 	strcpy (glt->identifier, identifier);
 	glt->texnum = texture_extension_number;
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  start
+	texture_extension_number++;
+
+// label to drop out of the loop into the setup code
+GL_LoadTexture_setup:
+	glt->lhcsum = lhcsum;	// used to verify textures are identical
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  end
 	glt->width = width;
 	glt->height = height;
 	glt->mipmap = mipmap;
 
-	GL_Bind(texture_extension_number );
+// 2000-07-09 Dedicated server bug in GLQuake fix by Nathan Cline  start
+	if (cls.state != ca_dedicated)
+	{
+// 2000-07-09 Dedicated server bug in GLQuake fix by Nathan Cline  end
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  start
+//		GL_Bind(texture_extension_number );
+		GL_Bind(glt->texnum);	// use value stored in structure
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  end
 
-	GL_Upload8 (data, width, height, mipmap, alpha);
+		GL_Upload8 (data, width, height, mipmap, alpha);
+	}	// 2000-07-09 Dedicated server bug in GLQuake fix by Nathan Cline
 
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  start
+/*
 	texture_extension_number++;
 
 	return texture_extension_number-1;
+*/
+	return glt->texnum;	// use value stored in structure
+// 2001-09-09 GL Texture memory leak fix by LordHavoc  end
 }
 
 /*
@@ -1284,12 +1420,12 @@ int GL_LoadPicTexture (qpic_t *pic)
 
 static GLenum oldtarget = TEXTURE0_SGIS;
 
-void GL_SelectTexture (GLenum target) 
+void GL_SelectTexture (GLenum target)
 {
 	if (!gl_mtexable)
 		return;
 	qglSelectTextureSGIS(target);
-	if (target == oldtarget) 
+	if (target == oldtarget)
 		return;
 	cnttextures[oldtarget-TEXTURE0_SGIS] = currenttexture;
 	currenttexture = cnttextures[target-TEXTURE0_SGIS];

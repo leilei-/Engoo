@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -35,8 +35,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "quakedef.h"
 #include "GL/fxmesa.h"
 
-#define WARP_WIDTH              320
-#define WARP_HEIGHT             200
+#define WARP_WIDTH		320
+#define WARP_HEIGHT		200
 
 static fxMesaContext fc = NULL;
 #define stringify(m) { #m, m }
@@ -73,27 +73,22 @@ int		UseKeyboard = 1;
 
 int		mouserate = MOUSE_DEFAULTSAMPLERATE;
 
-cvar_t		vid_mode = {"vid_mode","5",false};
-cvar_t		vid_redrawfull = {"vid_redrawfull","0",false};
-cvar_t		vid_waitforrefresh = {"vid_waitforrefresh","0",true};
- 
+cvar_t		*vid_mode;
+cvar_t		*vid_redrawfull;
+cvar_t		*vid_waitforrefresh;
+
 char	*framebuffer_ptr;
 
-cvar_t  mouse_button_commands[3] =
-{
-    {"mouse1","+attack"},
-    {"mouse2","+strafe"},
-    {"mouse3","+forward"},
-};
+cvar_t	*mouse_button_commands[3];
 
-int     mouse_buttons;
-int     mouse_buttonstate;
-int     mouse_oldbuttonstate;
-float   mouse_x, mouse_y;
+int		mouse_buttons;
+int		mouse_buttonstate;
+int		mouse_oldbuttonstate;
+float	mouse_x, mouse_y;
 float	old_mouse_x, old_mouse_y;
 int		mx, my;
 
-cvar_t	m_filter = {"m_filter","1"};
+cvar_t	*m_filter;
 
 int scr_width, scr_height;
 
@@ -110,7 +105,7 @@ int		texture_extension_number = 1;
 
 float		gldepthmin, gldepthmax;
 
-cvar_t	gl_ztrick = {"gl_ztrick","1"};
+cvar_t	*gl_ztrick;
 
 const char *gl_vendor;
 const char *gl_renderer;
@@ -165,7 +160,7 @@ void vtswitch(int newconsole)
 
 void keyhandler(int scancode, int state)
 {
-	
+
 	int sc;
 
 	sc = scancode & 0x7f;
@@ -216,7 +211,7 @@ void	VID_SetPalette (unsigned char *palette)
 	byte	*pal;
 	unsigned r,g,b;
 	unsigned v;
-	int     r1,g1,b1;
+	int		r1,g1,b1;
 	int		j,k,l,m;
 	unsigned short i;
 	unsigned	*table;
@@ -236,7 +231,7 @@ void	VID_SetPalette (unsigned char *palette)
 		g = pal[1];
 		b = pal[2];
 		pal += 3;
-		
+
 		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
 		*table++ = v;
 	}
@@ -268,7 +263,7 @@ void	VID_SetPalette (unsigned char *palette)
 	}
 }
 
-void CheckMultiTextureExtensions(void) 
+void CheckMultiTextureExtensions(void)
 {
 	void *prjobj;
 
@@ -343,13 +338,13 @@ GL_BeginRendering
 */
 void GL_BeginRendering (int *x, int *y, int *width, int *height)
 {
-	extern cvar_t gl_clear;
+	extern cvar_t	*gl_clear;
 
 	*x = *y = 0;
 	*width = scr_width;
 	*height = scr_height;
 
-//    if (!wglMakeCurrent( maindc, baseRC ))
+//	if (!wglMakeCurrent( maindc, baseRC ))
 //		Sys_Error ("wglMakeCurrent failed");
 
 //	glViewport (*x, *y, *width, *height);
@@ -446,29 +441,29 @@ void Init_KBD(void)
 		scantokey[30] = 'a';
 		scantokey[48] = 'b';
 		scantokey[46] = 'c';
-		scantokey[32] = 'd';       
-		scantokey[18] = 'e';       
-		scantokey[33] = 'f';       
-		scantokey[34] = 'g';       
-		scantokey[35] = 'h';       
-		scantokey[23] = 'i';       
-		scantokey[36] = 'j';       
-		scantokey[37] = 'k';       
-		scantokey[38] = 'l';       
-		scantokey[50] = 'm';       
-		scantokey[49] = 'n';       
-		scantokey[24] = 'o';       
-		scantokey[25] = 'p';       
-		scantokey[16] = 'q';       
-		scantokey[19] = 'r';       
-		scantokey[31] = 's';       
-		scantokey[20] = 't';       
-		scantokey[22] = 'u';       
-		scantokey[47] = 'v';       
-		scantokey[17] = 'w';       
-		scantokey[45] = 'x';       
-		scantokey[21] = 'y';       
-		scantokey[44] = 'z';       
+		scantokey[32] = 'd';
+		scantokey[18] = 'e';
+		scantokey[33] = 'f';
+		scantokey[34] = 'g';
+		scantokey[35] = 'h';
+		scantokey[23] = 'i';
+		scantokey[36] = 'j';
+		scantokey[37] = 'k';
+		scantokey[38] = 'l';
+		scantokey[50] = 'm';
+		scantokey[49] = 'n';
+		scantokey[24] = 'o';
+		scantokey[25] = 'p';
+		scantokey[16] = 'q';
+		scantokey[19] = 'r';
+		scantokey[31] = 's';
+		scantokey[20] = 't';
+		scantokey[22] = 'u';
+		scantokey[47] = 'v';
+		scantokey[17] = 'w';
+		scantokey[45] = 'x';
+		scantokey[21] = 'y';
+		scantokey[44] = 'z';
 
 		scantokey[78] = '+';
 		scantokey[74] = '-';
@@ -481,7 +476,7 @@ void Init_KBD(void)
 
 #define NUM_RESOLUTIONS 16
 
-static int resolutions[NUM_RESOLUTIONS][3]={ 
+static int resolutions[NUM_RESOLUTIONS][3]={
 	320,200,  GR_RESOLUTION_320x200,
 	320,240,  GR_RESOLUTION_320x240,
 	400,256,  GR_RESOLUTION_400x256,
@@ -510,7 +505,7 @@ int findres(int *width, int *height)
 			*height = resolutions[i][1];
 			return resolutions[i][2];
 		}
-        
+
 	*width = 640;
 	*height = 480;
 	return GR_RESOLUTION_640x480;
@@ -521,7 +516,7 @@ qboolean VID_Is8bit(void)
 	return is8bit;
 }
 
-void VID_Init8bitPalette(void) 
+void VID_Init8bitPalette(void)
 {
 	// Check for 8bit Extensions and initialize them.
 	int i;
@@ -570,7 +565,7 @@ void VID_Init8bitPalette(void)
 		}
 		qglColorTableEXT(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256, GL_RGB, GL_UNSIGNED_BYTE, (void *) thePalette);
 		is8bit = true;
-	
+
 	}
 
 	dlclose(prjobj);
@@ -605,6 +600,21 @@ static void Check_Gamma (unsigned char *pal)
 	memcpy (pal, palette, sizeof(palette));
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+	vid_mode = Cvar_Get ("vid_mode", "5", CVAR_ORIGINAL);
+	vid_redrawfull = Cvar_Get ("vid_redrawfull", "0", CVAR_ORIGINAL);
+	vid_waitforrefresh = Cvar_Get ("vid_waitforrefresh", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	gl_ztrick = Cvar_Get ("gl_ztrick", "1", CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void VID_Init(unsigned char *palette)
 {
 	int i;
@@ -614,11 +624,16 @@ void VID_Init(unsigned char *palette)
 
 	Init_KBD();
 
-	Cvar_RegisterVariable (&vid_mode);
-	Cvar_RegisterVariable (&vid_redrawfull);
-	Cvar_RegisterVariable (&vid_waitforrefresh);
-	Cvar_RegisterVariable (&gl_ztrick);
-	
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	vid_mode = Cvar_Get ("vid_mode", "5", CVAR_ORIGINAL);
+	vid_redrawfull = Cvar_Get ("vid_redrawfull", "0", CVAR_ORIGINAL);
+	vid_waitforrefresh = Cvar_Get ("vid_waitforrefresh", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	m_filter = Cvar_Get ("m_filter", "1", CVAR_ORIGINAL);		// 2001-09-18 New cvar system by Maddes (Is this correct?)
+	gl_ztrick = Cvar_Get ("gl_ztrick", "1", CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
 	vid.colormap = host_colormap;
@@ -657,7 +672,7 @@ void VID_Init(unsigned char *palette)
 	if (vid.conheight < 200)
 		vid.conheight = 200;
 
-	fc = fxMesaCreateContext(0, findres(&width, &height), GR_REFRESH_75Hz, 
+	fc = fxMesaCreateContext(0, findres(&width, &height), GR_REFRESH_75Hz,
 		attribs);
 	if (!fc)
 		Sys_Error("Unable to create 3DFX context.\n");
@@ -715,6 +730,18 @@ void mousehandler(int buttonstate, int dx, int dy)
 	my += dy;
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	m_filter = Cvar_Get ("m_filter", "1", CVAR_ORIGINAL);		// 2001-09-18 New cvar system by Maddes (Is this correct?)
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void IN_Init(void)
 {
 
@@ -724,10 +751,9 @@ void IN_Init(void)
 
 	if (UseMouse)
 	{
-
-		Cvar_RegisterVariable (&mouse_button_commands[0]);
-		Cvar_RegisterVariable (&mouse_button_commands[1]);
-		Cvar_RegisterVariable (&mouse_button_commands[2]);
+		mouse_button_commands[0] = Cvar_Get ("mouse1", "+attack", CVAR_ORIGINAL);
+		mouse_button_commands[1] = Cvar_Get ("mouse2", "+strafe", CVAR_ORIGINAL);
+		mouse_button_commands[2] = Cvar_Get ("mouse3", "+forward", CVAR_ORIGINAL);
 		Cmd_AddCommand ("force_centerview", Force_CenterView_f);
 
 		mouse_buttons = 3;
@@ -815,7 +841,7 @@ void IN_MouseMove (usercmd_t *cmd)
 	while (mouse_update())
 		;
 
-	if (m_filter.value)
+	if (m_filter->value)
 	{
 		mouse_x = (mx + old_mouse_x) * 0.5;
 		mouse_y = (my + old_mouse_y) * 0.5;
@@ -829,21 +855,21 @@ void IN_MouseMove (usercmd_t *cmd)
 	old_mouse_y = my;
 	mx = my = 0; // clear for next update
 
-	mouse_x *= sensitivity.value;
-	mouse_y *= sensitivity.value;
+	mouse_x *= sensitivity->value;
+	mouse_y *= sensitivity->value;
 
 // add mouse X/Y movement to cmd
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mouse_x;
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mouse_x;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mouse_x;
-	
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mouse_x;
+
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-		
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
-		cl.viewangles[PITCH] += m_pitch.value * mouse_y;
+		cl.viewangles[PITCH] += m_pitch->value * mouse_y;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
@@ -852,9 +878,9 @@ void IN_MouseMove (usercmd_t *cmd)
 	else
 	{
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * mouse_y;
+			cmd->upmove -= m_forward->value * mouse_y;
 		else
-			cmd->forwardmove -= m_forward.value * mouse_y;
+			cmd->forwardmove -= m_forward->value * mouse_y;
 	}
 }
 

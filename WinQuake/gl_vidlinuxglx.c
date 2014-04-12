@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -37,8 +37,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <X11/extensions/xf86dga.h>
 #include <X11/extensions/xf86vmode.h>
 
-#define WARP_WIDTH              320
-#define WARP_HEIGHT             200
+#define WARP_WIDTH		320
+#define WARP_HEIGHT		200
 
 static Display *dpy = NULL;
 static int scrnum;
@@ -46,8 +46,7 @@ static Window win;
 static GLXContext ctx = NULL;
 
 #define KEY_MASK (KeyPressMask | KeyReleaseMask)
-#define MOUSE_MASK (ButtonPressMask | ButtonReleaseMask | \
-		    PointerMotionMask | ButtonMotionMask )
+#define MOUSE_MASK (ButtonPressMask | ButtonReleaseMask | PointerMotionMask | ButtonMotionMask )
 #define X_MASK (KEY_MASK | MOUSE_MASK | VisibilityChangeMask | StructureNotifyMask )
 
 
@@ -55,16 +54,16 @@ unsigned short	d_8to16table[256];
 unsigned		d_8to24table[256];
 unsigned char	d_15to8table[65536];
 
-cvar_t	vid_mode = {"vid_mode","0",false};
- 
-static qboolean        mouse_avail;
-static qboolean        mouse_active;
-static int   mx, my;
+cvar_t	*vid_mode;
+
+static qboolean		mouse_avail;
+static qboolean		mouse_active;
+static int	mx, my;
 static int	old_mouse_x, old_mouse_y;
 
-static cvar_t in_mouse = {"in_mouse", "1", false};
-static cvar_t in_dgamouse = {"in_dgamouse", "1", false};
-static cvar_t m_filter = {"m_filter", "0"};
+static cvar_t	*in_mouse;
+static cvar_t	*in_dgamouse;
+static cvar_t	*m_filter;
 
 qboolean dgamouse = false;
 qboolean vidmode_ext = false;
@@ -91,7 +90,7 @@ int		texture_extension_number = 1;
 
 float		gldepthmin, gldepthmax;
 
-cvar_t	gl_ztrick = {"gl_ztrick","1"};
+cvar_t	*gl_ztrick;
 
 const char *gl_vendor;
 const char *gl_renderer;
@@ -129,33 +128,33 @@ static int XLateKey(XKeyEvent *ev)
 
 	switch(keysym)
 	{
-		case XK_KP_Page_Up:	 
+		case XK_KP_Page_Up:
 		case XK_Page_Up:	 key = K_PGUP; break;
 
-		case XK_KP_Page_Down: 
+		case XK_KP_Page_Down:
 		case XK_Page_Down:	 key = K_PGDN; break;
 
-		case XK_KP_Home: 
+		case XK_KP_Home:
 		case XK_Home:	 key = K_HOME; break;
 
-		case XK_KP_End:  
+		case XK_KP_End:
 		case XK_End:	 key = K_END; break;
 
-		case XK_KP_Left: 
+		case XK_KP_Left:
 		case XK_Left:	 key = K_LEFTARROW; break;
 
-		case XK_KP_Right: 
+		case XK_KP_Right:
 		case XK_Right:	key = K_RIGHTARROW;		break;
 
-		case XK_KP_Down: 
+		case XK_KP_Down:
 		case XK_Down:	 key = K_DOWNARROW; break;
 
-		case XK_KP_Up:   
+		case XK_KP_Up:
 		case XK_Up:		 key = K_UPARROW;	 break;
 
 		case XK_Escape: key = K_ESCAPE;		break;
 
-		case XK_KP_Enter: 
+		case XK_KP_Enter:
 		case XK_Return: key = K_ENTER;		 break;
 
 		case XK_Tab:		key = K_TAB;			 break;
@@ -186,7 +185,7 @@ static int XLateKey(XKeyEvent *ev)
 
 		case XK_BackSpace: key = K_BACKSPACE; break;
 
-		case XK_KP_Delete: 
+		case XK_KP_Delete:
 		case XK_Delete: key = K_DEL; break;
 
 		case XK_Pause:	key = K_PAUSE;		 break;
@@ -194,18 +193,18 @@ static int XLateKey(XKeyEvent *ev)
 		case XK_Shift_L:
 		case XK_Shift_R:	key = K_SHIFT;		break;
 
-		case XK_Execute: 
-		case XK_Control_L: 
+		case XK_Execute:
+		case XK_Control_L:
 		case XK_Control_R:	key = K_CTRL;		 break;
 
-		case XK_Alt_L:	
-		case XK_Meta_L: 
-		case XK_Alt_R:	
+		case XK_Alt_L:
+		case XK_Meta_L:
+		case XK_Alt_R:
 		case XK_Meta_R: key = K_ALT;			break;
 
 		case XK_KP_Begin: key = '5';	break;
 
-		case XK_KP_Insert: 
+		case XK_KP_Insert:
 		case XK_Insert:key = K_INS; break;
 
 		case XK_KP_Multiply: key = '*'; break;
@@ -241,31 +240,30 @@ static int XLateKey(XKeyEvent *ev)
 			if (key >= 'A' && key <= 'Z')
 				key = key - 'A' + 'a';
 			break;
-	} 
+	}
 
 	return key;
 }
 
 static Cursor CreateNullCursor(Display *display, Window root)
 {
-    Pixmap cursormask; 
-    XGCValues xgc;
-    GC gc;
-    XColor dummycolour;
-    Cursor cursor;
+	Pixmap	cursormask;
+	XGCValues	xgc;
+	GC		gc;
+	XColor	dummycolour;
+	Cursor	cursor;
 
-    cursormask = XCreatePixmap(display, root, 1, 1, 1/*depth*/);
-    xgc.function = GXclear;
-    gc =  XCreateGC(display, cursormask, GCFunction, &xgc);
-    XFillRectangle(display, cursormask, gc, 0, 0, 1, 1);
-    dummycolour.pixel = 0;
-    dummycolour.red = 0;
-    dummycolour.flags = 04;
-    cursor = XCreatePixmapCursor(display, cursormask, cursormask,
-          &dummycolour,&dummycolour, 0,0);
-    XFreePixmap(display,cursormask);
-    XFreeGC(display,gc);
-    return cursor;
+	cursormask = XCreatePixmap(display, root, 1, 1, 1/*depth*/);
+	xgc.function = GXclear;
+	gc =  XCreateGC(display, cursormask, GCFunction, &xgc);
+	XFillRectangle(display, cursormask, gc, 0, 0, 1, 1);
+	dummycolour.pixel = 0;
+	dummycolour.red = 0;
+	dummycolour.flags = 04;
+	cursor = XCreatePixmapCursor(display, cursormask, cursormask, &dummycolour,&dummycolour, 0,0);
+	XFreePixmap(display,cursormask);
+	XFreeGC(display,gc);
+	return cursor;
 }
 
 static void install_grabs(void)
@@ -282,13 +280,13 @@ static void install_grabs(void)
 				 None,
 				 CurrentTime);
 
-	if (in_dgamouse.value) {
+	if (in_dgamouse->value) {
 		int MajorVersion, MinorVersion;
 
-		if (!XF86DGAQueryVersion(dpy, &MajorVersion, &MinorVersion)) { 
+		if (!XF86DGAQueryVersion(dpy, &MajorVersion, &MinorVersion)) {
 			// unable to query, probalby not supported
 			Con_Printf( "Failed to detect XF86DGA Mouse\n" );
-			in_dgamouse.value = 0;
+			in_dgamouse->value = 0;
 		} else {
 			dgamouse = true;
 			XF86DGADirectVideo(dpy, DefaultScreen(dpy), XF86DGADirectMouse);
@@ -355,8 +353,8 @@ static void HandleEvents(void)
 				if (dgamouse) {
 					mx += (event.xmotion.x + win_x) * 2;
 					my += (event.xmotion.y + win_y) * 2;
-				} 
-				else 
+				}
+				else
 				{
 					mx += ((int)event.xmotion.x - mwx) * 2;
 					my += ((int)event.xmotion.y - mwy) * 2;
@@ -414,7 +412,7 @@ static void HandleEvents(void)
 
 }
 
-static void IN_DeactivateMouse( void ) 
+static void IN_DeactivateMouse( void )
 {
 	if (!mouse_avail || !dpy || !win)
 		return;
@@ -425,7 +423,7 @@ static void IN_DeactivateMouse( void )
 	}
 }
 
-static void IN_ActivateMouse( void ) 
+static void IN_ActivateMouse( void )
 {
 	if (!mouse_avail || !dpy || !win)
 		return;
@@ -484,12 +482,12 @@ void VID_ShiftPalette(unsigned char *p)
 //	VID_SetPalette(p);
 }
 
-void	VID_SetPalette (unsigned char *palette)
+void VID_SetPalette (unsigned char *palette)
 {
 	byte	*pal;
 	unsigned r,g,b;
 	unsigned v;
-	int     r1,g1,b1;
+	int		r1,g1,b1;
 	int		j,k,l,m;
 	unsigned short i;
 	unsigned	*table;
@@ -508,7 +506,7 @@ void	VID_SetPalette (unsigned char *palette)
 		g = pal[1];
 		b = pal[2];
 		pal += 3;
-		
+
 		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
 		*table++ = v;
 	}
@@ -539,7 +537,7 @@ void	VID_SetPalette (unsigned char *palette)
 	}
 }
 
-void CheckMultiTextureExtensions(void) 
+void CheckMultiTextureExtensions(void)
 {
 	void *prjobj;
 
@@ -614,13 +612,13 @@ GL_BeginRendering
 */
 void GL_BeginRendering (int *x, int *y, int *width, int *height)
 {
-	extern cvar_t gl_clear;
+	extern cvar_t	*gl_clear;
 
 	*x = *y = 0;
 	*width = scr_width;
 	*height = scr_height;
 
-//    if (!wglMakeCurrent( maindc, baseRC ))
+//	if (!wglMakeCurrent( maindc, baseRC ))
 //		Sys_Error ("wglMakeCurrent failed");
 
 //	glViewport (*x, *y, *width, *height);
@@ -638,7 +636,7 @@ qboolean VID_Is8bit(void)
 	return is8bit;
 }
 
-void VID_Init8bitPalette(void) 
+void VID_Init8bitPalette(void)
 {
 	// Check for 8bit Extensions and initialize them.
 	int i;
@@ -685,7 +683,7 @@ void VID_Init8bitPalette(void)
 		qglColorTableEXT(GL_SHARED_TEXTURE_PALETTE_EXT, GL_RGB, 256, GL_RGB, GL_UNSIGNED_BYTE, (void *) thePalette);
 		is8bit = true;
 	}
-	
+
 	dlclose(prjobj);
 }
 
@@ -718,6 +716,31 @@ static void Check_Gamma (unsigned char *pal)
 	memcpy (pal, palette, sizeof(palette));
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ORIGINAL);
+}
+
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	in_mouse = Cvar_Get ("in_mouse", "1", CVAR_ORIGINAL);
+	in_dgamouse = Cvar_Get ("in_dgamouse", "1", CVAR_ORIGINAL);
+	gl_ztrick = Cvar_Get ("gl_ztrick", "1", CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void VID_Init(unsigned char *palette)
 {
 	int i;
@@ -740,12 +763,16 @@ void VID_Init(unsigned char *palette)
 	int MajorVersion, MinorVersion;
 	int actualWidth, actualHeight;
 
-	Cvar_RegisterVariable (&vid_mode);
-	Cvar_RegisterVariable (&in_mouse);
-	Cvar_RegisterVariable (&in_dgamouse);
-	Cvar_RegisterVariable (&m_filter);
-	Cvar_RegisterVariable (&gl_ztrick);
-	
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	in_mouse = Cvar_Get ("in_mouse", "1", CVAR_ORIGINAL);
+	in_dgamouse = Cvar_Get ("in_dgamouse", "1", CVAR_ORIGINAL);
+	m_filter = Cvar_Get ("m_filter", "0", CVAR_ORIGINAL);
+	gl_ztrick = Cvar_Get ("gl_ztrick", "1", CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 	vid.maxwarpwidth = WARP_WIDTH;
 	vid.maxwarpheight = WARP_HEIGHT;
 	vid.colormap = host_colormap;
@@ -791,7 +818,7 @@ void VID_Init(unsigned char *palette)
 
 	// Get video mode list
 	MajorVersion = MinorVersion = 0;
-	if (!XF86VidModeQueryVersion(dpy, &MajorVersion, &MinorVersion)) { 
+	if (!XF86VidModeQueryVersion(dpy, &MajorVersion, &MinorVersion)) {
 		vidmode_ext = false;
 	} else {
 		Con_Printf("Using XFree86-VidModeExtension Version %d.%d\n", MajorVersion, MinorVersion);
@@ -806,7 +833,7 @@ void VID_Init(unsigned char *palette)
 
 	if (vidmode_ext) {
 		int best_fit, best_dist, dist, x, y;
-		
+
 		XF86VidModeGetAllModeLines(dpy, scrnum, &num_vidmodes, &vidmodes);
 
 		// Are we going fullscreen?  If so, let's change video mode
@@ -849,7 +876,7 @@ void VID_Init(unsigned char *palette)
 	attr.colormap = XCreateColormap(dpy, root, visinfo->visual, AllocNone);
 	attr.event_mask = X_MASK;
 	if (vidmode_active) {
-		mask = CWBackPixel | CWColormap | CWSaveUnder | CWBackingStore | 
+		mask = CWBackPixel | CWColormap | CWSaveUnder | CWBackingStore |
 			CWEventMask | CWOverrideRedirect;
 		attr.override_redirect = True;
 		attr.backing_store = NotUseful;
@@ -950,8 +977,8 @@ void IN_MouseMove (usercmd_t *cmd)
 {
 	if (!mouse_avail)
 		return;
-   
-	if (m_filter.value)
+
+	if (m_filter->value)
 	{
 		mx = (mx + old_mouse_x) * 0.5;
 		my = (my + old_mouse_y) * 0.5;
@@ -959,21 +986,21 @@ void IN_MouseMove (usercmd_t *cmd)
 	old_mouse_x = mx;
 	old_mouse_y = my;
 
-	mx *= sensitivity.value;
-	my *= sensitivity.value;
+	mx *= sensitivity->value;
+	my *= sensitivity->value;
 
 // add mouse X/Y movement to cmd
-	if ( (in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1) ))
-		cmd->sidemove += m_side.value * mx;
+	if ( (in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) ))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * mx;
 	else
-		cl.viewangles[YAW] -= m_yaw.value * mx;
-	
-	if (in_mlook.state & 1)
+		cl.viewangles[YAW] -= m_yaw->value * mx;
+
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-		
-	if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
+
+	if ( ((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
-		cl.viewangles[PITCH] += m_pitch.value * my;
+		cl.viewangles[PITCH] += m_pitch->value * my;
 		if (cl.viewangles[PITCH] > 80)
 			cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70)
@@ -982,9 +1009,9 @@ void IN_MouseMove (usercmd_t *cmd)
 	else
 	{
 		if ((in_strafe.state & 1) && noclip_anglehack)
-			cmd->upmove -= m_forward.value * my;
+			cmd->upmove -= m_forward->value * my;
 		else
-			cmd->forwardmove -= m_forward.value * my;
+			cmd->forwardmove -= m_forward->value * my;
 	}
 	mx = my = 0;
 }

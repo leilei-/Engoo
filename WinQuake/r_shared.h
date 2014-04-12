@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -52,7 +52,7 @@ extern	float	pixelAspect;
 
 extern int		r_drawnpolycount;
 
-extern cvar_t	r_clearcolor;
+extern cvar_t	*r_clearcolor;
 
 extern int	sintable[SIN_BUFFER_SIZE];
 extern int	intsintable[SIN_BUFFER_SIZE];

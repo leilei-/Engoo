@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -39,21 +39,21 @@ vmode_t		*pcurrentmode = NULL;
 int			vid_testingmode, vid_realmode;
 double		vid_testendtime;
 
-cvar_t		vid_mode = {"vid_mode","0", false};
-cvar_t		vid_wait = {"vid_wait","0"};
-cvar_t		vid_nopageflip = {"vid_nopageflip","0", true};
-cvar_t		_vid_wait_override = {"_vid_wait_override", "0", true};
-cvar_t		_vid_default_mode = {"_vid_default_mode","0", true};
-cvar_t		_vid_default_mode_win = {"_vid_default_mode_win","1", true};
-cvar_t		vid_config_x = {"vid_config_x","800", true};
-cvar_t		vid_config_y = {"vid_config_y","600", true};
-cvar_t		vid_stretch_by_2 = {"vid_stretch_by_2","1", true};
-cvar_t		_windowed_mouse = {"_windowed_mouse","0", true};
-cvar_t		vid_fullscreen_mode = {"vid_fullscreen_mode","3", true};
-cvar_t		vid_windowed_mode = {"vid_windowed_mode","0", true};
-cvar_t		block_switch = {"block_switch","0", true};
-cvar_t		vid_window_x = {"vid_window_x", "0", true};
-cvar_t		vid_window_y = {"vid_window_y", "0", true};
+cvar_t	*vid_mode;
+cvar_t	*vid_wait;
+cvar_t	*vid_nopageflip;
+cvar_t	*_vid_wait_override;
+cvar_t	*_vid_default_mode;
+cvar_t	*_vid_default_mode_win;
+cvar_t	*vid_config_x;
+cvar_t	*vid_config_y;
+cvar_t	*vid_stretch_by_2;
+cvar_t	*_windowed_mouse;
+cvar_t	*vid_fullscreen_mode;
+cvar_t	*vid_windowed_mode;
+cvar_t	*block_switch;
+cvar_t	*vid_window_x;
+cvar_t	*vid_window_y;
 
 int	d_con_indirect = 0;
 
@@ -82,6 +82,27 @@ void VID_MenuDraw (void);
 void VID_MenuKey (int key);
 
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+void VID_Init_Cvars (void)
+{
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
+	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_fullscreen_mode = Cvar_Get ("vid_fullscreen_mode", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_windowed_mode = Cvar_Get ("vid_windowed_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	block_switch = Cvar_Get ("block_switch", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_window_x = Cvar_Get ("vid_window_x", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
+	vid_window_y = Cvar_Get ("vid_window_y", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 /*
 ================
 VID_Init
@@ -89,19 +110,25 @@ VID_Init
 */
 void    VID_Init (unsigned char *palette)
 {
-	Cvar_RegisterVariable (&vid_mode);
-	Cvar_RegisterVariable (&vid_wait);
-	Cvar_RegisterVariable (&vid_nopageflip);
-	Cvar_RegisterVariable (&_vid_wait_override);
-	Cvar_RegisterVariable (&_vid_default_mode);
-	Cvar_RegisterVariable (&_vid_default_mode_win);
-	Cvar_RegisterVariable (&vid_config_x);
-	Cvar_RegisterVariable (&vid_config_y);
-	Cvar_RegisterVariable (&vid_stretch_by_2);
-	Cvar_RegisterVariable (&_windowed_mouse);
-	Cvar_RegisterVariable (&vid_fullscreen_mode);
-	Cvar_RegisterVariable (&vid_windowed_mode);
-	Cvar_RegisterVariable (&block_switch);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
+	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_fullscreen_mode = Cvar_Get ("vid_fullscreen_mode", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_windowed_mode = Cvar_Get ("vid_windowed_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	block_switch = Cvar_Get ("block_switch", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_window_x = Cvar_Get ("vid_window_x", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
+	vid_window_y = Cvar_Get ("vid_window_y", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("vid_testmode", VID_TestMode_f);
 	Cmd_AddCommand ("vid_nummodes", VID_NumModes_f);
@@ -118,12 +145,12 @@ void    VID_Init (unsigned char *palette)
 
 	vid_testingmode = 0;
 
-	vid_modenum = vid_mode.value;
+	vid_modenum = vid_mode->value;
 
 	VID_SetMode (vid_modenum, palette);
 
 	vid_realmode = vid_modenum;
-	
+
 	vid_menudrawfn = VID_MenuDraw;
 	vid_menukeyfn = VID_MenuKey;
 }
@@ -192,7 +219,7 @@ char *VID_ModeInfo (int modenum, char **ppheader)
 
 /*
 ================
-VID_SetMode 
+VID_SetMode
 ================
 */
 int VID_SetMode (int modenum, unsigned char *palette)
@@ -202,7 +229,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	if ((modenum >= numvidmodes) || (modenum < 0))
 	{
-		Cvar_SetValue ("vid_mode", (float)vid_modenum);
+		Cvar_SetValue (vid_mode, (float)vid_modenum);
 
 		nomodecheck = true;
 		Con_Printf ("No such video mode: %d\n", modenum);
@@ -265,7 +292,7 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	(*pcurrentmode->setpalette) (&vid, pcurrentmode, palette);
 
 	vid_modenum = modenum;
-	Cvar_SetValue ("vid_mode", (float)vid_modenum);
+	Cvar_SetValue (vid_mode, (float)vid_modenum);
 
 	nomodecheck = true;
 	Con_Printf ("%s\n", VID_ModeInfo (vid_modenum, NULL));
@@ -325,13 +352,13 @@ VID_Update
 */
 void    VID_Update (vrect_t *rects)
 {
-	if (firstupdate && _vid_default_mode.value)
+	if (firstupdate && _vid_default_mode->value)
 	{
-		if(_vid_default_mode.value >= numvidmodes)
-			Cvar_SetValue ("_vid_default_mode", 0);
+		if(_vid_default_mode->value >= numvidmodes)
+			Cvar_Set (_vid_default_mode, "0");
 
 		firstupdate = 0;
-		Cvar_SetValue ("vid_mode", _vid_default_mode.value);
+		Cvar_SetValue (vid_mode, _vid_default_mode->value);
 	}
 
 	(*pcurrentmode->swapbuffers)(&vid, pcurrentmode, rects);
@@ -348,10 +375,10 @@ void    VID_Update (vrect_t *rects)
 		}
 		else
 		{
-			if (vid_mode.value != vid_realmode)
+			if (vid_mode->value != vid_realmode)
 			{
-				VID_SetMode ((int)vid_mode.value, vid_current_palette);
-				Cvar_SetValue ("vid_mode", (float)vid_modenum);
+				VID_SetMode ((int)vid_mode->value, vid_current_palette);
+				Cvar_SetValue (vid_mode, (float)vid_modenum);
 									// so if mode set fails, we don't keep on
 									//  trying to set that mode
 				vid_realmode = vid_modenum;
@@ -397,7 +424,7 @@ VID_DescribeMode_f
 void VID_DescribeMode_f (void)
 {
 	int		modenum;
-	
+
 	modenum = Q_atoi (Cmd_Argv(1));
 
 	Con_Printf ("%s\n", VID_ModeInfo (modenum, NULL));
@@ -427,7 +454,7 @@ void VID_DescribeModes_f (void)
 			Con_Printf ("\n%s\n", pheader);
 
 		if (VGA_CheckAdequateMem (pv->width, pv->height, pv->rowbytes,
-			(pv->numpages == 1) || vid_nopageflip.value))
+			(pv->numpages == 1) || vid_nopageflip->value))
 		{
 			Con_Printf ("%2d: %s\n", i, pinfo);
 		}
@@ -459,7 +486,7 @@ char *VID_GetModeDescription (int mode)
 	pinfo = VID_ModeInfo (mode, &pheader);
 
 	if (VGA_CheckAdequateMem (pv->width, pv->height, pv->rowbytes,
-		(pv->numpages == 1) || vid_nopageflip.value))
+		(pv->numpages == 1) || vid_nopageflip->value))
 	{
 		return pinfo;
 	}
@@ -577,7 +604,7 @@ void VID_MenuDraw (void)
 
 	vid_wmodes = 0;
 	nummodes = VID_NumModes ();
-	
+
 	p = Draw_CachePic ("gfx/vidmodes.lmp");
 	M_DrawPic ( (320-p->width)/2, 4, p);
 
@@ -669,7 +696,7 @@ void VID_MenuDraw (void)
 		ptr = VID_GetModeDescription (vid_modenum);
 		sprintf (temp, "D to make %s the default", ptr);
 		M_Print (6*8, 36 + MAX_COLUMN_SIZE * 8 + 8*5, temp);
-		ptr = VID_GetModeDescription ((int)_vid_default_mode.value);
+		ptr = VID_GetModeDescription ((int)_vid_default_mode->value);
 
 		if (ptr)
 		{
@@ -768,7 +795,7 @@ void VID_MenuKey (int key)
 	case 'd':
 		S_LocalSound ("misc/menu1.wav");
 		firstupdate = 0;
-		Cvar_SetValue ("_vid_default_mode", vid_modenum);
+		Cvar_SetValue (_vid_default_mode, vid_modenum);
 		break;
 
 	default:

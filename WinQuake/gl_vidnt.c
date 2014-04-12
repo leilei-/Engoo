@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -103,7 +103,7 @@ HDC		maindc;
 
 glvert_t glv;
 
-cvar_t	gl_ztrick = {"gl_ztrick","1"};
+cvar_t	*gl_ztrick;
 
 HWND WINAPI InitializeWindow (HINSTANCE hInstance, int nCmdShow);
 
@@ -140,21 +140,21 @@ qboolean gl_mtexable = false;
 
 //====================================
 
-cvar_t		vid_mode = {"vid_mode","0", false};
+cvar_t	*vid_mode;
 // Note that 0 is MODE_WINDOWED
-cvar_t		_vid_default_mode = {"_vid_default_mode","0", true};
+cvar_t	*_vid_default_mode;
 // Note that 3 is MODE_FULLSCREEN_DEFAULT
-cvar_t		_vid_default_mode_win = {"_vid_default_mode_win","3", true};
-cvar_t		vid_wait = {"vid_wait","0"};
-cvar_t		vid_nopageflip = {"vid_nopageflip","0", true};
-cvar_t		_vid_wait_override = {"_vid_wait_override", "0", true};
-cvar_t		vid_config_x = {"vid_config_x","800", true};
-cvar_t		vid_config_y = {"vid_config_y","600", true};
-cvar_t		vid_stretch_by_2 = {"vid_stretch_by_2","1", true};
-cvar_t		_windowed_mouse = {"_windowed_mouse","1", true};
+cvar_t	*_vid_default_mode_win;
+cvar_t	*vid_wait;
+cvar_t	*vid_nopageflip;
+cvar_t	*_vid_wait_override;
+cvar_t	*vid_config_x;
+cvar_t	*vid_config_y;
+cvar_t	*vid_stretch_by_2;
+cvar_t	*_windowed_mouse;
 
-int			window_center_x, window_center_y, window_x, window_y, window_width, window_height;
-RECT		window_rect;
+int		window_center_x, window_center_y, window_x, window_y, window_width, window_height;
+RECT	window_rect;
 
 // direct draw software compatability stuff
 
@@ -190,8 +190,8 @@ void D_EndDirectRect (int x, int y, int width, int height)
 
 void CenterWindow(HWND hWndCenter, int width, int height, BOOL lefttopjustify)
 {
-    RECT    rect;
-    int     CenterX, CenterY;
+	RECT	rect;
+	int		CenterX, CenterY;
 
 	CenterX = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;
 	CenterY = (GetSystemMetrics(SM_CYSCREEN) - height) / 2;
@@ -206,10 +206,10 @@ void CenterWindow(HWND hWndCenter, int width, int height, BOOL lefttopjustify)
 qboolean VID_SetWindowedMode (int modenum)
 {
 	HDC				hdc;
-	int				lastmodestate, width, height;
+	int				width, height;	//lastmodestate, // 2001-12-10 Reduced compiler warnings by Jeff Ford
 	RECT			rect;
 
-	lastmodestate = modestate;
+//	lastmodestate = modestate;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	WindowRect.top = WindowRect.left = 0;
 
@@ -284,7 +284,7 @@ qboolean VID_SetWindowedMode (int modenum)
 qboolean VID_SetFullDIBMode (int modenum)
 {
 	HDC				hdc;
-	int				lastmodestate, width, height;
+	int				width, height;	//lastmodestate, // 2001-12-10 Reduced compiler warnings by Jeff Ford
 	RECT			rect;
 
 	if (!leavecurrentmode)
@@ -300,7 +300,7 @@ qboolean VID_SetFullDIBMode (int modenum)
 			Sys_Error ("Couldn't set fullscreen DIB mode");
 	}
 
-	lastmodestate = modestate;
+//	lastmodestate = modestate;	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	modestate = MS_FULLDIB;
 
 	WindowRect.top = WindowRect.left = 0;
@@ -372,10 +372,10 @@ qboolean VID_SetFullDIBMode (int modenum)
 
 int VID_SetMode (int modenum, unsigned char *palette)
 {
-	int				original_mode, temp;
-	qboolean		stat;
-    MSG				msg;
-	HDC				hdc;
+	int			original_mode, temp;
+	qboolean	stat;
+	MSG			msg;
+	HDC			hdc;
 
 	if ((windowed && (modenum != 0)) ||
 		(!windowed && (modenum < 1)) ||
@@ -390,15 +390,19 @@ int VID_SetMode (int modenum, unsigned char *palette)
 
 	CDAudio_Pause ();
 
+// 2001-12-10 Reduced compiler warnings by Jeff Ford  start
+/*
 	if (vid_modenum == NO_MODE)
 		original_mode = windowed_default;
 	else
 		original_mode = vid_modenum;
+*/
+// 2001-12-10 Reduced compiler warnings by Jeff Ford  end
 
 	// Set either the fullscreen or windowed mode
 	if (modelist[modenum].type == MS_WINDOWED)
 	{
-		if (_windowed_mouse.value && key_dest == key_game)
+		if (_windowed_mouse->value && key_dest == key_game)
 		{
 			stat = VID_SetWindowedMode(modenum);
 			IN_ActivateMouse ();
@@ -443,12 +447,12 @@ int VID_SetMode (int modenum, unsigned char *palette)
 	SetForegroundWindow (mainwindow);
 	VID_SetPalette (palette);
 	vid_modenum = modenum;
-	Cvar_SetValue ("vid_mode", (float)vid_modenum);
+	Cvar_SetValue (vid_mode, (float)vid_modenum);
 
 	while (PeekMessage (&msg, NULL, 0, 0, PM_REMOVE))
 	{
-      	TranslateMessage (&msg);
-      	DispatchMessage (&msg);
+		TranslateMessage (&msg);
+		DispatchMessage (&msg);
 	}
 
 	Sleep (100);
@@ -518,7 +522,7 @@ void CheckTextureExtensions (void)
 	if (!texture_ext || COM_CheckParm ("-gl11") )
 	{
 		hInstGL = LoadLibrary("opengl32.dll");
-		
+
 		if (hInstGL == NULL)
 			Sys_Error ("Couldn't load opengl32.dll\n");
 
@@ -575,7 +579,7 @@ int		texture_mode = GL_LINEAR;
 int		texture_extension_number = 1;
 
 #ifdef _WIN32
-void CheckMultiTextureExtensions(void) 
+void CheckMultiTextureExtensions(void)
 {
 	if (strstr(gl_extensions, "GL_SGIS_multitexture ") && !COM_CheckParm("-nomtex")) {
 		Con_Printf("Multitexture extensions found.\n");
@@ -585,7 +589,7 @@ void CheckMultiTextureExtensions(void)
 	}
 }
 #else
-void CheckMultiTextureExtensions(void) 
+void CheckMultiTextureExtensions(void)
 {
 		gl_mtexable = true;
 }
@@ -610,11 +614,11 @@ void GL_Init (void)
 
 //	Con_Printf ("%s %s\n", gl_renderer, gl_version);
 
-    if (strnicmp(gl_renderer,"PowerVR",7)==0)
-         fullsbardraw = true;
+	if (strnicmp(gl_renderer,"PowerVR",7)==0)
+		fullsbardraw = true;
 
-    if (strnicmp(gl_renderer,"Permedia",8)==0)
-         isPermedia = true;
+	if (strnicmp(gl_renderer,"Permedia",8)==0)
+		isPermedia = true;
 
 	CheckTextureExtensions ();
 	CheckMultiTextureExtensions ();
@@ -658,13 +662,13 @@ GL_BeginRendering
 */
 void GL_BeginRendering (int *x, int *y, int *width, int *height)
 {
-	extern cvar_t gl_clear;
+	extern cvar_t	*gl_clear;
 
 	*x = *y = 0;
 	*width = WindowRect.right - WindowRect.left;
 	*height = WindowRect.bottom - WindowRect.top;
 
-//    if (!wglMakeCurrent( maindc, baseRC ))
+//	if (!wglMakeCurrent( maindc, baseRC ))
 //		Sys_Error ("wglMakeCurrent failed");
 
 //	glViewport (*x, *y, *width, *height);
@@ -679,7 +683,7 @@ void GL_EndRendering (void)
 // handle the mouse state when windowed if that's changed
 	if (modestate == MS_WINDOWED)
 	{
-		if (!_windowed_mouse.value) {
+		if (!_windowed_mouse->value) {
 			if (windowed_mouse)	{
 				IN_DeactivateMouse ();
 				IN_ShowMouse ();
@@ -705,7 +709,7 @@ void	VID_SetPalette (unsigned char *palette)
 	byte	*pal;
 	unsigned r,g,b;
 	unsigned v;
-	int     r1,g1,b1;
+	int		r1,g1,b1;
 	int		j,k,l,m;
 	unsigned short i;
 	unsigned	*table;
@@ -725,7 +729,7 @@ void	VID_SetPalette (unsigned char *palette)
 		g = pal[1];
 		b = pal[2];
 		pal += 3;
-		
+
 //		v = (255<<24) + (r<<16) + (g<<8) + (b<<0);
 //		v = (255<<0) + (r<<8) + (g<<16) + (b<<24);
 		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
@@ -765,7 +769,7 @@ BOOL	gammaworks;
 void	VID_ShiftPalette (unsigned char *palette)
 {
 	extern	byte ramps[3][256];
-	
+
 //	VID_SetPalette (palette);
 
 //	gammaworks = SetDeviceGammaRamp (maindc, ramps);
@@ -787,12 +791,12 @@ void	VID_Shutdown (void)
 	{
 		vid_canalttab = false;
 		hRC = wglGetCurrentContext();
-    	hDC = wglGetCurrentDC();
+		hDC = wglGetCurrentDC();
 
-    	wglMakeCurrent(NULL, NULL);
+		wglMakeCurrent(NULL, NULL);
 
-    	if (hRC)
-    	    wglDeleteContext(hRC);
+		if (hRC)
+			wglDeleteContext(hRC);
 
 		if (hDC && dibwindow)
 			ReleaseDC(dibwindow, hDC);
@@ -813,7 +817,7 @@ void	VID_Shutdown (void)
 
 BOOL bSetupPixelFormat(HDC hDC)
 {
-    static PIXELFORMATDESCRIPTOR pfd = {
+	static	PIXELFORMATDESCRIPTOR pfd = {
 	sizeof(PIXELFORMATDESCRIPTOR),	// size of this pfd
 	1,				// version number
 	PFD_DRAW_TO_WINDOW 		// support window
@@ -826,75 +830,75 @@ BOOL bSetupPixelFormat(HDC hDC)
 	0,				// shift bit ignored
 	0,				// no accumulation buffer
 	0, 0, 0, 0, 			// accum bits ignored
-	32,				// 32-bit z-buffer	
+	32,				// 32-bit z-buffer
 	0,				// no stencil buffer
 	0,				// no auxiliary buffer
 	PFD_MAIN_PLANE,			// main layer
 	0,				// reserved
 	0, 0, 0				// layer masks ignored
-    };
-    int pixelformat;
+	};
+	int	pixelformat;
 
-    if ( (pixelformat = ChoosePixelFormat(hDC, &pfd)) == 0 )
-    {
-        MessageBox(NULL, "ChoosePixelFormat failed", "Error", MB_OK);
-        return FALSE;
-    }
+	if ( (pixelformat = ChoosePixelFormat(hDC, &pfd)) == 0 )
+	{
+		MessageBox(NULL, "ChoosePixelFormat failed", "Error", MB_OK);
+		return FALSE;
+	}
 
-    if (SetPixelFormat(hDC, pixelformat, &pfd) == FALSE)
-    {
-        MessageBox(NULL, "SetPixelFormat failed", "Error", MB_OK);
-        return FALSE;
-    }
+	if (SetPixelFormat(hDC, pixelformat, &pfd) == FALSE)
+	{
+		MessageBox(NULL, "SetPixelFormat failed", "Error", MB_OK);
+		return FALSE;
+	}
 
-    return TRUE;
+	return TRUE;
 }
 
 
 
-byte        scantokey[128] = 
-					{ 
-//  0           1       2       3       4       5       6       7 
-//  8           9       A       B       C       D       E       F 
-	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6', 
-	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0 
-	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i', 
-	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1 
-	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';', 
-	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2 
-	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*', 
-	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3 
-	K_F6, K_F7, K_F8, K_F9, K_F10, K_PAUSE  ,    0  , K_HOME, 
-	K_UPARROW,K_PGUP,'-',K_LEFTARROW,'5',K_RIGHTARROW,'+',K_END, //4 
-	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11, 
-	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7 
-					}; 
+byte	scantokey[128] =
+{
+//  0           1       2       3       4       5       6       7
+//  8           9       A       B       C       D       E       F
+	0  ,    27,     '1',    '2',    '3',    '4',    '5',    '6',
+	'7',    '8',    '9',    '0',    '-',    '=',    K_BACKSPACE, 9, // 0
+	'q',    'w',    'e',    'r',    't',    'y',    'u',    'i',
+	'o',    'p',    '[',    ']',    13 ,    K_CTRL,'a',  's',      // 1
+	'd',    'f',    'g',    'h',    'j',    'k',    'l',    ';',
+	'\'' ,    '`',    K_SHIFT,'\\',  'z',    'x',    'c',    'v',      // 2
+	'b',    'n',    'm',    ',',    '.',    '/',    K_SHIFT,'*',
+	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3
+	K_F6, K_F7, K_F8, K_F9, K_F10, K_PAUSE  ,    0  , K_HOME,
+	K_UPARROW,K_PGUP,'-',K_LEFTARROW,'5',K_RIGHTARROW,'+',K_END, //4
+	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11,
+	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7
+};
 
-byte        shiftscantokey[128] = 
-					{ 
-//  0           1       2       3       4       5       6       7 
-//  8           9       A       B       C       D       E       F 
-	0  ,    27,     '!',    '@',    '#',    '$',    '%',    '^', 
-	'&',    '*',    '(',    ')',    '_',    '+',    K_BACKSPACE, 9, // 0 
-	'Q',    'W',    'E',    'R',    'T',    'Y',    'U',    'I', 
-	'O',    'P',    '{',    '}',    13 ,    K_CTRL,'A',  'S',      // 1 
-	'D',    'F',    'G',    'H',    'J',    'K',    'L',    ':', 
-	'"' ,    '~',    K_SHIFT,'|',  'Z',    'X',    'C',    'V',      // 2 
-	'B',    'N',    'M',    '<',    '>',    '?',    K_SHIFT,'*', 
-	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3 
-	K_F6, K_F7, K_F8, K_F9, K_F10, K_PAUSE  ,    0  , K_HOME, 
-	K_UPARROW,K_PGUP,'_',K_LEFTARROW,'%',K_RIGHTARROW,'+',K_END, //4 
-	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11, 
-	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0, 
-	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7 
-					}; 
+byte	shiftscantokey[128] =
+{
+//  0           1       2       3       4       5       6       7
+//  8           9       A       B       C       D       E       F
+	0  ,    27,     '!',    '@',    '#',    '$',    '%',    '^',
+	'&',    '*',    '(',    ')',    '_',    '+',    K_BACKSPACE, 9, // 0
+	'Q',    'W',    'E',    'R',    'T',    'Y',    'U',    'I',
+	'O',    'P',    '{',    '}',    13 ,    K_CTRL,'A',  'S',      // 1
+	'D',    'F',    'G',    'H',    'J',    'K',    'L',    ':',
+	'"' ,    '~',    K_SHIFT,'|',  'Z',    'X',    'C',    'V',      // 2
+	'B',    'N',    'M',    '<',    '>',    '?',    K_SHIFT,'*',
+	K_ALT,' ',   0  ,    K_F1, K_F2, K_F3, K_F4, K_F5,   // 3
+	K_F6, K_F7, K_F8, K_F9, K_F10, K_PAUSE  ,    0  , K_HOME,
+	K_UPARROW,K_PGUP,'_',K_LEFTARROW,'%',K_RIGHTARROW,'+',K_END, //4
+	K_DOWNARROW,K_PGDN,K_INS,K_DEL,0,0,             0,              K_F11,
+	K_F12,0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 5
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,        // 6
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0,
+	0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0  ,    0         // 7
+};
 
 
 /*
@@ -930,7 +934,7 @@ ClearAllStates
 void ClearAllStates (void)
 {
 	int		i;
-	
+
 // send an up event for each key, to make sure the server clears them all
 	for (i=0 ; i<256 ; i++)
 	{
@@ -953,9 +957,9 @@ void AppActivate(BOOL fActive, BOOL minimize)
 *
 ****************************************************************************/
 {
-	MSG msg;
-    HDC			hdc;
-    int			i, t;
+	MSG		msg;
+	HDC		hdc;
+	int		i, t;
 	static BOOL	sound_active;
 
 	ActiveApp = fActive;
@@ -985,7 +989,7 @@ void AppActivate(BOOL fActive, BOOL minimize)
 				ShowWindow(mainwindow, SW_SHOWNORMAL);
 			}
 		}
-		else if ((modestate == MS_WINDOWED) && _windowed_mouse.value && key_dest == key_game)
+		else if ((modestate == MS_WINDOWED) && _windowed_mouse->value && key_dest == key_game)
 		{
 			IN_ActivateMouse ();
 			IN_HideMouse ();
@@ -998,12 +1002,12 @@ void AppActivate(BOOL fActive, BOOL minimize)
 		{
 			IN_DeactivateMouse ();
 			IN_ShowMouse ();
-			if (vid_canalttab) { 
+			if (vid_canalttab) {
 				ChangeDisplaySettings (NULL, 0);
 				vid_wassuspended = true;
 			}
 		}
-		else if ((modestate == MS_WINDOWED) && _windowed_mouse.value)
+		else if ((modestate == MS_WINDOWED) && _windowed_mouse->value)
 		{
 			IN_DeactivateMouse ();
 			IN_ShowMouse ();
@@ -1014,20 +1018,20 @@ void AppActivate(BOOL fActive, BOOL minimize)
 
 /* main window procedure */
 LONG WINAPI MainWndProc (
-    HWND    hWnd,
-    UINT    uMsg,
-    WPARAM  wParam,
-    LPARAM  lParam)
+	HWND	hWnd,
+	UINT	uMsg,
+	WPARAM	wParam,
+	LPARAM	lParam)
 {
-    LONG    lRet = 1;
+	LONG	lRet = 1;
 	int		fwKeys, xPos, yPos, fActive, fMinimized, temp;
 	extern unsigned int uiWheelMessage;
 
 	if ( uMsg == uiWheelMessage )
 		uMsg = WM_MOUSEWHEEL;
 
-    switch (uMsg)
-    {
+	switch (uMsg)
+	{
 		case WM_KILLFOCUS:
 			if (modestate == MS_FULLDIB)
 				ShowWindow(mainwindow, SW_SHOWMINNOACTIVE);
@@ -1046,7 +1050,7 @@ LONG WINAPI MainWndProc (
 		case WM_SYSKEYDOWN:
 			Key_Event (MapKey(lParam), true);
 			break;
-			
+
 		case WM_KEYUP:
 		case WM_SYSKEYUP:
 			Key_Event (MapKey(lParam), false);
@@ -1083,7 +1087,7 @@ LONG WINAPI MainWndProc (
 		// JACK: This is the mouse wheel with the Intellimouse
 		// Its delta is either positive or neg, and we generate the proper
 		// Event.
-		case WM_MOUSEWHEEL: 
+		case WM_MOUSEWHEEL:
 			if ((short) HIWORD(wParam) > 0) {
 				Key_Event(K_MWHEELUP, true);
 				Key_Event(K_MWHEELUP, false);
@@ -1093,17 +1097,17 @@ LONG WINAPI MainWndProc (
 			}
 			break;
 
-    	case WM_SIZE:
-            break;
+		case WM_SIZE:
+			break;
 
-   	    case WM_CLOSE:
+		case WM_CLOSE:
 			if (MessageBox (mainwindow, "Are you sure you want to quit?", "Confirm Exit",
 						MB_YESNO | MB_SETFOREGROUND | MB_ICONQUESTION) == IDYES)
 			{
 				Sys_Quit ();
 			}
 
-	        break;
+			break;
 
 		case WM_ACTIVATE:
 			fActive = LOWORD(wParam);
@@ -1115,27 +1119,27 @@ LONG WINAPI MainWndProc (
 
 			break;
 
-   	    case WM_DESTROY:
-        {
+		case WM_DESTROY:
+		{
 			if (dibwindow)
 				DestroyWindow (dibwindow);
 
-            PostQuitMessage (0);
-        }
-        break;
+			PostQuitMessage (0);
+		}
+		break;
 
 		case MM_MCINOTIFY:
-            lRet = CDAudio_MessageHandler (hWnd, uMsg, wParam, lParam);
+			lRet = CDAudio_MessageHandler (hWnd, uMsg, wParam, lParam);
 			break;
 
-    	default:
-            /* pass all unhandled messages to DefWindowProc */
-            lRet = DefWindowProc (hWnd, uMsg, wParam, lParam);
-        break;
-    }
+		default:
+			/* pass all unhandled messages to DefWindowProc */
+			lRet = DefWindowProc (hWnd, uMsg, wParam, lParam);
+		break;
+	}
 
-    /* return 1 if handled message, 0 if not */
-    return lRet;
+	/* return 1 if handled message, 0 if not */
+	return lRet;
 }
 
 
@@ -1149,7 +1153,7 @@ int VID_NumModes (void)
 	return nummodes;
 }
 
-	
+
 /*
 =================
 VID_GetModePtr
@@ -1266,7 +1270,7 @@ VID_DescribeMode_f
 void VID_DescribeMode_f (void)
 {
 	int		t, modenum;
-	
+
 	modenum = Q_atoi (Cmd_Argv(1));
 
 	t = leavecurrentmode;
@@ -1312,18 +1316,18 @@ void VID_InitDIB (HINSTANCE hInstance)
 	int				i;
 
 	/* Register the frame class */
-    wc.style         = 0;
-    wc.lpfnWndProc   = (WNDPROC)MainWndProc;
-    wc.cbClsExtra    = 0;
-    wc.cbWndExtra    = 0;
-    wc.hInstance     = hInstance;
-    wc.hIcon         = 0;
-    wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
+	wc.style         = 0;
+	wc.lpfnWndProc   = (WNDPROC)MainWndProc;
+	wc.cbClsExtra    = 0;
+	wc.cbWndExtra    = 0;
+	wc.hInstance     = hInstance;
+	wc.hIcon         = 0;
+	wc.hCursor       = LoadCursor (NULL,IDC_ARROW);
 	wc.hbrBackground = NULL;
-    wc.lpszMenuName  = 0;
-    wc.lpszClassName = "WinQuake";
+	wc.lpszMenuName  = 0;
+	wc.lpszClassName = "WinQuake";
 
-    if (!RegisterClass (&wc) )
+	if (!RegisterClass (&wc) )
 		Sys_Error ("Couldn't register window class");
 
 	modelist[0].type = MS_WINDOWED;
@@ -1509,7 +1513,7 @@ qboolean VID_Is8bit() {
 
 #define GL_SHARED_TEXTURE_PALETTE_EXT 0x81FB
 
-void VID_Init8bitPalette() 
+void VID_Init8bitPalette()
 {
 	// Check for 8bit Extensions and initialize them.
 	int i;
@@ -1517,12 +1521,12 @@ void VID_Init8bitPalette()
 	char *oldPalette, *newPalette;
 
 	glColorTableEXT = (void *)wglGetProcAddress("glColorTableEXT");
-    if (!glColorTableEXT || strstr(gl_extensions, "GL_EXT_shared_texture_palette") ||
+	if (!glColorTableEXT || strstr(gl_extensions, "GL_EXT_shared_texture_palette") ||
 		COM_CheckParm("-no8bit"))
 		return;
 
 	Con_SafePrintf("8-bit GL extensions enabled.\n");
-    glEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
+	glEnable( GL_SHARED_TEXTURE_PALETTE_EXT );
 	oldPalette = (char *) d_8to24table; //d_8to24table3dfx;
 	newPalette = thePalette;
 	for (i=0;i<256;i++) {
@@ -1565,6 +1569,28 @@ static void Check_Gamma (unsigned char *pal)
 	memcpy (pal, palette, sizeof(palette));
 }
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+VID_Init_Cvars
+===================
+*/
+void VID_Init_Cvars (void)
+{
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
+	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	gl_ztrick = Cvar_Get ("gl_ztrick", "1", CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 /*
 ===================
 VID_Init
@@ -1573,7 +1599,7 @@ VID_Init
 void	VID_Init (unsigned char *palette)
 {
 	int		i, existingmode;
-	int		basenummodes, width, height, bpp, findbpp, done;
+	int		width, height, bpp, findbpp, done;	//basenummodes, // 2001-12-10 Reduced compiler warnings by Jeff Ford
 	byte	*ptmp;
 	char	gldir[MAX_OSPATH];
 	HDC		hdc;
@@ -1581,29 +1607,33 @@ void	VID_Init (unsigned char *palette)
 
 	memset(&devmode, 0, sizeof(devmode));
 
-	Cvar_RegisterVariable (&vid_mode);
-	Cvar_RegisterVariable (&vid_wait);
-	Cvar_RegisterVariable (&vid_nopageflip);
-	Cvar_RegisterVariable (&_vid_wait_override);
-	Cvar_RegisterVariable (&_vid_default_mode);
-	Cvar_RegisterVariable (&_vid_default_mode_win);
-	Cvar_RegisterVariable (&vid_config_x);
-	Cvar_RegisterVariable (&vid_config_y);
-	Cvar_RegisterVariable (&vid_stretch_by_2);
-	Cvar_RegisterVariable (&_windowed_mouse);
-	Cvar_RegisterVariable (&gl_ztrick);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	vid_mode = Cvar_Get ("vid_mode", "0", CVAR_ORIGINAL);
+	vid_wait = Cvar_Get ("vid_wait", "0", CVAR_ORIGINAL);
+	vid_nopageflip = Cvar_Get ("vid_nopageflip", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_wait_override = Cvar_Get ("_vid_wait_override", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode = Cvar_Get ("_vid_default_mode", "0", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_vid_default_mode_win = Cvar_Get ("_vid_default_mode_win", "3", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_x = Cvar_Get ("vid_config_x", "800", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_config_y = Cvar_Get ("vid_config_y", "600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	vid_stretch_by_2 = Cvar_Get ("vid_stretch_by_2", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	gl_ztrick = Cvar_Get ("gl_ztrick", "1", CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("vid_nummodes", VID_NumModes_f);
 	Cmd_AddCommand ("vid_describecurrentmode", VID_DescribeCurrentMode_f);
 	Cmd_AddCommand ("vid_describemode", VID_DescribeMode_f);
 	Cmd_AddCommand ("vid_describemodes", VID_DescribeModes_f);
 
-	hIcon = LoadIcon (global_hInstance, MAKEINTRESOURCE (IDI_ICON2));
+	hIcon = LoadIcon (global_hInstance, MAKEINTRESOURCE (IDI_ICON1));
 
 	InitCommonControls();
 
 	VID_InitDIB (global_hInstance);
-	basenummodes = nummodes = 1;
+	nummodes = 1;	//basenummodes = // 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 	VID_InitFullDIB (global_hInstance);
 
@@ -1801,13 +1831,13 @@ void	VID_Init (unsigned char *palette)
 
 	VID_SetMode (vid_default, palette);
 
-    maindc = GetDC(mainwindow);
+	maindc = GetDC(mainwindow);
 	bSetupPixelFormat(maindc);
 
-    baseRC = wglCreateContext( maindc );
+	baseRC = wglCreateContext( maindc );
 	if (!baseRC)
 		Sys_Error ("Could not initialize GL (wglCreateContext failed).\n\nMake sure you in are 65535 color mode, and try running -window.");
-    if (!wglMakeCurrent( maindc, baseRC ))
+	if (!wglMakeCurrent( maindc, baseRC ))
 		Sys_Error ("wglMakeCurrent failed");
 
 	GL_Init ();
@@ -1842,7 +1872,7 @@ extern void M_DrawCharacter (int cx, int line, int num);
 extern void M_DrawTransPic (int x, int y, qpic_t *pic);
 extern void M_DrawPic (int x, int y, qpic_t *pic);
 
-static int	vid_line, vid_wmodes;
+static int	vid_wmodes;	//vid_line, // 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 typedef struct
 {
@@ -1875,7 +1905,7 @@ void VID_MenuDraw (void)
 
 	vid_wmodes = 0;
 	lnummodes = VID_NumModes ();
-	
+
 	for (i=1 ; (i<lnummodes) && (vid_wmodes < MAX_MODEDESCS) ; i++)
 	{
 		ptr = VID_GetModeDescription (i);

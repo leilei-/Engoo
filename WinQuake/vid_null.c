@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -52,7 +52,7 @@ void	VID_Init (unsigned char *palette)
 	vid.fullbright = 256 - LittleLong (*((int *)vid.colormap + 2048));
 	vid.buffer = vid.conbuffer = vid_buffer;
 	vid.rowbytes = vid.conrowbytes = BASEWIDTH;
-	
+
 	d_pzbuffer = zbuffer;
 	D_InitCaches (surfcache, sizeof(surfcache));
 }

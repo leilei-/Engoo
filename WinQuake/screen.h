@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -44,14 +44,14 @@ extern	int			clearnotify;	// set to 0 whenever notify text is drawn
 extern	qboolean	scr_disabled_for_loading;
 extern	qboolean	scr_skipupdate;
 
-extern	cvar_t		scr_viewsize;
+extern	cvar_t		*scr_viewsize;
 
-extern cvar_t scr_viewsize;
-
-// only the refresh window will be updated unless these variables are flagged 
+// only the refresh window will be updated unless these variables are flagged
 extern	int			scr_copytop;
 extern	int			scr_copyeverything;
 
 extern qboolean		block_drawing;
 
 void SCR_UpdateWholeScreen (void);
+
+extern cvar_t		*scr_conheight;	// 2000-01-12 Variable console height by Fett

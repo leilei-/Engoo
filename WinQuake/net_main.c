@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -63,21 +63,21 @@ int messagesReceived = 0;
 int unreliableMessagesSent = 0;
 int unreliableMessagesReceived = 0;
 
-cvar_t	net_messagetimeout = {"net_messagetimeout","300"};
-cvar_t	hostname = {"hostname", "UNNAMED"};
+cvar_t	*net_messagetimeout;
+cvar_t	*hostname;
 
 qboolean	configRestored = false;
-cvar_t	config_com_port = {"_config_com_port", "0x3f8", true};
-cvar_t	config_com_irq = {"_config_com_irq", "4", true};
-cvar_t	config_com_baud = {"_config_com_baud", "57600", true};
-cvar_t	config_com_modem = {"_config_com_modem", "1", true};
-cvar_t	config_modem_dialtype = {"_config_modem_dialtype", "T", true};
-cvar_t	config_modem_clear = {"_config_modem_clear", "ATZ", true};
-cvar_t	config_modem_init = {"_config_modem_init", "", true};
-cvar_t	config_modem_hangup = {"_config_modem_hangup", "AT H", true};
+cvar_t	*config_com_port;
+cvar_t	*config_com_irq;
+cvar_t	*config_com_baud;
+cvar_t	*config_com_modem;
+cvar_t	*config_modem_dialtype;
+cvar_t	*config_modem_clear;
+cvar_t	*config_modem_init;
+cvar_t	*config_modem_hangup;
 
 #ifdef IDGODS
-cvar_t	idgods = {"idgods", "0"};
+cvar_t	*idgods;
 #endif
 
 int	vcrFile = -1;
@@ -127,7 +127,7 @@ qsocket_t *NET_NewQSocket (void)
 
 	sock->disconnected = false;
 	sock->connecttime = net_time;
-	Q_strcpy (sock->address,"UNSET ADDRESS");
+	strcpy (sock->address,"UNSET ADDRESS");
 	sock->driver = net_driverlevel;
 	sock->socket = 0;
 	sock->driverdata = NULL;
@@ -224,9 +224,21 @@ static void MaxPlayers_f (void)
 
 	svs.maxclients = n;
 	if (n == 1)
-		Cvar_Set ("deathmatch", "0");
+	{					// 1999-07-30 coop and deathmatch flag fix by Frog/Maddes
+		Cvar_Set (deathmatch, "0");
+// 1999-07-30 coop and deathmatch flag fix by Frog/Maddes  start
+		Cvar_Set (coop, "0");
+	}
+// 1999-07-30 coop and deathmatch flag fix by Frog/Maddes  end
 	else
-		Cvar_Set ("deathmatch", "1");
+// 1999-07-30 coop and deathmatch flag fix by Frog/Maddes  start
+	{
+		if (coop->value)
+			Cvar_Set (deathmatch, "0");
+		else
+// 1999-07-30 coop and deathmatch flag fix by Frog/Maddes  end
+			Cvar_Set (deathmatch, "1");
+	}					// 1999-07-30 coop and deathmatch flag fix by (anonymous)
 }
 
 
@@ -436,7 +448,7 @@ JustDoIt:
 		PrintSlist();
 		PrintSlistTrailer();
 	}
-	
+
 	return NULL;
 }
 
@@ -480,7 +492,7 @@ qsocket_t *NET_CheckNewConnections (void)
 			return ret;
 		}
 	}
-	
+
 	if (recording)
 	{
 		vcrConnect.time = host_time;
@@ -557,7 +569,7 @@ int	NET_GetMessage (qsocket_t *sock)
 	// see if this connection has timed out
 	if (ret == 0 && sock->driver)
 	{
-		if (net_time - sock->lastMessageTime > net_messagetimeout.value)
+		if (net_time - sock->lastMessageTime > net_messagetimeout->value)
 		{
 			NET_Close(sock);
 			return -1;
@@ -625,7 +637,7 @@ struct
 int NET_SendMessage (qsocket_t *sock, sizebuf_t *data)
 {
 	int		r;
-	
+
 	if (!sock)
 		return -1;
 
@@ -648,7 +660,7 @@ int NET_SendMessage (qsocket_t *sock, sizebuf_t *data)
 		vcrSendMessage.r = r;
 		Sys_FileWrite (vcrFile, &vcrSendMessage, 20);
 	}
-	
+
 	return r;
 }
 
@@ -656,7 +668,7 @@ int NET_SendMessage (qsocket_t *sock, sizebuf_t *data)
 int NET_SendUnreliableMessage (qsocket_t *sock, sizebuf_t *data)
 {
 	int		r;
-	
+
 	if (!sock)
 		return -1;
 
@@ -679,7 +691,7 @@ int NET_SendUnreliableMessage (qsocket_t *sock, sizebuf_t *data)
 		vcrSendMessage.r = r;
 		Sys_FileWrite (vcrFile, &vcrSendMessage, 20);
 	}
-	
+
 	return r;
 }
 
@@ -695,7 +707,7 @@ message to be transmitted.
 qboolean NET_CanSendMessage (qsocket_t *sock)
 {
 	int		r;
-	
+
 	if (!sock)
 		return false;
 
@@ -705,7 +717,7 @@ qboolean NET_CanSendMessage (qsocket_t *sock)
 	SetNetTime();
 
 	r = sfunc.CanSendMessage(sock);
-	
+
 	if (recording)
 	{
 		vcrSendMessage.time = host_time;
@@ -714,7 +726,7 @@ qboolean NET_CanSendMessage (qsocket_t *sock)
 		vcrSendMessage.r = r;
 		Sys_FileWrite (vcrFile, &vcrSendMessage, 20);
 	}
-	
+
 	return r;
 }
 
@@ -795,12 +807,35 @@ int NET_SendToAll(sizebuf_t *data, int blocktime)
 
 //=============================================================================
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+====================
+NET_Init_Cvars
+====================
+*/
+void NET_Init_Cvars (void)
+{
+	net_messagetimeout = Cvar_Get ("net_messagetimeout", "300", CVAR_ORIGINAL);
+	hostname = Cvar_Get ("hostname", "UNNAMED", CVAR_ORIGINAL);
+	config_com_port = Cvar_Get ("_config_com_port", "0x3f8", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_com_irq = Cvar_Get ("_config_com_irq", "4", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_com_baud = Cvar_Get ("_config_com_baud", "57600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_com_modem = Cvar_Get ("_config_com_modem", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_dialtype = Cvar_Get ("_config_modem_dialtype", "T", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_clear = Cvar_Get ("_config_modem_clear", "ATZ", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_init = Cvar_Get ("_config_modem_init", "", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_hangup = Cvar_Get ("_config_modem_hangup", "AT H", CVAR_ARCHIVE|CVAR_ORIGINAL);
+#ifdef IDGODS
+	idgods = Cvar_Get ("idgods", "0", CVAR_ORIGINAL);
+#endif
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 /*
 ====================
 NET_Init
 ====================
 */
-
 void NET_Init (void)
 {
 	int			i;
@@ -850,19 +885,23 @@ void NET_Init (void)
 	// allocate space for network message buffer
 	SZ_Alloc (&net_message, NET_MAXMESSAGE);
 
-	Cvar_RegisterVariable (&net_messagetimeout);
-	Cvar_RegisterVariable (&hostname);
-	Cvar_RegisterVariable (&config_com_port);
-	Cvar_RegisterVariable (&config_com_irq);
-	Cvar_RegisterVariable (&config_com_baud);
-	Cvar_RegisterVariable (&config_com_modem);
-	Cvar_RegisterVariable (&config_modem_dialtype);
-	Cvar_RegisterVariable (&config_modem_clear);
-	Cvar_RegisterVariable (&config_modem_init);
-	Cvar_RegisterVariable (&config_modem_hangup);
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	net_messagetimeout = Cvar_Get ("net_messagetimeout", "300", CVAR_ORIGINAL);
+	hostname = Cvar_Get ("hostname", "UNNAMED", CVAR_ORIGINAL);
+	config_com_port = Cvar_Get ("_config_com_port", "0x3f8", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_com_irq = Cvar_Get ("_config_com_irq", "4", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_com_baud = Cvar_Get ("_config_com_baud", "57600", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_com_modem = Cvar_Get ("_config_com_modem", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_dialtype = Cvar_Get ("_config_modem_dialtype", "T", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_clear = Cvar_Get ("_config_modem_clear", "ATZ", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_init = Cvar_Get ("_config_modem_init", "", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	config_modem_hangup = Cvar_Get ("_config_modem_hangup", "AT H", CVAR_ARCHIVE|CVAR_ORIGINAL);
 #ifdef IDGODS
-	Cvar_RegisterVariable (&idgods);
+	idgods = Cvar_Get ("idgods", "0", CVAR_ORIGINAL);
 #endif
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 
 	Cmd_AddCommand ("slist", NET_Slist_f);
 	Cmd_AddCommand ("listen", NET_Listen_f);
@@ -933,12 +972,12 @@ void NET_Poll(void)
 	{
 		if (serialAvailable)
 		{
-			if (config_com_modem.value == 1.0)
+			if (config_com_modem->value == 1.0)
 				useModem = true;
 			else
 				useModem = false;
-			SetComPortConfig (0, (int)config_com_port.value, (int)config_com_irq.value, (int)config_com_baud.value, useModem);
-			SetModemConfig (0, config_modem_dialtype.string, config_modem_clear.string, config_modem_init.string, config_modem_hangup.string);
+			SetComPortConfig (0, (int)config_com_port->value, (int)config_com_irq->value, (int)config_com_baud->value, useModem);
+			SetModemConfig (0, config_modem_dialtype->string, config_modem_clear->string, config_modem_init->string, config_modem_hangup->string);
 		}
 		configRestored = true;
 	}
@@ -984,7 +1023,7 @@ void SchedulePollProcedure(PollProcedure *proc, double timeOffset)
 
 qboolean IsID(struct qsockaddr *addr)
 {
-	if (idgods.value == 0.0)
+	if (idgods->value == 0.0)
 		return false;
 
 	if (addr->sa_family != 2)

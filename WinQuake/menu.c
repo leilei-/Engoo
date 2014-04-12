@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -54,7 +54,7 @@ void M_Main_Draw (void);
 	void M_MultiPlayer_Draw (void);
 		void M_Setup_Draw (void);
 		void M_Net_Draw (void);
-	void M_Options_Draw (void);
+//	void M_Options_Draw (void);	// 2002-01-31 New menu system by Maddes
 		void M_Keys_Draw (void);
 		void M_Video_Draw (void);
 	void M_Help_Draw (void);
@@ -73,7 +73,7 @@ void M_Main_Key (int key);
 	void M_MultiPlayer_Key (int key);
 		void M_Setup_Key (int key);
 		void M_Net_Key (int key);
-	void M_Options_Key (int key);
+//	void M_Options_Key (int key);	// 2002-01-31 New menu system by Maddes
 		void M_Keys_Key (int key);
 		void M_Video_Key (int key);
 	void M_Help_Key (int key);
@@ -101,6 +101,182 @@ char		m_return_reason [32];
 #define	TCPIPConfig		(m_net_cursor == 3)
 
 void M_ConfigureNetSubsystem(void);
+
+// 2002-01-31 New menu system by Maddes  start
+// menu entry types
+#define MENU_SELECTABLE	0
+#define MENU_DRAW_ONLY	1
+#define MENU_INVISIBLE	2
+
+typedef struct menu_definition_s
+{
+	int	funcno;	// Unique number used for displaying and executing a menu entry. Zero = end of menu definition
+				// First entry in menu definition defines the ESC function
+	int	type;	// Entry type flag, use above DEFINEs and M_Menu_DrawCheck()
+} menu_definition_t;
+
+// data of current displayed menu
+int		*current_cursor;
+menu_definition_t	*current_menu;
+int 	menu_last_index, menu_first_index;
+
+// function number definitions
+// Menus
+#define MENU_OFF				1
+#define MENU_MAIN				2
+#define MENU_SINGLEPLAYER		3
+#define MENU_MULTIPLAYER		4
+#define MENU_OPTIONS			5
+#define MENU_HELP				6
+#define MENU_QUIT				7
+
+// Options
+#define MENU_CUSTOMIZE_CONTROLS			101
+#define MENU_GO_TO_CONSOLE				102
+#define MENU_LOAD_DEFAULT_CFG			103
+#define MENU_SCREENSIZE					104
+#define MENU_BRIGHTNESS					105
+#define MENU_MOUSESPEED					106
+#define MENU_CD_VOLUME					107
+#define MENU_SOUND_VOLUME				108
+#define MENU_ALWAYS_RUN					109
+#define MENU_INVERT_MOUSE				110
+#define MENU_LOOKSPRING					111
+#define MENU_LOOKSTRAFE					112
+#define MENU_VIDEO_RESOLUTION			113
+#define MENU_USE_MOUSE					114
+
+#define MENU_CONTROL_OPTIONS			120
+#define MENU_MOUSELOOK					121
+
+#define MENU_SOUND_OPTIONS				130
+
+#define MENU_EXTERNAL_DATA				140
+#define MENU_EXTERNAL_ENT				141
+#define MENU_EXTERNAL_VIS				142
+#define MENU_EXTERNAL_LIT				143
+
+#define MENU_CLIENT_OPTIONS				150
+#define MENU_CL_ENTITIES_MIN			151
+#define MENU_CL_ENTITIES_TEMP_MIN		152
+#define MENU_CL_ENTITIES_STATIC_MIN		153
+#define MENU_CL_COMPATIBILITY			154
+
+#define MENU_SERVER_OPTIONS				160
+#define MENU_SV_ENTITIES				161
+#define MENU_SV_ENTITIES_TEMP			162
+#define MENU_SV_ENTITIES_STATIC			163
+#define MENU_SV_ENTITIES_COPY_TO_CL		164
+#define MENU_PR_ZONE_MIN_STRINGS		165
+#define MENU_BUILTIN_REMAP				166
+#define MENU_SV_COMPATIBILITY			167
+#define MENU_NVS_ENABLE					168
+
+#define MENU_VIDEO_OPTIONS				170
+#define MENU_CON_ALPHA					171
+#define MENU_CON_HEIGHT					172
+#define MENU_SHOW_FPS					173
+#define MENU_GL_MAXDEPTH				174
+
+// menu definitions
+int		options_cursor;
+menu_definition_t	m_menu_options[] =
+{	// Options Menu
+	{MENU_MAIN, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_CUSTOMIZE_CONTROLS, MENU_SELECTABLE},
+	{MENU_GO_TO_CONSOLE, MENU_SELECTABLE},
+	{MENU_LOAD_DEFAULT_CFG, MENU_SELECTABLE},
+	{MENU_CONTROL_OPTIONS, MENU_SELECTABLE},
+	{MENU_SOUND_OPTIONS, MENU_SELECTABLE},
+	{MENU_EXTERNAL_DATA, MENU_SELECTABLE},
+	{MENU_CLIENT_OPTIONS, MENU_SELECTABLE},
+	{MENU_SERVER_OPTIONS, MENU_SELECTABLE},
+	{MENU_VIDEO_OPTIONS, MENU_SELECTABLE},
+	{MENU_VIDEO_RESOLUTION, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+int		control_options_cursor;
+menu_definition_t	m_menu_control_options[] =
+{	// Control Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_ALWAYS_RUN, MENU_SELECTABLE},
+	{MENU_MOUSELOOK, MENU_SELECTABLE},
+	{MENU_LOOKSPRING, MENU_SELECTABLE},
+	{MENU_LOOKSTRAFE, MENU_SELECTABLE},
+	{MENU_MOUSESPEED, MENU_SELECTABLE},
+	{MENU_INVERT_MOUSE, MENU_SELECTABLE},
+#ifdef _WIN32
+	{MENU_USE_MOUSE, MENU_INVISIBLE},	// only present in windowed mode on Win32
+#endif
+	{0, 0},	// end of submenu
+};
+
+int		sound_options_cursor;
+menu_definition_t	m_menu_sound_options[] =
+{	// Sound Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_CD_VOLUME, MENU_SELECTABLE},
+	{MENU_SOUND_VOLUME, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+int		external_data_cursor;
+menu_definition_t	m_menu_external_data[] =
+{	// External Data
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_EXTERNAL_ENT, MENU_SELECTABLE},
+	{MENU_EXTERNAL_VIS, MENU_SELECTABLE},
+#ifdef GLQUAKE
+	{MENU_EXTERNAL_LIT, MENU_SELECTABLE},	// only useful in GLQuake
+#endif
+	{0, 0},	// end of submenu
+};
+
+int		client_options_cursor;
+menu_definition_t	m_menu_client_options[] =
+{	// Client Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_CL_ENTITIES_MIN, MENU_SELECTABLE},
+	{MENU_CL_ENTITIES_TEMP_MIN, MENU_SELECTABLE},
+	{MENU_CL_ENTITIES_STATIC_MIN, MENU_SELECTABLE},
+	{MENU_CL_COMPATIBILITY, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+int		server_options_cursor;
+menu_definition_t	m_menu_server_options[] =
+{	// Server Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_SV_ENTITIES, MENU_SELECTABLE},
+	{MENU_SV_ENTITIES_TEMP, MENU_SELECTABLE},
+	{MENU_SV_ENTITIES_STATIC, MENU_SELECTABLE},
+	{MENU_SV_ENTITIES_COPY_TO_CL, MENU_SELECTABLE},
+	{MENU_PR_ZONE_MIN_STRINGS, MENU_SELECTABLE},
+	{MENU_BUILTIN_REMAP, MENU_SELECTABLE},
+	{MENU_SV_COMPATIBILITY, MENU_SELECTABLE},
+	{MENU_NVS_ENABLE, MENU_SELECTABLE},
+	{0, 0},	// end of submenu
+};
+
+int		video_options_cursor;
+menu_definition_t	m_menu_video_options[] =
+{	// Video Options
+	{MENU_OPTIONS, MENU_OPTIONS},	// this is the ESC key function and title
+	{MENU_SCREENSIZE, MENU_SELECTABLE},
+	{MENU_BRIGHTNESS, MENU_SELECTABLE},
+	{MENU_CON_ALPHA, MENU_SELECTABLE},
+	{MENU_CON_HEIGHT, MENU_SELECTABLE},
+	{MENU_SHOW_FPS, MENU_SELECTABLE},
+#ifdef GLQUAKE
+	{MENU_GL_MAXDEPTH, MENU_SELECTABLE},
+#endif
+#ifdef _WIN32
+	{MENU_USE_MOUSE, MENU_INVISIBLE},	// only present in windowed mode on Win32
+#endif
+	{0, 0},	// end of submenu
+};
+// 2002-01-31 New menu system by Maddes  end
 
 /*
 ================
@@ -298,7 +474,10 @@ void M_Main_Draw (void)
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mainmenu.lmp") );
 
-	f = (int)(host_time * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	f = (int)(host_time * 10)%6;
+	f = (int)(realtime * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 	M_DrawTransPic (54, 32 + m_main_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
@@ -381,7 +560,10 @@ void M_SinglePlayer_Draw (void)
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/sp_menu.lmp") );
 
-	f = (int)(host_time * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	f = (int)(host_time * 10)%6;
+	f = (int)(realtime * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 	M_DrawTransPic (54, 32 + m_singleplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
@@ -626,7 +808,10 @@ void M_MultiPlayer_Draw (void)
 	M_DrawPic ( (320-p->width)/2, 4, p);
 	M_DrawTransPic (72, 32, Draw_CachePic ("gfx/mp_menu.lmp") );
 
-	f = (int)(host_time * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	f = (int)(host_time * 10)%6;
+	f = (int)(realtime * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 
 	M_DrawTransPic (54, 32 + m_multiplayer_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 
@@ -697,10 +882,10 @@ void M_Menu_Setup_f (void)
 	key_dest = key_menu;
 	m_state = m_setup;
 	m_entersound = true;
-	Q_strcpy(setup_myname, cl_name.string);
-	Q_strcpy(setup_hostname, hostname.string);
-	setup_top = setup_oldtop = ((int)cl_color.value) >> 4;
-	setup_bottom = setup_oldbottom = ((int)cl_color.value) & 15;
+	strcpy(setup_myname, cl_name->string);
+	strcpy(setup_hostname, hostname->string);
+	setup_top = setup_oldtop = ((int)cl_color->value) >> 4;
+	setup_bottom = setup_oldbottom = ((int)cl_color->value) & 15;
 }
 
 
@@ -794,10 +979,10 @@ forward:
 			goto forward;
 
 		// setup_cursor == 4 (OK)
-		if (Q_strcmp(cl_name.string, setup_myname) != 0)
+		if (strcmp(cl_name->string, setup_myname) != 0)
 			Cbuf_AddText ( va ("name \"%s\"\n", setup_myname) );
-		if (Q_strcmp(hostname.string, setup_hostname) != 0)
-			Cvar_Set("hostname", setup_hostname);
+		if (strcmp(hostname->string, setup_hostname) != 0)
+			Cvar_Set(hostname, setup_hostname);
 		if (setup_top != setup_oldtop || setup_bottom != setup_oldbottom)
 			Cbuf_AddText( va ("color %i %i\n", setup_top, setup_bottom) );
 		m_entersound = true;
@@ -970,7 +1155,10 @@ void M_Net_Draw (void)
 	M_Print (f, 158, net_helpMessage[m_net_cursor*4+2]);
 	M_Print (f, 166, net_helpMessage[m_net_cursor*4+3]);
 
-	f = (int)(host_time * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+//	f = (int)(host_time * 10)%6;
+	f = (int)(realtime * 10)%6;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end
 	M_DrawTransPic (54, 32 + m_net_cursor * 20,Draw_CachePic( va("gfx/menudot%i.lmp", f+1 ) ) );
 }
 
@@ -1036,15 +1224,20 @@ again:
 //=============================================================================
 /* OPTIONS MENU */
 
+// 2002-01-31 New menu system by Maddes  start
+// no more messing around with OPTIONS_ITEMS :)
+/*
 #ifdef _WIN32
-#define	OPTIONS_ITEMS	14
+#define	OPTIONS_ITEMS	15	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 #else
-#define	OPTIONS_ITEMS	13
+#define	OPTIONS_ITEMS	14	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 #endif
+*/
+// 2002-01-31 New menu system by Maddes  end
 
 #define	SLIDER_RANGE	10
 
-int		options_cursor;
+//int		options_cursor;	// 2002-01-31 New menu system by Maddes
 
 void M_Menu_Options_f (void)
 {
@@ -1052,15 +1245,23 @@ void M_Menu_Options_f (void)
 	m_state = m_options;
 	m_entersound = true;
 
+// 2002-01-31 New menu system by Maddes  start
+	current_menu = m_menu_options;
+	current_cursor = &options_cursor;
+
+/*
 #ifdef _WIN32
-	if ((options_cursor == 13) && (modestate != MS_WINDOWED))
+	if ((options_cursor == 14) && (modestate != MS_WINDOWED))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
 		options_cursor = 0;
 	}
 #endif
+*/
+// 2002-01-31 New menu system by Maddes  end
 }
 
-
+// 2002-01-31 New menu system by Maddes  start
+/*
 void M_AdjustSliders (int dir)
 {
 	S_LocalSound ("misc/menu3.wav");
@@ -1068,83 +1269,98 @@ void M_AdjustSliders (int dir)
 	switch (options_cursor)
 	{
 	case 3:	// screen size
-		scr_viewsize.value += dir * 10;
-		if (scr_viewsize.value < 30)
-			scr_viewsize.value = 30;
-		if (scr_viewsize.value > 120)
-			scr_viewsize.value = 120;
-		Cvar_SetValue ("viewsize", scr_viewsize.value);
+		scr_viewsize->value += dir * 10;
+		if (scr_viewsize->value < 30)
+			scr_viewsize->value = 30;
+		if (scr_viewsize->value > 120)
+			scr_viewsize->value = 120;
+		Cvar_SetValue (scr_viewsize, scr_viewsize->value);
 		break;
 	case 4:	// gamma
-		v_gamma.value -= dir * 0.05;
-		if (v_gamma.value < 0.5)
-			v_gamma.value = 0.5;
-		if (v_gamma.value > 1)
-			v_gamma.value = 1;
-		Cvar_SetValue ("gamma", v_gamma.value);
+		v_gamma->value -= dir * 0.05;
+		if (v_gamma->value < 0.5)
+			v_gamma->value = 0.5;
+		if (v_gamma->value > 1)
+			v_gamma->value = 1;
+		Cvar_SetValue (v_gamma, v_gamma->value);
 		break;
 	case 5:	// mouse speed
-		sensitivity.value += dir * 0.5;
-		if (sensitivity.value < 1)
-			sensitivity.value = 1;
-		if (sensitivity.value > 11)
-			sensitivity.value = 11;
-		Cvar_SetValue ("sensitivity", sensitivity.value);
+		sensitivity->value += dir * 0.5;
+		if (sensitivity->value < 1)
+			sensitivity->value = 1;
+		if (sensitivity->value > 11)
+			sensitivity->value = 11;
+		Cvar_SetValue (sensitivity, sensitivity->value);
 		break;
 	case 6:	// music volume
 #ifdef _WIN32
-		bgmvolume.value += dir * 1.0;
+		bgmvolume->value += dir * 1.0;
 #else
-		bgmvolume.value += dir * 0.1;
+		bgmvolume->value += dir * 0.1;
 #endif
-		if (bgmvolume.value < 0)
-			bgmvolume.value = 0;
-		if (bgmvolume.value > 1)
-			bgmvolume.value = 1;
-		Cvar_SetValue ("bgmvolume", bgmvolume.value);
+		if (bgmvolume->value < 0)
+			bgmvolume->value = 0;
+		if (bgmvolume->value > 1)
+			bgmvolume->value = 1;
+		Cvar_SetValue (bgmvolume, bgmvolume->value);
 		break;
 	case 7:	// sfx volume
-		volume.value += dir * 0.1;
-		if (volume.value < 0)
-			volume.value = 0;
-		if (volume.value > 1)
-			volume.value = 1;
-		Cvar_SetValue ("volume", volume.value);
+		volume->value += dir * 0.1;
+		if (volume->value < 0)
+			volume->value = 0;
+		if (volume->value > 1)
+			volume->value = 1;
+		Cvar_SetValue (volume, volume->value);
 		break;
 
-	case 8:	// allways run
-		if (cl_forwardspeed.value > 200)
+	case 8:	// always run
+		if (cl_forwardspeed->value > 200)
 		{
-			Cvar_SetValue ("cl_forwardspeed", 200);
-			Cvar_SetValue ("cl_backspeed", 200);
+			Cvar_Set (cl_forwardspeed, "200");
+			Cvar_Set (cl_backspeed, "200");
 		}
 		else
 		{
-			Cvar_SetValue ("cl_forwardspeed", 400);
-			Cvar_SetValue ("cl_backspeed", 400);
+			Cvar_Set (cl_forwardspeed, "400");
+			Cvar_Set (cl_backspeed, "400");
 		}
 		break;
 
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
+/ *
 	case 9:	// invert mouse
-		Cvar_SetValue ("m_pitch", -m_pitch.value);
+		Cvar_SetValue (m_pitch, -m_pitch->value);
+		break;
+* /
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
+
+	case 9:	// lookspring	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		Cvar_SetValue (lookspring, !lookspring->value);
 		break;
 
-	case 10:	// lookspring
-		Cvar_SetValue ("lookspring", !lookspring.value);
+	case 10:	// lookstrafe	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		Cvar_SetValue (lookstrafe, !lookstrafe->value);
 		break;
 
-	case 11:	// lookstrafe
-		Cvar_SetValue ("lookstrafe", !lookstrafe.value);
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
+	case 11:	// mouselook
+		Cvar_SetValue (m_look, !m_look->value);
 		break;
+
+	case 12:	// invert mouse
+		Cvar_SetValue (m_pitch, -m_pitch->value);
+		break;
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
 
 #ifdef _WIN32
-	case 13:	// _windowed_mouse
-		Cvar_SetValue ("_windowed_mouse", !_windowed_mouse.value);
+	case 14:	// _windowed_mouse	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		Cvar_SetValue (_windowed_mouse, !_windowed_mouse->value);
 		break;
 #endif
 	}
 }
-
+*/
+// 2002-01-31 New menu system by Maddes  end
 
 void M_DrawSlider (int x, int y, float range)
 {
@@ -1175,6 +1391,8 @@ void M_DrawCheckbox (int x, int y, int on)
 		M_Print (x, y, "off");
 }
 
+// 2002-01-31 New menu system by Maddes  end
+/*
 void M_Options_Draw (void)
 {
 	float		r;
@@ -1189,53 +1407,458 @@ void M_Options_Draw (void)
 	M_Print (16, 48, "     Reset to defaults");
 
 	M_Print (16, 56, "           Screen size");
-	r = (scr_viewsize.value - 30) / (120 - 30);
+	r = (scr_viewsize->value - 30) / (120 - 30);
 	M_DrawSlider (220, 56, r);
 
 	M_Print (16, 64, "            Brightness");
-	r = (1.0 - v_gamma.value) / 0.5;
+	r = (1.0 - v_gamma->value) / 0.5;
 	M_DrawSlider (220, 64, r);
 
 	M_Print (16, 72, "           Mouse Speed");
-	r = (sensitivity.value - 1)/10;
+	r = (sensitivity->value - 1)/10;
 	M_DrawSlider (220, 72, r);
 
 	M_Print (16, 80, "       CD Music Volume");
-	r = bgmvolume.value;
+	r = bgmvolume->value;
 	M_DrawSlider (220, 80, r);
 
 	M_Print (16, 88, "          Sound Volume");
-	r = volume.value;
+	r = volume->value;
 	M_DrawSlider (220, 88, r);
 
 	M_Print (16, 96,  "            Always Run");
-	M_DrawCheckbox (220, 96, cl_forwardspeed.value > 200);
+	M_DrawCheckbox (220, 96, cl_forwardspeed->value > 200);
 
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  start
+/ *
 	M_Print (16, 104, "          Invert Mouse");
-	M_DrawCheckbox (220, 104, m_pitch.value < 0);
+	M_DrawCheckbox (220, 104, m_pitch->value < 0);
+* /
 
-	M_Print (16, 112, "            Lookspring");
-	M_DrawCheckbox (220, 112, lookspring.value);
+	M_Print (16, 104, "            Lookspring");
+	M_DrawCheckbox (220, 104, lookspring->value);
 
-	M_Print (16, 120, "            Lookstrafe");
-	M_DrawCheckbox (220, 120, lookstrafe.value);
+	M_Print (16, 112, "            Lookstrafe");
+	M_DrawCheckbox (220, 112, lookstrafe->value);
+
+	M_Print (16, 120, "             Mouselook");
+	M_DrawCheckbox (220, 120, m_look->value);
+
+	M_Print (16, 128, "          Invert Mouse");
+	M_DrawCheckbox (220, 128, m_pitch->value < 0);
+// 2001-12-16 M_LOOK cvar by Heffo/Maddes  end
 
 	if (vid_menudrawfn)
-		M_Print (16, 128, "         Video Options");
+		M_Print (16, 136, "         Video Options");	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 
 #ifdef _WIN32
 	if (modestate == MS_WINDOWED)
 	{
-		M_Print (16, 136, "             Use Mouse");
-		M_DrawCheckbox (220, 136, _windowed_mouse.value);
+		M_Print (16, 144, "             Use Mouse");	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		M_DrawCheckbox (220, 144, _windowed_mouse->value);	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	}
 #endif
 
 // cursor
 	M_DrawCharacter (200, 32 + options_cursor*8, 12+((int)(realtime*4)&1));
 }
+*/
 
+int M_DrawFunction (menu_definition_t *menu_definition, int y)
+{
+	float	r;
 
+	switch (menu_definition->funcno)
+	{
+		// Options menu
+		case MENU_CUSTOMIZE_CONTROLS:
+			M_Print (16, y, "    Customize controls");
+			y += 8;
+			break;
+
+		case MENU_GO_TO_CONSOLE:
+			M_Print (16, y, "         Go to console");
+			y += 8;
+			break;
+
+		case MENU_LOAD_DEFAULT_CFG:
+			M_Print (16, y, "     Reset to defaults");
+			y += 8;
+			break;
+
+		case MENU_VIDEO_RESOLUTION:
+			M_Print (16, y, "      Video Resolution");
+			y += 8;
+			break;
+
+		// Control options menu
+		case MENU_CONTROL_OPTIONS:
+			M_Print (16, y, "       Control options");
+			y += 8;
+			break;
+
+		case MENU_MOUSESPEED:
+			M_Print (16, y, "           Mouse Speed");
+			r = (sensitivity->value - 1)/10;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_ALWAYS_RUN:
+			M_Print (16, y,  "            Always Run");
+			M_DrawCheckbox (220, y, cl_forwardspeed->value > 200);
+			y += 8;
+			break;
+
+		case MENU_LOOKSPRING:
+			M_Print (16, y, "            Lookspring");
+			M_DrawCheckbox (220, y, lookspring->value);
+			y += 8;
+			break;
+
+		case MENU_LOOKSTRAFE:
+			M_Print (16, y, "            Lookstrafe");
+			M_DrawCheckbox (220, y, lookstrafe->value);
+			y += 8;
+			break;
+
+		case MENU_MOUSELOOK:
+			M_Print (16, y, "             Mouselook");
+			M_DrawCheckbox (220, y, m_look->value);
+			y += 8;
+			break;
+
+		case MENU_INVERT_MOUSE:
+			M_Print (16, y, "          Invert Mouse");
+			M_DrawCheckbox (220, y, m_pitch->value < 0);
+			y += 8;
+			break;
+
+#ifdef _WIN32
+		case MENU_USE_MOUSE:
+			M_Print (16, y, "             Use Mouse");
+			M_DrawCheckbox (220, y, _windowed_mouse->value);
+			y += 8;
+			break;
+#endif
+
+		// Sound options menu
+		case MENU_SOUND_OPTIONS:
+			M_Print (16, y, "         Sound options");
+			y += 8;
+			break;
+
+		case MENU_CD_VOLUME:
+			M_Print (16, y, "       CD Music Volume");
+			r = bgmvolume->value;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_SOUND_VOLUME:
+			M_Print (16, y, "          Sound Volume");
+			r = volume->value;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		// External data menu
+		case MENU_EXTERNAL_DATA:
+			M_Print (16, y, "         External data");
+			y += 8;
+			break;
+
+		case MENU_EXTERNAL_ENT:
+			M_Print (16, y, "    Entity data (.ENT)");
+			M_DrawCheckbox (220, y, external_ent->value);
+			y += 8;
+			break;
+
+		case MENU_EXTERNAL_VIS:
+			M_Print (16, y, "Visibility data (.VIS)");
+			M_DrawCheckbox (220, y, external_vis->value);
+			y += 8;
+			break;
+
+#ifdef GLQUAKE
+		case MENU_EXTERNAL_LIT:
+			M_Print (16, y, "  Colored Light (.LIT)");
+			M_DrawCheckbox (220, y, external_lit->value);
+			y += 8;
+			break;
+#endif
+
+		// Client options menu
+		case MENU_CLIENT_OPTIONS:
+			M_Print (16, y, "        Client options");
+			y += 8;
+			break;
+
+		case MENU_CL_ENTITIES_MIN:
+			M_Print (16, y, "      Min. normal ents");
+			M_Print (220, y, va("%i", (int)cl_entities_min->value));
+			y += 8;
+			break;
+
+		case MENU_CL_ENTITIES_TEMP_MIN:
+			M_Print (16, y, "        Min. temp ents");
+			M_Print (220, y, va("%i", (int)cl_entities_min_temp->value));
+			y += 8;
+			break;
+
+		case MENU_CL_ENTITIES_STATIC_MIN:
+			M_Print (16, y, "      Min. static ents");
+			M_Print (220, y, va("%i", (int)cl_entities_min_static->value));
+			y += 8;
+			break;
+
+		case MENU_CL_COMPATIBILITY:
+			M_Print (16, y, "  Client Compatibility");
+			M_DrawCheckbox (220, y, cl_compatibility->value);
+			y += 8;
+			M_Print (16, y, "  (for demo recording)");
+			y += 8;
+			break;
+
+		// Server options menu
+		case MENU_SERVER_OPTIONS:
+			M_Print (16, y, "        Server options");
+			y += 8;
+			break;
+
+		case MENU_SV_ENTITIES:
+			M_Print (16, y, "           Normal ents");
+			M_Print (220, y, va("%i", (int)sv_entities->value));
+			y += 8;
+			break;
+
+		case MENU_SV_ENTITIES_TEMP:
+			M_Print (16, y, "             Temp ents");
+			M_Print (220, y, va("%i", (int)sv_entities_temp->value));
+			y += 8;
+			break;
+
+		case MENU_SV_ENTITIES_STATIC:
+			M_Print (16, y, "           Static ents");
+			M_Print (220, y, va("%i", (int)sv_entities_static->value));
+			y += 8;
+			break;
+
+		case MENU_SV_ENTITIES_COPY_TO_CL:
+			M_Print (16, y, "   ent setup to client");
+			y += 8;
+			break;
+
+		case MENU_PR_ZONE_MIN_STRINGS:
+			M_Print (16, y, "     String zone in KB");
+			M_Print (220, y, va("%i", (int)pr_zone_min_strings->value));
+			y += 8;
+			break;
+
+		case MENU_BUILTIN_REMAP:
+			M_Print (16, y, "     Builtin Remapping");
+			M_DrawCheckbox (220, y, pr_builtin_remap->value);
+			y += 8;
+			break;
+
+		case MENU_SV_COMPATIBILITY:
+			M_Print (16, y, "  Server Compatibility");
+			M_DrawCheckbox (220, y, sv_compatibility->value);
+			y += 8;
+			break;
+
+		case MENU_NVS_ENABLE:
+			M_Print (16, y, "   Enhanced SVC (BETA)");
+			M_DrawCheckbox (220, y, nvs_svc_enable->value);
+			y += 8;
+			break;
+
+		// Video options menu
+		case MENU_VIDEO_OPTIONS:
+			M_Print (16, y, "         Video options");
+			y += 8;
+			break;
+
+		case MENU_SCREENSIZE:
+			M_Print (16, y, "           Screen size");
+			r = (scr_viewsize->value - 30) / (120 - 30);
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_BRIGHTNESS:
+			M_Print (16, y, "            Brightness");
+			r = (1.0 - v_gamma->value) / 0.5;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_CON_ALPHA:
+			M_Print (16, y, "  Console transparency");
+			r = (1.0 - con_alpha->value);
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_CON_HEIGHT:
+			M_Print (16, y, "        Console height");
+			r = scr_conheight->value;
+			M_DrawSlider (220, y, r);
+			y += 8;
+			break;
+
+		case MENU_SHOW_FPS:
+			M_Print (16, y, "              Show FPS");
+			M_DrawCheckbox (220, y, cl_showfps->value);
+			y += 8;
+			break;
+
+#ifdef GLQUAKE
+		case MENU_GL_MAXDEPTH:
+			M_Print (16, y, "       Max. draw depth");
+			M_Print (220, y, va("%i", (int)gl_maxdepth->value));
+			y += 8;
+			break;
+#endif
+
+		default:
+			M_Print (16, y, "      Unknown function");
+			y += 8;
+			break;
+	}
+
+	return y;
+}
+
+void M_Menu_DrawCheck(menu_definition_t *menu_definition)
+{
+	int	i;
+
+	menu_first_index = 0;
+	menu_last_index = 0;
+
+	i = 1;
+	while (menu_definition[i].funcno != 0)
+	{
+		// adjust ignore flag to current situation
+		switch (menu_definition[i].funcno)
+		{
+#ifdef _WIN32
+			case MENU_USE_MOUSE:		// only present in windowed mode on Win32
+				if (modestate == MS_WINDOWED)
+				{
+					menu_definition[i].type = MENU_SELECTABLE;	// full usage
+				}
+				else
+				{
+					menu_definition[i].type = MENU_INVISIBLE;	// ignore completely
+				}
+				break;
+#endif
+
+			case MENU_VIDEO_RESOLUTION:
+				if (vid_menudrawfn)
+				{
+					menu_definition[i].type = MENU_SELECTABLE;	// full usage
+				}
+				else
+				{
+					menu_definition[i].type = MENU_INVISIBLE;	// ignore completely
+				}
+				break;
+		}
+
+		// find first and last valid index
+		if (menu_definition[i].type == MENU_SELECTABLE)	// selectable
+		{
+			if (menu_first_index == 0)
+			{
+				menu_first_index = i;
+			}
+			menu_last_index = i;
+		}
+
+		i++;
+	}
+}
+
+void M_Menu_Draw (menu_definition_t *menu_definition, int *current_index)
+{
+	qpic_t	*p;
+	int i, last_valid_index;
+	int	y;
+
+	// Adjust ignore flags to current situation
+	M_Menu_DrawCheck(menu_definition);
+
+	// check selection for cursor drawing
+	if (*current_index < menu_first_index)
+	{
+		*current_index = menu_first_index;
+	}
+	else if (*current_index > menu_last_index)
+	{
+		*current_index = menu_last_index;
+	}
+	else
+	{
+		last_valid_index = 0;
+		i = 1;
+		while (menu_definition[i].funcno != 0)
+		{
+			// check cursor
+			if (menu_definition[i].type == MENU_SELECTABLE)	// selectable
+			{
+				last_valid_index = i;
+				if (*current_index == 0)	// nothing choosen, then use first valid selection
+				{
+					*current_index = i;
+				}
+			}
+			else if (i == *current_index)	// incorrect selection, jump back to last valid selection
+	 		{
+				*current_index = last_valid_index;
+			}
+
+			i++;
+		}
+	}
+
+	// Left side plaque and title
+	if (menu_definition[0].type)
+	{
+		switch (menu_definition[0].type)
+		{
+			case MENU_OPTIONS:
+				M_DrawTransPic (16, 4, Draw_CachePic ("gfx/qplaque.lmp") );
+				p = Draw_CachePic ("gfx/p_option.lmp");
+				M_DrawPic ( (320-p->width)/2, 4, p);
+				break;
+		}
+	}
+
+	// display menu with cursor
+	y = 32;
+	i = 1;
+	while (menu_definition[i].funcno != 0)
+	{
+		if (menu_definition[i].type != MENU_INVISIBLE)	// drawable menu point
+		{
+			if (i == *current_index)	// draw cursor
+	 		{
+				M_DrawCharacter (200, y, 12+((int)(realtime*4)&1));
+			}
+
+			y = M_DrawFunction(&menu_definition[i], y);
+		}
+
+		i++;
+	}
+}
+// 2002-01-31 New menu system by Maddes  end
+
+// 2002-01-31 New menu system by Maddes  start
+/*
 void M_Options_Key (int k)
 {
 	switch (k)
@@ -1258,7 +1881,7 @@ void M_Options_Key (int k)
 		case 2:
 			Cbuf_AddText ("exec default.cfg\n");
 			break;
-		case 12:
+		case 13:	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 			M_Menu_Video_f ();
 			break;
 		default:
@@ -1290,24 +1913,517 @@ void M_Options_Key (int k)
 		break;
 	}
 
-	if (options_cursor == 12 && vid_menudrawfn == NULL)
+	if (options_cursor == 13 && vid_menudrawfn == NULL)	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
 		if (k == K_UPARROW)
-			options_cursor = 11;
+			options_cursor = 12;	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		else
 			options_cursor = 0;
 	}
 
 #ifdef _WIN32
-	if ((options_cursor == 13) && (modestate != MS_WINDOWED))
+	if ((options_cursor == 14) && (modestate != MS_WINDOWED))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 	{
 		if (k == K_UPARROW)
-			options_cursor = 12;
+			options_cursor = 13;	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		else
 			options_cursor = 0;
 	}
 #endif
 }
+*/
+
+void M_ExecFunction (menu_definition_t *menu_definition, int key)
+{
+	qboolean	m_changesound;
+	int dir;
+
+	// determine direction for sliders
+	dir = 0;
+	switch (key)
+	{
+		case K_RIGHTARROW:
+		case K_ENTER:
+			dir = 1;
+			break;
+
+		case K_LEFTARROW:
+			dir = -1;
+			break;
+	}
+
+	// execute function
+	m_changesound = false;
+	switch (menu_definition->funcno)
+	{
+		case MENU_MAIN:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = NULL;
+				M_Menu_Main_f ();
+			}
+			break;
+
+		// Options menu
+		case MENU_OPTIONS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_options;
+				current_cursor = &options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_CUSTOMIZE_CONTROLS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = NULL;
+				M_Menu_Keys_f ();
+			}
+			break;
+
+		case MENU_GO_TO_CONSOLE:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = NULL;
+				m_state = m_none;
+				Con_ToggleConsole_f ();
+			}
+			break;
+
+		case MENU_LOAD_DEFAULT_CFG:
+			if (key == K_ENTER)
+			{
+				Cbuf_AddText ("exec default.cfg\n");
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_VIDEO_RESOLUTION:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = NULL;
+				M_Menu_Video_f ();
+			}
+			break;
+
+		// Control options menu
+		case MENU_CONTROL_OPTIONS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_control_options;
+				current_cursor = &control_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_MOUSESPEED:
+			if (dir != 0)
+			{
+				sensitivity->value += dir * 0.5;
+				if (sensitivity->value < 1)
+					sensitivity->value = 1;
+				if (sensitivity->value > 11)
+					sensitivity->value = 11;
+				Cvar_SetValue (sensitivity, sensitivity->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_ALWAYS_RUN:
+			if (dir != 0)
+			{
+				if (cl_forwardspeed->value > 200)
+				{
+					Cvar_Set (cl_forwardspeed, "200");
+					Cvar_Set (cl_backspeed, "200");
+				}
+				else
+				{
+					Cvar_Set (cl_forwardspeed, "400");
+					Cvar_Set (cl_backspeed, "400");
+				}
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_LOOKSPRING:
+			if (dir != 0)
+			{
+				Cvar_SetValue (lookspring, !lookspring->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_LOOKSTRAFE:
+			if (dir != 0)
+			{
+				Cvar_SetValue (lookstrafe, !lookstrafe->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_MOUSELOOK:
+			if (dir != 0)
+			{
+				Cvar_SetValue (m_look, !m_look->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_INVERT_MOUSE:
+			if (dir != 0)
+			{
+				Cvar_SetValue (m_pitch, -m_pitch->value);
+				m_changesound = true;
+			}
+			break;
+
+#ifdef _WIN32
+		case MENU_USE_MOUSE:
+			if (dir != 0)
+			{
+				Cvar_SetValue (_windowed_mouse, !_windowed_mouse->value);
+				m_changesound = true;
+			}
+			break;
+#endif
+
+		// Sound options menu
+		case MENU_SOUND_OPTIONS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_sound_options;
+				current_cursor = &sound_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_CD_VOLUME:
+			if (dir != 0)
+			{
+#ifdef _WIN32
+				bgmvolume->value += dir * 1.0;
+#else
+				bgmvolume->value += dir * 0.1;
+#endif
+				if (bgmvolume->value < 0)
+					bgmvolume->value = 0;
+				if (bgmvolume->value > 1)
+					bgmvolume->value = 1;
+				Cvar_SetValue (bgmvolume, bgmvolume->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SOUND_VOLUME:
+			if (dir != 0)
+			{
+				volume->value += dir * 0.1;
+				if (volume->value < 0)
+					volume->value = 0;
+				if (volume->value > 1)
+					volume->value = 1;
+				Cvar_SetValue (volume, volume->value);
+				m_changesound = true;
+			}
+			break;
+
+		// External data menu
+		case MENU_EXTERNAL_DATA:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_external_data;
+				current_cursor = &external_data_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_EXTERNAL_ENT:
+			if (dir != 0)
+			{
+				Cvar_SetValue (external_ent, !external_ent->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_EXTERNAL_VIS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (external_vis, !external_vis->value);
+				m_changesound = true;
+			}
+			break;
+
+#ifdef GLQUAKE
+		case MENU_EXTERNAL_LIT:
+			if (dir != 0)
+			{
+				Cvar_SetValue (external_lit, !external_lit->value);
+				m_changesound = true;
+			}
+			break;
+#endif
+
+		// Client options menu
+		case MENU_CLIENT_OPTIONS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_client_options;
+				current_cursor = &client_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_CL_ENTITIES_MIN:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_entities_min, cl_entities_min->value + dir * 50);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_CL_ENTITIES_TEMP_MIN:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_entities_min_temp, cl_entities_min_temp->value + dir * 32);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_CL_ENTITIES_STATIC_MIN:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_entities_min_static, cl_entities_min_static->value + dir * 32);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_CL_COMPATIBILITY:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_compatibility, !cl_compatibility->value);
+				m_changesound = true;
+			}
+			break;
+
+		// Server options menu
+		case MENU_SERVER_OPTIONS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_server_options;
+				current_cursor = &server_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_SV_ENTITIES:
+			if (dir != 0)
+			{
+				Cvar_SetValue (sv_entities, sv_entities->value + dir * 50);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SV_ENTITIES_TEMP:
+			if (dir != 0)
+			{
+				Cvar_SetValue (sv_entities_temp, sv_entities_temp->value + dir * 32);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SV_ENTITIES_STATIC:
+			if (dir != 0)
+			{
+				Cvar_SetValue (sv_entities_static, sv_entities_static->value + dir * 32);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SV_ENTITIES_COPY_TO_CL:
+			if (key == K_ENTER)
+			{
+				Cvar_SetValue (cl_entities_min, sv_entities->value);
+				Cvar_SetValue (cl_entities_min_temp, sv_entities_temp->value);
+				Cvar_SetValue (cl_entities_min_static, sv_entities_static->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_PR_ZONE_MIN_STRINGS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (pr_zone_min_strings, pr_zone_min_strings->value + dir * 32);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_BUILTIN_REMAP:
+			if (dir != 0)
+			{
+				Cvar_SetValue (pr_builtin_remap, !pr_builtin_remap->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SV_COMPATIBILITY:
+			if (dir != 0)
+			{
+				Cvar_SetValue (sv_compatibility, !sv_compatibility->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_NVS_ENABLE:
+			if (dir != 0)
+			{
+				Cvar_SetValue (nvs_svc_enable, !nvs_svc_enable->value);
+				m_changesound = true;
+			}
+			break;
+
+		// Video options menu
+		case MENU_VIDEO_OPTIONS:
+			if (key == K_ENTER || key == K_ESCAPE)
+			{
+				current_menu = m_menu_video_options;
+				current_cursor = &video_options_cursor;
+				m_entersound = true;
+			}
+			break;
+
+		case MENU_SCREENSIZE:
+			if (dir != 0)
+			{
+				scr_viewsize->value += dir * 10;
+				if (scr_viewsize->value < 30)
+					scr_viewsize->value = 30;
+				if (scr_viewsize->value > 120)
+					scr_viewsize->value = 120;
+				Cvar_SetValue (scr_viewsize, scr_viewsize->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_BRIGHTNESS:
+			if (dir != 0)
+			{
+				v_gamma->value -= dir * 0.05;
+				if (v_gamma->value < 0.5)
+					v_gamma->value = 0.5;
+				if (v_gamma->value > 1)
+					v_gamma->value = 1;
+				Cvar_SetValue (v_gamma, v_gamma->value);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_CON_ALPHA:
+			if (dir != 0)
+			{
+				Cvar_SetValue (con_alpha, con_alpha->value - dir * 0.1);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_CON_HEIGHT:
+			if (dir != 0)
+			{
+				Cvar_SetValue (scr_conheight, scr_conheight->value + dir * 0.1);
+				m_changesound = true;
+			}
+			break;
+
+		case MENU_SHOW_FPS:
+			if (dir != 0)
+			{
+				Cvar_SetValue (cl_showfps, !cl_showfps->value);
+				m_changesound = true;
+			}
+			break;
+
+#ifdef GLQUAKE
+		case MENU_GL_MAXDEPTH:
+			if (dir != 0)
+			{
+				Cvar_SetValue (gl_maxdepth, gl_maxdepth->value + dir * 256);
+				m_changesound = true;
+			}
+			break;
+#endif
+	}
+
+	if (m_changesound)
+	{
+		S_LocalSound ("misc/menu3.wav");
+	}
+}
+
+void M_Menu_Key (menu_definition_t *menu_definition, int *current_index, int key)
+{
+	qboolean	m_movesound;
+
+	m_movesound = false;
+	switch (key)
+	{
+		case K_UPARROW:
+		case K_DOWNARROW:
+			if (menu_first_index != 0
+			&&  menu_first_index != menu_last_index)
+			{
+				int dir;
+				int old_index;
+
+				if (key == K_UPARROW)
+				{
+					dir = -1;
+				}
+				else
+				{
+					dir = 1;
+				}
+
+				old_index = *current_index;
+
+				do
+				{
+					*current_index += dir;
+					if (*current_index < menu_first_index)
+					{
+						*current_index = menu_last_index;
+					}
+					else if (*current_index > menu_last_index)
+					{
+						*current_index = menu_first_index;
+					}
+				}
+				while (menu_definition[*current_index].type != MENU_SELECTABLE);
+
+				if (*current_index != old_index)
+				{
+					m_movesound = true;
+				}
+			}
+			break;
+
+		case K_ESCAPE:
+			M_ExecFunction(&menu_definition[0], key);
+			break;
+
+		default:
+			if (*current_index > 0)
+			{
+				M_ExecFunction(&menu_definition[*current_index], key);
+			}
+	}
+
+	if (m_movesound)
+	{
+		S_LocalSound ("misc/menu1.wav");
+	}
+}
+// 2002-01-31 New menu system by Maddes  start
 
 //=============================================================================
 /* KEYS MENU */
@@ -1394,7 +2510,7 @@ void M_UnbindCommand (char *command)
 
 void M_Keys_Draw (void)
 {
-	int		i, l;
+	int		i;	//, l	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 	int		keys[2];
 	char	*name;
 	int		x, y;
@@ -1415,7 +2531,7 @@ void M_Keys_Draw (void)
 
 		M_Print (16, y, bindnames[i][1]);
 
-		l = strlen (bindnames[i][0]);
+//		l = strlen (bindnames[i][0]);	// 2001-12-10 Reduced compiler warnings by Jeff Ford
 
 		M_FindKeysForCommand (bindnames[i][0], keys);
 
@@ -1581,14 +2697,14 @@ int		m_quit_prevstate;
 qboolean	wasInMenus;
 
 #ifndef	_WIN32
-char *quitMessage [] = 
+char *quitMessage [] =
 {
 /* .........1.........2.... */
   "  Are you gonna quit    ",
   "  this game just like   ",
   "   everything else?     ",
   "                        ",
- 
+
   " Milord, methinks that  ",
   "   thou art a lowly     ",
   " quitter. Is this true? ",
@@ -1603,22 +2719,22 @@ char *quitMessage [] =
   "   for trying to quit!  ",
   "     Press Y to get     ",
   "      smacked out.      ",
- 
+
   " Press Y to quit like a ",
   "   big loser in life.   ",
   "  Press N to stay proud ",
   "    and successful!     ",
- 
+
   "   If you press Y to    ",
   "  quit, I will summon   ",
   "  Satan all over your   ",
   "      hard drive!       ",
- 
+
   "  Um, Asmodeus dislikes ",
   " his children trying to ",
   " quit. Press Y to return",
   "   to your Tinkertoys.  ",
- 
+
   "  If you quit now, I'll ",
   "  throw a blanket-party ",
   "   for you next time!   ",
@@ -1990,16 +3106,20 @@ forward:
 	}
 
 	if (DirectConfig && (serialConfig_cursor == 3 || serialConfig_cursor == 4))
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (key == K_UPARROW)
 			serialConfig_cursor = 2;
 		else
 			serialConfig_cursor = 5;
+	}	// 1999-12-24 explicit brackets by Maddes
 
 	if (SerialConfig && StartingGame && serialConfig_cursor == 4)
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (key == K_UPARROW)
 			serialConfig_cursor = 3;
 		else
 			serialConfig_cursor = 5;
+	}	// 1999-12-24 explicit brackets by Maddes
 }
 
 //=============================================================================
@@ -2363,10 +3483,12 @@ void M_LanConfig_Key (int key)
 	}
 
 	if (StartingGame && lanConfig_cursor == 2)
+	{	// 1999-12-24 explicit brackets by Maddes
 		if (key == K_UPARROW)
 			lanConfig_cursor = 1;
 		else
 			lanConfig_cursor = 0;
+	}	// 1999-12-24 explicit brackets by Maddes
 
 	l =  Q_atoi(lanConfig_portname);
 	if (l > 65535)
@@ -2385,11 +3507,11 @@ typedef struct
 	char	*description;
 } level_t;
 
-level_t		levels[] =
+level_t	levels[] =
 {
-	{"start", "Entrance"},	// 0
+	{"start", "Entrance"},				// 0
 
-	{"e1m1", "Slipgate Complex"},				// 1
+	{"e1m1", "Slipgate Complex"},		// 1
 	{"e1m2", "Castle of the Damned"},
 	{"e1m3", "The Necropolis"},
 	{"e1m4", "The Grisly Grotto"},
@@ -2398,7 +3520,7 @@ level_t		levels[] =
 	{"e1m7", "The House of Chthon"},
 	{"e1m8", "Ziggurat Vertigo"},
 
-	{"e2m1", "The Installation"},				// 9
+	{"e2m1", "The Installation"},		// 9
 	{"e2m2", "Ogre Citadel"},
 	{"e2m3", "Crypt of Decay"},
 	{"e2m4", "The Ebon Fortress"},
@@ -2406,7 +3528,7 @@ level_t		levels[] =
 	{"e2m6", "The Dismal Oubliette"},
 	{"e2m7", "Underearth"},
 
-	{"e3m1", "Termination Central"},			// 16
+	{"e3m1", "Termination Central"},	// 16
 	{"e3m2", "The Vaults of Zin"},
 	{"e3m3", "The Tomb of Terror"},
 	{"e3m4", "Satan's Dark Delight"},
@@ -2414,7 +3536,7 @@ level_t		levels[] =
 	{"e3m6", "Chambers of Torment"},
 	{"e3m7", "The Haunted Halls"},
 
-	{"e4m1", "The Sewage System"},				// 23
+	{"e4m1", "The Sewage System"},		// 23
 	{"e4m2", "The Tower of Despair"},
 	{"e4m3", "The Elder God Shrine"},
 	{"e4m4", "The Palace of Hate"},
@@ -2423,9 +3545,9 @@ level_t		levels[] =
 	{"e4m7", "Azure Agony"},
 	{"e4m8", "The Nameless City"},
 
-	{"end", "Shub-Niggurath's Pit"},			// 31
+	{"end", "Shub-Niggurath's Pit"},	// 31
 
-	{"dm1", "Place of Two Deaths"},				// 32
+	{"dm1", "Place of Two Deaths"},		// 32
 	{"dm2", "Claustrophobopolis"},
 	{"dm3", "The Abandoned Base"},
 	{"dm4", "The Bad Place"},
@@ -2434,31 +3556,31 @@ level_t		levels[] =
 };
 
 //MED 01/06/97 added hipnotic levels
-level_t     hipnoticlevels[] =
+level_t	hipnoticlevels[] =
 {
-   {"start", "Command HQ"},  // 0
+	{"start", "Command HQ"},			// 0
 
-   {"hip1m1", "The Pumping Station"},          // 1
-   {"hip1m2", "Storage Facility"},
-   {"hip1m3", "The Lost Mine"},
-   {"hip1m4", "Research Facility"},
-   {"hip1m5", "Military Complex"},
+	{"hip1m1", "The Pumping Station"},	// 1
+	{"hip1m2", "Storage Facility"},
+	{"hip1m3", "The Lost Mine"},
+	{"hip1m4", "Research Facility"},
+	{"hip1m5", "Military Complex"},
 
-   {"hip2m1", "Ancient Realms"},          // 6
-   {"hip2m2", "The Black Cathedral"},
-   {"hip2m3", "The Catacombs"},
-   {"hip2m4", "The Crypt"},
-   {"hip2m5", "Mortum's Keep"},
-   {"hip2m6", "The Gremlin's Domain"},
+	{"hip2m1", "Ancient Realms"},		// 6
+	{"hip2m2", "The Black Cathedral"},
+	{"hip2m3", "The Catacombs"},
+	{"hip2m4", "The Crypt"},
+	{"hip2m5", "Mortum's Keep"},
+	{"hip2m6", "The Gremlin's Domain"},
 
-   {"hip3m1", "Tur Torment"},       // 12
-   {"hip3m2", "Pandemonium"},
-   {"hip3m3", "Limbo"},
-   {"hip3m4", "The Gauntlet"},
+	{"hip3m1", "Tur Torment"},			// 12
+	{"hip3m2", "Pandemonium"},
+	{"hip3m3", "Limbo"},
+	{"hip3m4", "The Gauntlet"},
 
-   {"hipend", "Armagon's Lair"},       // 16
+	{"hipend", "Armagon's Lair"},		// 16
 
-   {"hipdm1", "The Edge of Oblivion"}           // 17
+	{"hipdm1", "The Edge of Oblivion"}	// 17
 };
 
 //PGM 01/07/97 added rogue levels
@@ -2481,7 +3603,7 @@ level_t		roguelevels[] =
 	{"r2m6",	"Blood Sacrifice"},
 	{"r2m7",	"Last Bastion"},
 	{"r2m8",	"Source of Evil"},
-	{"ctf1",    "Division of Change"}
+	{"ctf1",	"Division of Change"}
 };
 
 typedef struct
@@ -2505,12 +3627,12 @@ episode_t	episodes[] =
 //MED 01/06/97  added hipnotic episodes
 episode_t   hipnoticepisodes[] =
 {
-   {"Scourge of Armagon", 0, 1},
-   {"Fortress of the Dead", 1, 5},
-   {"Dominion of Darkness", 6, 6},
-   {"The Rift", 12, 4},
-   {"Final Level", 16, 1},
-   {"Deathmatch Arena", 17, 1}
+	{"Scourge of Armagon", 0, 1},
+	{"Fortress of the Dead", 1, 5},
+	{"Dominion of Darkness", 6, 6},
+	{"The Rift", 12, 4},
+	{"Final Level", 16, 1},
+	{"Deathmatch Arena", 17, 1}
 };
 
 //PGM 01/07/97 added rogue episodes
@@ -2534,7 +3656,10 @@ void M_Menu_GameOptions_f (void)
 	key_dest = key_menu;
 	m_state = m_gameoptions;
 	m_entersound = true;
-	if (maxplayers == 0)
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  start
+//	if (maxplayers == 0)
+	if (maxplayers < 2)
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  end
 		maxplayers = svs.maxclients;
 	if (maxplayers < 2)
 		maxplayers = svs.maxclientslimit;
@@ -2561,7 +3686,7 @@ void M_GameOptions_Draw (void)
 	M_Print (160, 56, va("%i", maxplayers) );
 
 	M_Print (0, 64, "        Game Type");
-	if (coop.value)
+	if (coop->value)
 		M_Print (160, 64, "Cooperative");
 	else
 		M_Print (160, 64, "Deathmatch");
@@ -2571,7 +3696,7 @@ void M_GameOptions_Draw (void)
 	{
 		char *msg;
 
-		switch((int)teamplay.value)
+		switch((int)teamplay->value)
 		{
 			case 1: msg = "No Friendly Fire"; break;
 			case 2: msg = "Friendly Fire"; break;
@@ -2587,7 +3712,7 @@ void M_GameOptions_Draw (void)
 	{
 		char *msg;
 
-		switch((int)teamplay.value)
+		switch((int)teamplay->value)
 		{
 			case 1: msg = "No Friendly Fire"; break;
 			case 2: msg = "Friendly Fire"; break;
@@ -2597,55 +3722,55 @@ void M_GameOptions_Draw (void)
 	}
 
 	M_Print (0, 80, "            Skill");
-	if (skill.value == 0)
+	if (skill->value == 0)
 		M_Print (160, 80, "Easy difficulty");
-	else if (skill.value == 1)
+	else if (skill->value == 1)
 		M_Print (160, 80, "Normal difficulty");
-	else if (skill.value == 2)
+	else if (skill->value == 2)
 		M_Print (160, 80, "Hard difficulty");
 	else
 		M_Print (160, 80, "Nightmare difficulty");
 
 	M_Print (0, 88, "       Frag Limit");
-	if (fraglimit.value == 0)
+	if (fraglimit->value == 0)
 		M_Print (160, 88, "none");
 	else
-		M_Print (160, 88, va("%i frags", (int)fraglimit.value));
+		M_Print (160, 88, va("%i frags", (int)fraglimit->value));
 
 	M_Print (0, 96, "       Time Limit");
-	if (timelimit.value == 0)
+	if (timelimit->value == 0)
 		M_Print (160, 96, "none");
 	else
-		M_Print (160, 96, va("%i minutes", (int)timelimit.value));
+		M_Print (160, 96, va("%i minutes", (int)timelimit->value));
 
 	M_Print (0, 112, "         Episode");
-   //MED 01/06/97 added hipnotic episodes
-   if (hipnotic)
-      M_Print (160, 112, hipnoticepisodes[startepisode].description);
-   //PGM 01/07/97 added rogue episodes
-   else if (rogue)
-      M_Print (160, 112, rogueepisodes[startepisode].description);
-   else
-      M_Print (160, 112, episodes[startepisode].description);
+	//MED 01/06/97 added hipnotic episodes
+	if (hipnotic)
+		M_Print (160, 112, hipnoticepisodes[startepisode].description);
+	//PGM 01/07/97 added rogue episodes
+	else if (rogue)
+		M_Print (160, 112, rogueepisodes[startepisode].description);
+	else
+		M_Print (160, 112, episodes[startepisode].description);
 
 	M_Print (0, 120, "           Level");
-   //MED 01/06/97 added hipnotic episodes
-   if (hipnotic)
-   {
-      M_Print (160, 120, hipnoticlevels[hipnoticepisodes[startepisode].firstLevel + startlevel].description);
-      M_Print (160, 128, hipnoticlevels[hipnoticepisodes[startepisode].firstLevel + startlevel].name);
-   }
-   //PGM 01/07/97 added rogue episodes
-   else if (rogue)
-   {
-      M_Print (160, 120, roguelevels[rogueepisodes[startepisode].firstLevel + startlevel].description);
-      M_Print (160, 128, roguelevels[rogueepisodes[startepisode].firstLevel + startlevel].name);
-   }
-   else
-   {
-      M_Print (160, 120, levels[episodes[startepisode].firstLevel + startlevel].description);
-      M_Print (160, 128, levels[episodes[startepisode].firstLevel + startlevel].name);
-   }
+	//MED 01/06/97 added hipnotic episodes
+	if (hipnotic)
+	{
+		M_Print (160, 120, hipnoticlevels[hipnoticepisodes[startepisode].firstLevel + startlevel].description);
+		M_Print (160, 128, hipnoticlevels[hipnoticepisodes[startepisode].firstLevel + startlevel].name);
+	}
+	//PGM 01/07/97 added rogue episodes
+	else if (rogue)
+	{
+		M_Print (160, 120, roguelevels[rogueepisodes[startepisode].firstLevel + startlevel].description);
+		M_Print (160, 128, roguelevels[rogueepisodes[startepisode].firstLevel + startlevel].name);
+	}
+	else
+	{
+		M_Print (160, 120, levels[episodes[startepisode].firstLevel + startlevel].description);
+		M_Print (160, 128, levels[episodes[startepisode].firstLevel + startlevel].name);
+	}
 
 // line cursor
 	M_DrawCharacter (144, gameoptions_cursor_table[gameoptions_cursor], 12+((int)(realtime*4)&1));
@@ -2657,9 +3782,14 @@ void M_GameOptions_Draw (void)
 			x = (320-26*8)/2;
 			M_DrawTextBox (x, 138, 24, 4);
 			x += 8;
-			M_Print (x, 146, "  More than 4 players   ");
-			M_Print (x, 154, " requires using command ");
-			M_Print (x, 162, "line parameters; please ");
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  start
+//			M_Print (x, 146, "  More than 4 players   ");
+//			M_Print (x, 154, " requires using command ");
+//			M_Print (x, 162, "line parameters; please ");
+			M_Print (x, 146, " More players requires  ");
+			M_Print (x, 154, "   using command line   ");
+			M_Print (x, 162, "   parameters; please   ");
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  end
 			M_Print (x, 170, "   see techinfo.txt.    ");
 		}
 		else
@@ -2681,15 +3811,20 @@ void M_NetStart_Change (int dir)
 		if (maxplayers > svs.maxclientslimit)
 		{
 			maxplayers = svs.maxclientslimit;
-			m_serverInfoMessage = true;
-			m_serverInfoMessageTime = realtime;
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  start
+			if (svs.maxclientslimit < MAX_SCOREBOARD)
+			{
+// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes  end
+				m_serverInfoMessage = true;
+				m_serverInfoMessageTime = realtime;
+			}	// 2000-01-11 Set default maximum clients to 16 instead of 4 by Maddes
 		}
 		if (maxplayers < 2)
 			maxplayers = 2;
 		break;
 
 	case 2:
-		Cvar_SetValue ("coop", coop.value ? 0 : 1);
+		Cvar_Set (coop, coop->value ? "0" : "1");
 		break;
 
 	case 3:
@@ -2698,35 +3833,35 @@ void M_NetStart_Change (int dir)
 		else
 			count = 2;
 
-		Cvar_SetValue ("teamplay", teamplay.value + dir);
-		if (teamplay.value > count)
-			Cvar_SetValue ("teamplay", 0);
-		else if (teamplay.value < 0)
-			Cvar_SetValue ("teamplay", count);
+		Cvar_SetValue (teamplay, teamplay->value + dir);
+		if (teamplay->value > count)
+			Cvar_Set (teamplay, "0");
+		else if (teamplay->value < 0)
+			Cvar_SetValue (teamplay, count);
 		break;
 
 	case 4:
-		Cvar_SetValue ("skill", skill.value + dir);
-		if (skill.value > 3)
-			Cvar_SetValue ("skill", 0);
-		if (skill.value < 0)
-			Cvar_SetValue ("skill", 3);
+		Cvar_SetValue (skill, skill->value + dir);
+		if (skill->value > 3)
+			Cvar_Set (skill, "0");
+		if (skill->value < 0)
+			Cvar_Set (skill, "3");
 		break;
 
 	case 5:
-		Cvar_SetValue ("fraglimit", fraglimit.value + dir*10);
-		if (fraglimit.value > 100)
-			Cvar_SetValue ("fraglimit", 0);
-		if (fraglimit.value < 0)
-			Cvar_SetValue ("fraglimit", 100);
+		Cvar_SetValue (fraglimit, fraglimit->value + dir*10);
+		if (fraglimit->value > 100)
+			Cvar_Set (fraglimit, "0");
+		if (fraglimit->value < 0)
+			Cvar_Set (fraglimit, "100");
 		break;
 
 	case 6:
-		Cvar_SetValue ("timelimit", timelimit.value + dir*5);
-		if (timelimit.value > 60)
-			Cvar_SetValue ("timelimit", 0);
-		if (timelimit.value < 0)
-			Cvar_SetValue ("timelimit", 60);
+		Cvar_SetValue (timelimit, timelimit->value + dir*5);
+		if (timelimit->value > 60)
+			Cvar_Set (timelimit, "0");
+		if (timelimit->value < 0)
+			Cvar_Set (timelimit, "60");
 		break;
 
 	case 7:
@@ -2738,7 +3873,7 @@ void M_NetStart_Change (int dir)
 	//PGM 03/02/97 added 1 for dmatch episode
 		else if (rogue)
 			count = 4;
-		else if (registered.value)
+		else if (registered->value)
 			count = 7;
 		else
 			count = 2;
@@ -2754,7 +3889,7 @@ void M_NetStart_Change (int dir)
 
 	case 8:
 		startlevel += dir;
-    //MED 01/06/97 added hipnotic episodes
+	//MED 01/06/97 added hipnotic episodes
 		if (hipnotic)
 			count = hipnoticepisodes[startepisode].levels;
 	//PGM 01/06/97 added hipnotic episodes
@@ -3015,6 +4150,11 @@ void M_Init (void)
 	Cmd_AddCommand ("menu_video", M_Menu_Video_f);
 	Cmd_AddCommand ("help", M_Menu_Help_f);
 	Cmd_AddCommand ("menu_quit", M_Menu_Quit_f);
+
+// 2002-01-31 New menu system by Maddes
+	current_cursor = NULL;
+	current_menu = NULL;
+// 2002-01-31 New menu system by Maddes
 }
 
 
@@ -3027,7 +4167,10 @@ void M_Draw (void)
 	{
 		scr_copyeverything = 1;
 
-		if (scr_con_current)
+// 2000-01-12 Variable console height by Fett/Maddes  start
+//		if (scr_con_current)
+		if (con_forcedup)
+// 2000-01-12 Variable console height by Fett/Maddes  end
 		{
 			Draw_ConsoleBackground (vid.height);
 			VID_UnlockBuffer ();
@@ -3077,9 +4220,13 @@ void M_Draw (void)
 		M_Net_Draw ();
 		break;
 
+// 2002-01-31 New menu system by Maddes  start
+/*
 	case m_options:
 		M_Options_Draw ();
 		break;
+*/
+// 2002-01-31 New menu system by Maddes  end
 
 	case m_keys:
 		M_Keys_Draw ();
@@ -3120,6 +4267,12 @@ void M_Draw (void)
 	case m_slist:
 		M_ServerList_Draw ();
 		break;
+
+// 2002-01-31 New menu system by Maddes  start
+	default:
+		M_Menu_Draw(current_menu, current_cursor);
+		break;
+// 2002-01-31 New menu system by Maddes  end
 	}
 
 	if (m_entersound)
@@ -3169,9 +4322,13 @@ void M_Keydown (int key)
 		M_Net_Key (key);
 		return;
 
+// 2002-01-31 New menu system by Maddes  start
+/*
 	case m_options:
 		M_Options_Key (key);
 		return;
+*/
+// 2002-01-31 New menu system by Maddes  end
 
 	case m_keys:
 		M_Keys_Key (key);
@@ -3212,6 +4369,12 @@ void M_Keydown (int key)
 	case m_slist:
 		M_ServerList_Key (key);
 		return;
+
+// 2002-01-31 New menu system by Maddes  start
+	default:
+		M_Menu_Key(current_menu, current_cursor, key);
+		break;
+// 2002-01-31 New menu system by Maddes  end
 	}
 }
 

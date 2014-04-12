@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -27,7 +27,7 @@ static vec5_t			clip_verts[2][MAXWORKINGVERTS];
 static int				sprite_width, sprite_height;
 
 spritedesc_t			r_spritedesc;
-	
+
 
 /*
 ================
@@ -37,7 +37,7 @@ R_RotateSprite
 void R_RotateSprite (float beamlength)
 {
 	vec3_t	vec;
-	
+
 	if (beamlength == 0.0)
 		return;
 
@@ -64,7 +64,7 @@ int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
 
 	clipdist = pclipplane->dist;
 	pclipnormal = pclipplane->normal;
-	
+
 // calc dists
 	if (clip_current)
 	{
@@ -78,13 +78,13 @@ int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
 		outstep = clip_verts[1][0];
 		clip_current = 1;
 	}
-	
+
 	instep = in;
 	for (i=0 ; i<nump ; i++, instep += sizeof (vec5_t) / sizeof (float))
 	{
 		dists[i] = DotProduct (instep, pclipnormal) - clipdist;
 	}
-	
+
 // handle wraparound case
 	dists[nump] = dists[0];
 	Q_memcpy (instep, in, sizeof (vec5_t));
@@ -108,12 +108,12 @@ int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
 
 		if ( (dists[i] > 0) == (dists[i+1] > 0) )
 			continue;
-			
+
 	// split it into a new vertex
 		frac = dists[i] / (dists[i] - dists[i+1]);
-			
+
 		vert2 = instep + sizeof (vec5_t) / sizeof (float);
-		
+
 		outstep[0] = instep[0] + frac*(vert2[0] - instep[0]);
 		outstep[1] = instep[1] + frac*(vert2[1] - instep[1]);
 		outstep[2] = instep[2] + frac*(vert2[2] - instep[2]);
@@ -122,8 +122,8 @@ int R_ClipSpriteFace (int nump, clipplane_t *pclipplane)
 
 		outstep += sizeof (vec5_t) / sizeof (float);
 		outcount++;
-	}	
-	
+	}
+
 	return outcount;
 }
 
@@ -211,7 +211,7 @@ void R_SetupAndDrawSprite ()
 
 		pout->s = pv[3];
 		pout->t = pv[4];
-		
+
 		scale = xscale * pout->zi;
 		pout->u = (xcenter + scale * transformed[0]);
 
@@ -320,7 +320,7 @@ void R_DrawSprite (void)
 		r_spritedesc.vright[0] = tvec[1];
 								// CrossProduct(r_spritedesc.vup, -modelorg,
 		r_spritedesc.vright[1] = -tvec[0];
-								//              r_spritedesc.vright)
+								// r_spritedesc.vright)
 		r_spritedesc.vright[2] = 0;
 		VectorNormalize (r_spritedesc.vright);
 		r_spritedesc.vpn[0] = -r_spritedesc.vright[1];

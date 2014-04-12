@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -82,13 +82,13 @@ qboolean SNDDMA_Init(void)
 	}
 
     if (ioctl(audio_fd, SNDCTL_DSP_GETOSPACE, &info)==-1)
-    {   
+    {
         perror("GETOSPACE");
 		Con_Printf("Um, can't do GETOSPACE?\n");
 		close(audio_fd);
 		return 0;
     }
-    
+
 	shm = &sn;
     shm->splitbuffer = 0;
 

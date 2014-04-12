@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -58,9 +58,9 @@ extern int			global_dx, global_dy;
 // globals
 //
 
-cvar_t					_windowed_mouse = {"_windowed_mouse","1", true};
-int					x_root, y_root;
-int					x_root_old, y_root_old;
+cvar_t	*_windowed_mouse;
+int		x_root, y_root;
+int		x_root_old, y_root_old;
 //
 // locals
 //
@@ -82,8 +82,7 @@ void IN_CenterMouse( void )
 		return;
 
 	XSelectInput( x_disp, x_win, x_std_event_mask & ~PointerMotionMask );
-	XWarpPointer( x_disp, None, x_root_win, 0, 0, 0, 0, x_center_width,
-		      x_center_height );
+	XWarpPointer( x_disp, None, x_root_win, 0, 0, 0, 0, x_center_width, x_center_height );
 	XSelectInput( x_disp, x_win, x_std_event_mask );
 }
 
@@ -93,7 +92,7 @@ void IN_CenterMouse( void )
 //
 static void CheckMouseState(void)
 {
-	if (x_focus && _windowed_mouse.value && !x_grabbed) {
+	if (x_focus && _windowed_mouse->value && !x_grabbed) {
 		x_grabbed = true;
 		printf("fooling with mouse!\n");
 		if (XGetPointerControl( x_disp, &x_mouse_num, &x_mouse_denom, &x_mouse_thresh ))
@@ -103,9 +102,9 @@ static void CheckMouseState(void)
 		// make input rawer
 		XAutoRepeatOff(x_disp);
 		XGrabKeyboard(x_disp, x_win, True, GrabModeAsync, GrabModeAsync, CurrentTime);
-		XGrabPointer(x_disp, x_win, True, 
-			     PointerMotionMask | ButtonPressMask | ButtonReleaseMask, 
-			     GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
+		XGrabPointer(x_disp, x_win, True,
+				PointerMotionMask | ButtonPressMask | ButtonReleaseMask,
+				GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
 
 //		if (XChangePointerControl( x_disp, True, True, 1, MOUSE_SCALE, x_mouse_thresh ))
 //			printf( "XChangePointerControl failed!\n" );
@@ -115,7 +114,7 @@ static void CheckMouseState(void)
 		// safe initial values
 		x_root = x_root_old = vid.width >> 1;
 		y_root = y_root_old = vid.height >> 1;
-	} else if (x_grabbed && (!_windowed_mouse.value || !x_focus)) {
+	} else if (x_grabbed && (!_windowed_mouse->value || !x_focus)) {
 		printf("fooling with mouse!\n");
 		x_grabbed = false;
 		// undo mouse warp
@@ -133,14 +132,26 @@ static void CheckMouseState(void)
 // IN_Init - setup mouse input
 //
 
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+===================
+IN_Init_Cvars
+===================
+*/
+void IN_Init_Cvars (void)
+{
+	_windowed_mouse = Cvar_Get ("_windowed_mouse", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void IN_Init (void)
 {
-    if (!x_disp) Sys_Error( "X display not open!\n" );
+	if (!x_disp) Sys_Error( "X display not open!\n" );
 
-    Cvar_RegisterVariable (&_windowed_mouse);
+//	_windowed_mouse = Cvar_Get ("_windowed_mouse", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);	// 2001-09-18 New cvar system by Maddes (Init)
 
 	// we really really want to clean these up...
-    atexit( IN_Shutdown );
+	atexit( IN_Shutdown );
 }
 
 //
@@ -149,7 +160,7 @@ void IN_Init (void)
 
 void IN_Shutdown (void)
 {
-    if (!x_disp) return;
+	if (!x_disp) return;
 
 	// undo mouse warp
 	if (XChangePointerControl( x_disp, True, True, x_mouse_num, x_mouse_denom, x_mouse_thresh ))
@@ -187,7 +198,7 @@ IN_Move (usercmd_t *cmd)
 
 	if (!x_grabbed)
 		return; // no mouse movement
-	
+
 
 	now = gethrtime();
 
@@ -196,15 +207,15 @@ IN_Move (usercmd_t *cmd)
 
 	dy = global_dy;
 	global_dy = 0;
-	
+
 //	printf("GOT: dx %d dy %d\n", dx, dy);
 
-	dx *= sensitivity.value;
-	dy *= sensitivity.value;
+	dx *= sensitivity->value;
+	dy *= sensitivity->value;
 
 //
 //	implement low pass filter to smooth motion a bit
-//	
+//
 	if (now - last_movement > 100000000) {
 		dx = .6 * dx;
 		dy = .6 * dy;
@@ -219,27 +230,27 @@ IN_Move (usercmd_t *cmd)
 	last_dy = dy;
 
 	if (!dx && !dy) {
-		if (in_mlook.state & 1) 
+		if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 			V_StopPitchDrift ();
 		return;
 	}
-	
-	// add mouse X/Y movement to cmd
-	if ((in_strafe.state & 1) || (lookstrafe.value && (in_mlook.state & 1)))
-		cmd->sidemove += m_side.value * dx;
-	else 
-		cl.viewangles[YAW] -= m_yaw.value * dx;
 
-	if (in_mlook.state & 1) 
+	// add mouse X/Y movement to cmd
+	if ((in_strafe.state & 1) || (lookstrafe->value && ((in_mlook.state & 1) ^ ((int)m_look->value & 1))))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cmd->sidemove += m_side->value * dx;
+	else
+		cl.viewangles[YAW] -= m_yaw->value * dx;
+
+	if ((in_mlook.state & 1) ^ ((int)m_look->value & 1))	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
 		V_StopPitchDrift ();
-	    
-	if ((in_mlook.state & 1) && !(in_strafe.state & 1)) {
-		cl.viewangles[PITCH] += m_pitch.value * dy;
+
+	if (((in_mlook.state & 1) ^ ((int)m_look->value & 1)) && !(in_strafe.state & 1)) {	// 2001-12-16 M_LOOK cvar by Heffo/Maddes
+		cl.viewangles[PITCH] += m_pitch->value * dy;
 		if (cl.viewangles[PITCH] > 80) cl.viewangles[PITCH] = 80;
 		if (cl.viewangles[PITCH] < -70) cl.viewangles[PITCH] = -70;
 	}
 	else {
-		if ((in_strafe.state & 1) && noclip_anglehack) cmd->upmove -= m_forward.value * dy;
-		else cmd->forwardmove -= m_forward.value * dy;
+		if ((in_strafe.state & 1) && noclip_anglehack) cmd->upmove -= m_forward->value * dy;
+		else cmd->forwardmove -= m_forward->value * dy;
 	}
 }

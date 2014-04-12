@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -97,7 +97,7 @@ qboolean R_AliasCheckBBox (void)
 	qboolean			zclipped, zfullyclipped;
 	unsigned			anyclip, allclip;
 	int					minz;
-	
+
 // expand, rotate, and translate points into worldspace
 
 	currententity->trivial_accept = 0;
@@ -160,7 +160,7 @@ qboolean R_AliasCheckBBox (void)
 		}
 	}
 
-	
+
 	if (zfullyclipped)
 	{
 		return false;	// everything was near-z-clipped
@@ -295,7 +295,7 @@ void R_AliasPreparePoints (void)
 			if (fv->v[0] > r_refdef.aliasvrectright)
 				fv->flags |= ALIAS_RIGHT_CLIP;
 			if (fv->v[1] > r_refdef.aliasvrectbottom)
-				fv->flags |= ALIAS_BOTTOM_CLIP;	
+				fv->flags |= ALIAS_BOTTOM_CLIP;
 		}
 	}
 
@@ -313,7 +313,7 @@ void R_AliasPreparePoints (void)
 
 		if ( pfv[0]->flags & pfv[1]->flags & pfv[2]->flags & (ALIAS_XY_CLIP_MASK | ALIAS_Z_CLIP) )
 			continue;		// completely clipped
-		
+
 		if ( ! ( (pfv[0]->flags | pfv[1]->flags | pfv[2]->flags) &
 			(ALIAS_XY_CLIP_MASK | ALIAS_Z_CLIP) ) )
 		{	// totally unclipped
@@ -321,7 +321,7 @@ void R_AliasPreparePoints (void)
 			r_affinetridesc.ptriangles = ptri;
 			D_PolysetDraw ();
 		}
-		else		
+		else
 		{	// partially clipped
 			R_AliasClipTriangle (ptri);
 		}
@@ -585,20 +585,20 @@ void R_AliasSetupSkin (void)
 				((byte *)paliashdr + paliasskingroup->intervals);
 		numskins = paliasskingroup->numskins;
 		fullskininterval = pskinintervals[numskins-1];
-	
+
 		skintime = cl.time + currententity->syncbase;
-	
+
 	// when loading in Mod_LoadAliasSkinGroup, we guaranteed all interval
 	// values are positive, so we don't have to worry about division by 0
 		skintargettime = skintime -
 				((int)(skintime / fullskininterval)) * fullskininterval;
-	
+
 		for (i=0 ; i<(numskins-1) ; i++)
 		{
 			if (pskinintervals[i] > skintargettime)
 				break;
 		}
-	
+
 		pskindesc = &paliasskingroup->skindescs[i];
 	}
 
@@ -669,7 +669,7 @@ void R_AliasSetupFrame (void)
 				((byte *)paliashdr + paliashdr->frames[frame].frame);
 		return;
 	}
-	
+
 	paliasgroup = (maliasgroup_t *)
 				((byte *)paliashdr + paliashdr->frames[frame].frame);
 	pintervals = (float *)((byte *)paliashdr + paliasgroup->intervals);

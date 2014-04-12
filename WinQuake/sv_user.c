@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 edict_t	*sv_player;
 
-extern	cvar_t	sv_friction;
-cvar_t	sv_edgefriction = {"edgefriction", "2"};
-extern	cvar_t	sv_stopspeed;
+extern cvar_t	*sv_friction;
+cvar_t	*sv_edgefriction;
+extern cvar_t	*sv_stopspeed;
 
 static	vec3_t		forward, right, up;
 
@@ -41,7 +41,7 @@ qboolean	onground;
 
 usercmd_t	cmd;
 
-cvar_t	sv_idealpitchscale = {"sv_idealpitchscale","0.8"};
+cvar_t	*sv_idealpitchscale;
 
 
 /*
@@ -61,7 +61,7 @@ void SV_SetIdealPitch (void)
 
 	if (!((int)sv_player->v.flags & FL_ONGROUND))
 		return;
-		
+
 	angleval = sv_player->v.angles[YAW] * M_PI*2 / 360;
 	sinval = sin(angleval);
 	cosval = cos(angleval);
@@ -71,21 +71,21 @@ void SV_SetIdealPitch (void)
 		top[0] = sv_player->v.origin[0] + cosval*(i+3)*12;
 		top[1] = sv_player->v.origin[1] + sinval*(i+3)*12;
 		top[2] = sv_player->v.origin[2] + sv_player->v.view_ofs[2];
-		
+
 		bottom[0] = top[0];
 		bottom[1] = top[1];
 		bottom[2] = top[2] - 160;
-		
+
 		tr = SV_Move (top, vec3_origin, vec3_origin, bottom, 1, sv_player);
 		if (tr.allsolid)
 			return;	// looking at a wall, leave ideal the way is was
 
 		if (tr.fraction == 1)
 			return;	// near a dropoff
-		
+
 		z[i] = top[2] + tr.fraction*(bottom[2]-top[2]);
 	}
-	
+
 	dir = 0;
 	steps = 0;
 	for (j=1 ; j<i ; j++)
@@ -97,19 +97,19 @@ void SV_SetIdealPitch (void)
 		if (dir && ( step-dir > ON_EPSILON || step-dir < -ON_EPSILON ) )
 			return;		// mixed changes
 
-		steps++;	
+		steps++;
 		dir = step;
 	}
-	
+
 	if (!dir)
 	{
 		sv_player->v.idealpitch = 0;
 		return;
 	}
-	
+
 	if (steps < 2)
 		return;
-	sv_player->v.idealpitch = -dir * sv_idealpitchscale.value;
+	sv_player->v.idealpitch = -dir * sv_idealpitchscale->value;
 }
 
 
@@ -126,9 +126,9 @@ void SV_UserFriction (void)
 	vec3_t	start, stop;
 	float	friction;
 	trace_t	trace;
-	
+
 	vel = velocity;
-	
+
 	speed = sqrt(vel[0]*vel[0] +vel[1]*vel[1]);
 	if (!speed)
 		return;
@@ -142,14 +142,14 @@ void SV_UserFriction (void)
 	trace = SV_Move (start, vec3_origin, vec3_origin, stop, true, sv_player);
 
 	if (trace.fraction == 1.0)
-		friction = sv_friction.value*sv_edgefriction.value;
+		friction = sv_friction->value*sv_edgefriction->value;
 	else
-		friction = sv_friction.value;
+		friction = sv_friction->value;
 
-// apply friction	
-	control = speed < sv_stopspeed.value ? sv_stopspeed.value : speed;
+// apply friction
+	control = speed < sv_stopspeed->value ? sv_stopspeed->value : speed;
 	newspeed = speed - host_frametime*control*friction;
-	
+
 	if (newspeed < 0)
 		newspeed = 0;
 	newspeed /= speed;
@@ -164,8 +164,8 @@ void SV_UserFriction (void)
 SV_Accelerate
 ==============
 */
-cvar_t	sv_maxspeed = {"sv_maxspeed", "320", false, true};
-cvar_t	sv_accelerate = {"sv_accelerate", "10"};
+cvar_t	*sv_maxspeed;
+cvar_t	*sv_accelerate;
 #if 0
 void SV_Accelerate (vec3_t wishvel)
 {
@@ -179,12 +179,12 @@ void SV_Accelerate (vec3_t wishvel)
 	VectorSubtract (wishvel, velocity, pushvec);
 	addspeed = VectorNormalize (pushvec);
 
-	accelspeed = sv_accelerate.value*host_frametime*addspeed;
+	accelspeed = sv_accelerate->value*host_frametime*addspeed;
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
-	
+
 	for (i=0 ; i<3 ; i++)
-		velocity[i] += accelspeed*pushvec[i];	
+		velocity[i] += accelspeed*pushvec[i];
 }
 #endif
 void SV_Accelerate (void)
@@ -196,19 +196,19 @@ void SV_Accelerate (void)
 	addspeed = wishspeed - currentspeed;
 	if (addspeed <= 0)
 		return;
-	accelspeed = sv_accelerate.value*host_frametime*wishspeed;
+	accelspeed = sv_accelerate->value*host_frametime*wishspeed;
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
-	
+
 	for (i=0 ; i<3 ; i++)
-		velocity[i] += accelspeed*wishdir[i];	
+		velocity[i] += accelspeed*wishdir[i];
 }
 
 void SV_AirAccelerate (vec3_t wishveloc)
 {
 	int			i;
 	float		addspeed, wishspd, accelspeed, currentspeed;
-		
+
 	wishspd = VectorNormalize (wishveloc);
 	if (wishspd > 30)
 		wishspd = 30;
@@ -216,22 +216,22 @@ void SV_AirAccelerate (vec3_t wishveloc)
 	addspeed = wishspd - currentspeed;
 	if (addspeed <= 0)
 		return;
-//	accelspeed = sv_accelerate.value * host_frametime;
-	accelspeed = sv_accelerate.value*wishspeed * host_frametime;
+//	accelspeed = sv_accelerate->value * host_frametime;
+	accelspeed = sv_accelerate->value*wishspeed * host_frametime;
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
-	
+
 	for (i=0 ; i<3 ; i++)
-		velocity[i] += accelspeed*wishveloc[i];	
+		velocity[i] += accelspeed*wishveloc[i];
 }
 
 
 void DropPunchAngle (void)
 {
 	float	len;
-	
+
 	len = VectorNormalize (sv_player->v.punchangle);
-	
+
 	len -= 10*host_frametime;
 	if (len < 0)
 		len = 0;
@@ -264,10 +264,10 @@ void SV_WaterMove (void)
 		wishvel[2] += cmd.upmove;
 
 	wishspeed = Length(wishvel);
-	if (wishspeed > sv_maxspeed.value)
+	if (wishspeed > sv_maxspeed->value)
 	{
-		VectorScale (wishvel, sv_maxspeed.value/wishspeed, wishvel);
-		wishspeed = sv_maxspeed.value;
+		VectorScale (wishvel, sv_maxspeed->value/wishspeed, wishvel);
+		wishspeed = sv_maxspeed->value;
 	}
 	wishspeed *= 0.7;
 
@@ -277,14 +277,14 @@ void SV_WaterMove (void)
 	speed = Length (velocity);
 	if (speed)
 	{
-		newspeed = speed - host_frametime * speed * sv_friction.value;
+		newspeed = speed - host_frametime * speed * sv_friction->value;
 		if (newspeed < 0)
-			newspeed = 0;	
+			newspeed = 0;
 		VectorScale (velocity, newspeed/speed, velocity);
 	}
 	else
 		newspeed = 0;
-	
+
 //
 // water acceleration
 //
@@ -296,7 +296,7 @@ void SV_WaterMove (void)
 		return;
 
 	VectorNormalize (wishvel);
-	accelspeed = sv_accelerate.value * wishspeed * host_frametime;
+	accelspeed = sv_accelerate->value * wishspeed * host_frametime;
 	if (accelspeed > addspeed)
 		accelspeed = addspeed;
 
@@ -333,11 +333,11 @@ void SV_AirMove (void)
 
 	fmove = cmd.forwardmove;
 	smove = cmd.sidemove;
-	
+
 // hack to not let you back into teleporter
 	if (sv.time < sv_player->v.teleport_time && fmove < 0)
 		fmove = 0;
-		
+
 	for (i=0 ; i<3 ; i++)
 		wishvel[i] = forward[i]*fmove + right[i]*smove;
 
@@ -348,12 +348,12 @@ void SV_AirMove (void)
 
 	VectorCopy (wishvel, wishdir);
 	wishspeed = VectorNormalize(wishdir);
-	if (wishspeed > sv_maxspeed.value)
+	if (wishspeed > sv_maxspeed->value)
 	{
-		VectorScale (wishvel, sv_maxspeed.value/wishspeed, wishvel);
-		wishspeed = sv_maxspeed.value;
+		VectorScale (wishvel, sv_maxspeed->value/wishspeed, wishvel);
+		wishspeed = sv_maxspeed->value;
 	}
-	
+
 	if ( sv_player->v.movetype == MOVETYPE_NOCLIP)
 	{	// noclip
 		VectorCopy (wishvel, velocity);
@@ -366,7 +366,7 @@ void SV_AirMove (void)
 	else
 	{	// not on ground, so little effect on velocity
 		SV_AirAccelerate (wishvel);
-	}		
+	}
 }
 
 /*
@@ -383,14 +383,14 @@ void SV_ClientThink (void)
 
 	if (sv_player->v.movetype == MOVETYPE_NONE)
 		return;
-	
+
 	onground = (int)sv_player->v.flags & FL_ONGROUND;
 
 	origin = sv_player->v.origin;
 	velocity = sv_player->v.velocity;
 
 	DropPunchAngle ();
-	
+
 //
 // if dead, behave differently
 //
@@ -402,7 +402,7 @@ void SV_ClientThink (void)
 // show 1/3 the pitch angle and all the roll angle
 	cmd = host_client->cmd;
 	angles = sv_player->v.angles;
-	
+
 	VectorAdd (sv_player->v.v_angle, sv_player->v.punchangle, v_angle);
 	angles[ROLL] = V_CalcRoll (sv_player->v.angles, sv_player->v.velocity)*4;
 	if (!sv_player->v.fixangle)
@@ -426,7 +426,7 @@ void SV_ClientThink (void)
 		return;
 	}
 
-	SV_AirMove ();	
+	SV_AirMove ();
 }
 
 
@@ -440,26 +440,44 @@ void SV_ReadClientMove (usercmd_t *move)
 	int		i;
 	vec3_t	angle;
 	int		bits;
-	
+
 // read ping time
 	host_client->ping_times[host_client->num_pings%NUM_PING_TIMES]
 		= sv.time - MSG_ReadFloat ();
 	host_client->num_pings++;
 
-// read current angles	
-	for (i=0 ; i<3 ; i++)
-		angle[i] = MSG_ReadAngle ();
+// read current angles
+// 2000-05-01 NVS CLC_move precise aiming by Maddes  start
+	if (host_client->nvs_cclc >= 0.50)
+	{
+		for (i=0 ; i<3 ; i++)
+		{
+			angle[i] = MSG_ReadFloat ();
+		}
+	}
+	else
+	{
+// 2000-05-01 NVS CLC_move precise aiming by Maddes  end
+		for (i=0 ; i<3 ; i++)
+			angle[i] = MSG_ReadAngle ();
+	}					// 2000-05-01 NVS CLC precise_move aiming by Maddes
 
 	VectorCopy (angle, host_client->edict->v.v_angle);
-		
+
 // read movement
 	move->forwardmove = MSG_ReadShort ();
 	move->sidemove = MSG_ReadShort ();
 	move->upmove = MSG_ReadShort ();
-	
+
 // read buttons
 	bits = MSG_ReadByte ();
 	host_client->edict->v.button0 = bits & 1;
+// 1999-10-29 +USE fix by Maddes  start
+	if (!nouse)
+	{
+		host_client->edict->v.button1 = (bits & 4)>>2;
+	}
+// 1999-10-29 +USE fix by Maddes  end
 	host_client->edict->v.button2 = (bits & 2)>>1;
 
 	i = MSG_ReadByte ();
@@ -484,7 +502,7 @@ qboolean SV_ReadClientMessage (void)
 	int		ret;
 	int		cmd;
 	char		*s;
-	
+
 	do
 	{
 nextmsg:
@@ -496,9 +514,9 @@ nextmsg:
 		}
 		if (!ret)
 			return true;
-					
+
 		MSG_BeginReading ();
-		
+
 		while (1)
 		{
 			if (!host_client->active)
@@ -508,24 +526,24 @@ nextmsg:
 			{
 				Sys_Printf ("SV_ReadClientMessage: badread\n");
 				return false;
-			}	
-	
+			}
+
 			cmd = MSG_ReadChar ();
-			
+
 			switch (cmd)
 			{
 			case -1:
 				goto nextmsg;		// end of message
-				
+
 			default:
 				Sys_Printf ("SV_ReadClientMessage: unknown command char\n");
 				return false;
-							
+
 			case clc_nop:
 //				Sys_Printf ("clc_nop\n");
 				break;
-				
-			case clc_stringcmd:	
+
+			case clc_stringcmd:
 				s = MSG_ReadString ();
 				if (host_client->privileged)
 					ret = 2;
@@ -569,6 +587,22 @@ nextmsg:
 					ret = 1;
 				else if (Q_strncasecmp(s, "ban", 3) == 0)
 					ret = 1;
+// 2000-01-09 QCExec by FrikaC/Maddes  start
+				else if (Q_strncasecmp(s, "qcexec", 6) == 0)
+					ret = 1;
+// 2000-01-09 QCExec by FrikaC/Maddes  end
+// 2000-01-20 Enhanced version command by Maddes  start
+				else if (Q_strncasecmp(s, "version", 7) == 0)
+					ret = 1;
+// 2000-01-20 Enhanced version command by Maddes  end
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes
+				else if (Q_strncasecmp(s, "nvs_request", 11) == 0)
+					ret = 1;
+// 2000-04-30 NVS HANDSHAKE SRV<->CL by Maddes
+// 2001-09-20 Configurable limits by Maddes  start
+				else if (Q_strncasecmp(s, "limit_request", 11) == 0)
+					ret = 1;
+// 2001-09-20 Configurable limits by Maddes  end
 				if (ret == 2)
 					Cbuf_InsertText (s);
 				else if (ret == 1)
@@ -576,18 +610,18 @@ nextmsg:
 				else
 					Con_DPrintf("%s tried to %s\n", host_client->name, s);
 				break;
-				
+
 			case clc_disconnect:
 //				Sys_Printf ("SV_ReadClientMessage: client disconnected\n");
 				return false;
-			
+
 			case clc_move:
 				SV_ReadClientMove (&host_client->cmd);
 				break;
 			}
 		}
 	} while (ret == 1);
-	
+
 	return true;
 }
 
@@ -600,12 +634,12 @@ SV_RunClients
 void SV_RunClients (void)
 {
 	int				i;
-	
+
 	for (i=0, host_client = svs.clients ; i<svs.maxclients ; i++, host_client++)
 	{
 		if (!host_client->active)
 			continue;
-	
+
 		sv_player = host_client->edict;
 
 		if (!SV_ReadClientMessage ())
@@ -626,4 +660,3 @@ void SV_RunClients (void)
 			SV_ClientThink ();
 	}
 }
-

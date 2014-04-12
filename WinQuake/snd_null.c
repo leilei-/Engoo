@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,12 +22,32 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "quakedef.h"
 
-cvar_t bgmvolume = {"bgmvolume", "1", true};
-cvar_t volume = {"volume", "0.7", true};
+cvar_t	*bgmvolume;
+cvar_t	*volume;
 
- 
+
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+================
+S_Init_Cvars
+================
+*/
+void
+S_Init_Cvars (void)
+{
+	volume = Cvar_Get ("volume", "0.7", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	bgmvolume = Cvar_Get ("bgmvolume", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+}
+// 2001-09-18 New cvar system by Maddes (Init)  end
+
 void S_Init (void)
 {
+// 2001-09-18 New cvar system by Maddes (Init)  start
+/*
+	volume = Cvar_Get ("volume", "0.7", CVAR_ARCHIVE|CVAR_ORIGINAL);
+	bgmvolume = Cvar_Get ("bgmvolume", "1", CVAR_ARCHIVE|CVAR_ORIGINAL);
+*/
+// 2001-09-18 New cvar system by Maddes (Init)  end
 }
 
 void S_AmbientOff (void)
@@ -72,7 +92,7 @@ void S_ClearPrecache (void)
 }
 
 void S_Update (vec3_t origin, vec3_t v_forward, vec3_t v_right, vec3_t v_up)
-{	
+{
 }
 
 void S_StopAllSounds (qboolean clear)

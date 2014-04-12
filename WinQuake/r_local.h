@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -53,24 +53,24 @@ typedef struct {
 
 //===========================================================================
 
-extern cvar_t	r_draworder;
-extern cvar_t	r_speeds;
-extern cvar_t	r_timegraph;
-extern cvar_t	r_graphheight;
-extern cvar_t	r_clearcolor;
-extern cvar_t	r_waterwarp;
-extern cvar_t	r_fullbright;
-extern cvar_t	r_drawentities;
-extern cvar_t	r_aliasstats;
-extern cvar_t	r_dspeeds;
-extern cvar_t	r_drawflat;
-extern cvar_t	r_ambient;
-extern cvar_t	r_reportsurfout;
-extern cvar_t	r_maxsurfs;
-extern cvar_t	r_numsurfs;
-extern cvar_t	r_reportedgeout;
-extern cvar_t	r_maxedges;
-extern cvar_t	r_numedges;
+extern cvar_t	*r_draworder;
+extern cvar_t	*r_speeds;
+extern cvar_t	*r_timegraph;
+extern cvar_t	*r_graphheight;
+extern cvar_t	*r_clearcolor;
+extern cvar_t	*r_waterwarp;
+extern cvar_t	*r_fullbright;
+extern cvar_t	*r_drawentities;
+extern cvar_t	*r_aliasstats;
+extern cvar_t	*r_dspeeds;
+extern cvar_t	*r_drawflat;
+extern cvar_t	*r_ambient;
+extern cvar_t	*r_reportsurfout;
+extern cvar_t	*r_maxsurfs;
+extern cvar_t	*r_numsurfs;
+extern cvar_t	*r_reportedgeout;
+extern cvar_t	*r_maxedges;
+extern cvar_t	*r_numedges;
 
 #define XCENTERING	(1.0 / 2.0)
 #define YCENTERING	(1.0 / 2.0)

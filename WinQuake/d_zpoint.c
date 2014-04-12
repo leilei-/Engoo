@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -33,7 +33,7 @@ void D_DrawZPoint (void)
 	byte	*pdest;
 	short	*pz;
 	int		izi;
-	
+
 	pz = d_pzbuffer + (d_zwidth * r_zpointdesc.v) + r_zpointdesc.u;
 	pdest = d_viewbuffer + d_scantable[r_zpointdesc.v] + r_zpointdesc.u;
 	izi = (int)(r_zpointdesc.zi * 0x8000);

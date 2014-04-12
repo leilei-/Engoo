@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -28,7 +28,7 @@ short flat_selector;
 int WSAGetLastError(void);
 void sockets_flush(void);
 
-extern cvar_t hostname;
+extern cvar_t	*hostname;
 
 #define MAXHOSTNAMELEN		256
 
@@ -56,19 +56,19 @@ int MPATH_Init (void)
 	if (COM_CheckParm ("-mpath") == 0)
 		return -1;
 
-   flat_selector = __dpmi_allocate_ldt_descriptors(1);
-   if (flat_selector == -1) {
-      Con_Printf("MPATH_Init: Can't get flat selector\n");
-      return -1;
-   }
-   if (__dpmi_set_segment_base_address(flat_selector, 0) == -1) {
-      Con_Printf("MPATH_Init: Can't seg flat base!\n");
-      return -1;
-   }
-   if (__dpmi_set_segment_limit(flat_selector, 0xffffffff) == -1) {
-      Con_Printf("MPATH_Init: Can't set segment limit\n");
-      return -1;
-   }
+	flat_selector = __dpmi_allocate_ldt_descriptors(1);
+	if (flat_selector == -1) {
+		Con_Printf("MPATH_Init: Can't get flat selector\n");
+		return -1;
+	}
+	if (__dpmi_set_segment_base_address(flat_selector, 0) == -1) {
+		Con_Printf("MPATH_Init: Can't seg flat base!\n");
+		return -1;
+	}
+	if (__dpmi_set_segment_limit(flat_selector, 0xffffffff) == -1) {
+		Con_Printf("MPATH_Init: Can't set segment limit\n");
+		return -1;
+	}
 	// determine my name & address
 	if (gethostname(buff, MAXHOSTNAMELEN) == 0)
 		local = gethostbyname(buff);
@@ -77,7 +77,7 @@ int MPATH_Init (void)
 		myAddr = *(int *)local->h_addr_list[0];
 
 		// if the quake hostname isn't set, set it to the machine name
-		if (Q_strcmp(hostname.string, "UNNAMED") == 0)
+		if (strcmp(hostname->string, "UNNAMED") == 0)
 		{
 			// see if it's a text IP address (well, close enough)
 			for (p = buff; *p; p++)
@@ -92,7 +92,7 @@ int MPATH_Init (void)
 						break;
 				buff[i] = 0;
 			}
-			Cvar_Set ("hostname", buff);
+			Cvar_Set (hostname, buff);
 		}
 	}
 
@@ -104,8 +104,8 @@ int MPATH_Init (void)
 	((struct sockaddr_in *)&broadcastaddr)->sin_port = htons(net_hostport);
 
 	MPATH_GetSocketAddr (net_controlsocket, &addr);
-	Q_strcpy(my_tcpip_address,  MPATH_AddrToString (&addr));
-	p = Q_strrchr (my_tcpip_address, ':');
+	strcpy(my_tcpip_address,  MPATH_AddrToString (&addr));
+	p = strrchr (my_tcpip_address, ':');
 	if (p)
 		*p = 0;
 
@@ -199,7 +199,7 @@ static int PartialIPAddress (char *in, struct qsockaddr *hostaddr)
 	int mask;
 	int run;
 	int port;
-	
+
 	buff[0] = '.';
 	b = buff;
 	strcpy(buff+1, in);
@@ -226,16 +226,16 @@ static int PartialIPAddress (char *in, struct qsockaddr *hostaddr)
 		mask<<=8;
 		addr = (addr<<8) + num;
 	}
-	
+
 	if (*b++ == ':')
 		port = Q_atoi(b);
 	else
 		port = net_hostport;
 
 	hostaddr->sa_family = AF_INET;
-	((struct sockaddr_in *)hostaddr)->sin_port = htons((short)port);	
+	((struct sockaddr_in *)hostaddr)->sin_port = htons((short)port);
 	((struct sockaddr_in *)hostaddr)->sin_addr.s_addr = (myAddr & htonl(mask)) | htonl(addr);
-	
+
 	return 0;
 }
 //=============================================================================
@@ -382,11 +382,11 @@ int MPATH_GetNameFromAddr (struct qsockaddr *addr, char *name)
 	hostentry = gethostbyaddr ((char *)&((struct sockaddr_in *)addr)->sin_addr, sizeof(struct in_addr), AF_INET);
 	if (hostentry)
 	{
-		Q_strncpy (name, (char *)hostentry->h_name, NET_NAMELEN - 1);
+		strncpy (name, (char *)hostentry->h_name, NET_NAMELEN - 1);
 		return 0;
 	}
 
-	Q_strcpy (name, MPATH_AddrToString (addr));
+	strcpy (name, MPATH_AddrToString (addr));
 	return 0;
 }
 
@@ -398,13 +398,13 @@ int MPATH_GetAddrFromName(char *name, struct qsockaddr *addr)
 
 	if (name[0] >= '0' && name[0] <= '9')
 		return PartialIPAddress (name, addr);
-	
+
 	hostentry = gethostbyname (name);
 	if (!hostentry)
 		return -1;
 
 	addr->sa_family = AF_INET;
-	((struct sockaddr_in *)addr)->sin_port = htons(net_hostport);	
+	((struct sockaddr_in *)addr)->sin_port = htons(net_hostport);
 	((struct sockaddr_in *)addr)->sin_addr.s_addr = *(int *)hostentry->h_addr_list[0];
 
 	return 0;

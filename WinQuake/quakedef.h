@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -23,10 +23,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define	QUAKE_GAME			// as opposed to utilities
 
+// 2001-10-25 QIP version in the console background by Maddes
+#define	QIP_VERSION			"QIP 2002-02-01"
+#define	QIP_URL				"http://www.quake-info-pool.net/"
+// 2001-10-25 QIP version in the console background by Maddes
 #define	VERSION				1.09
 #define	GLQUAKE_VERSION		1.00
 #define	D3DQUAKE_VERSION	0.01
-#define	WINQUAKE_VERSION	0.996
+#define	WINQUAKE_VERSION	1.00	// was 0.996, but WinQuake was already final
 #define	LINUX_VERSION		1.30
 #define	X11_VERSION			1.10
 
@@ -44,6 +48,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+
+//
+// The precompiler definition "__i386__" comes from the DJGPP package and
+// states that the code is compiled for an Intel x386 compatible machine.
+// Windows compilers (definition "_WIN32") do not provide this DJGPP definition,
+// but provide something similar called "_M_IX86". So when using a Windows
+// compiler "__i386__" can be created when "_WIN32" and "_M_IX86" are defined.
+//
+// If you do not want to use assembler code, then set the definition "id386" to
+// zero (0) in QUAKEASM.H for asm sources and in QUAKEDEF.H for C sources
+//
 
 #if defined(_WIN32) && !defined(WINDED)
 
@@ -104,7 +119,14 @@ void	VID_UnlockBuffer (void);
 //
 // per-level limits
 //
-#define	MAX_EDICTS		600			// FIXME: ouch! ouch! ouch!
+// 2001-09-20 Configurable entity limits by Maddes  start
+//#define	MAX_EDICTS		600			// FIXME: ouch! ouch! ouch!
+#define	MIN_EDICTS		600				// must be the original default value: 600
+#define	MAX_EDICTS		0x7FFF			// Maximum without network changes, as entity number is send as signed short (2 bytes)
+
+#define	MIN_TEMP_ENTITIES	64			// lightning bolts, etc
+#define	MIN_STATIC_ENTITIES	128			// torches, etc
+// 2001-09-20 Configurable entity limits by Maddes  end
 #define	MAX_LIGHTSTYLES	64
 #define	MAX_MODELS		256			// these are sent over the net as bytes
 #define	MAX_SOUNDS		256			// so they cannot be blindly increased
@@ -142,61 +164,61 @@ void	VID_UnlockBuffer (void);
 #define	IT_GRENADE_LAUNCHER		16
 #define	IT_ROCKET_LAUNCHER		32
 #define	IT_LIGHTNING			64
-#define IT_SUPER_LIGHTNING      128
-#define IT_SHELLS               256
-#define IT_NAILS                512
-#define IT_ROCKETS              1024
-#define IT_CELLS                2048
-#define IT_AXE                  4096
-#define IT_ARMOR1               8192
-#define IT_ARMOR2               16384
-#define IT_ARMOR3               32768
-#define IT_SUPERHEALTH          65536
-#define IT_KEY1                 131072
-#define IT_KEY2                 262144
+#define IT_SUPER_LIGHTNING		128
+#define IT_SHELLS				256
+#define IT_NAILS				512
+#define IT_ROCKETS				1024
+#define IT_CELLS				2048
+#define IT_AXE					4096
+#define IT_ARMOR1				8192
+#define IT_ARMOR2				16384
+#define IT_ARMOR3				32768
+#define IT_SUPERHEALTH			65536
+#define IT_KEY1					131072
+#define IT_KEY2					262144
 #define	IT_INVISIBILITY			524288
 #define	IT_INVULNERABILITY		1048576
 #define	IT_SUIT					2097152
 #define	IT_QUAD					4194304
-#define IT_SIGIL1               (1<<28)
-#define IT_SIGIL2               (1<<29)
-#define IT_SIGIL3               (1<<30)
-#define IT_SIGIL4               (1<<31)
+#define IT_SIGIL1				(1<<28)
+#define IT_SIGIL2				(1<<29)
+#define IT_SIGIL3				(1<<30)
+#define IT_SIGIL4				(1<<31)
 
 //===========================================
 //rogue changed and added defines
 
-#define RIT_SHELLS              128
-#define RIT_NAILS               256
-#define RIT_ROCKETS             512
-#define RIT_CELLS               1024
-#define RIT_AXE                 2048
-#define RIT_LAVA_NAILGUN        4096
-#define RIT_LAVA_SUPER_NAILGUN  8192
-#define RIT_MULTI_GRENADE       16384
-#define RIT_MULTI_ROCKET        32768
-#define RIT_PLASMA_GUN          65536
-#define RIT_ARMOR1              8388608
-#define RIT_ARMOR2              16777216
-#define RIT_ARMOR3              33554432
-#define RIT_LAVA_NAILS          67108864
-#define RIT_PLASMA_AMMO         134217728
-#define RIT_MULTI_ROCKETS       268435456
-#define RIT_SHIELD              536870912
-#define RIT_ANTIGRAV            1073741824
-#define RIT_SUPERHEALTH         2147483648
+#define RIT_SHELLS				128
+#define RIT_NAILS				256
+#define RIT_ROCKETS				512
+#define RIT_CELLS				1024
+#define RIT_AXE					2048
+#define RIT_LAVA_NAILGUN		4096
+#define RIT_LAVA_SUPER_NAILGUN	8192
+#define RIT_MULTI_GRENADE		16384
+#define RIT_MULTI_ROCKET		32768
+#define RIT_PLASMA_GUN			65536
+#define RIT_ARMOR1				8388608
+#define RIT_ARMOR2				16777216
+#define RIT_ARMOR3				33554432
+#define RIT_LAVA_NAILS			67108864
+#define RIT_PLASMA_AMMO			134217728
+#define RIT_MULTI_ROCKETS		268435456
+#define RIT_SHIELD				536870912
+#define RIT_ANTIGRAV			1073741824
+#define RIT_SUPERHEALTH			2147483648
 
 //MED 01/04/97 added hipnotic defines
 //===========================================
 //hipnotic added defines
-#define HIT_PROXIMITY_GUN_BIT 16
-#define HIT_MJOLNIR_BIT       7
-#define HIT_LASER_CANNON_BIT  23
-#define HIT_PROXIMITY_GUN   (1<<HIT_PROXIMITY_GUN_BIT)
-#define HIT_MJOLNIR         (1<<HIT_MJOLNIR_BIT)
-#define HIT_LASER_CANNON    (1<<HIT_LASER_CANNON_BIT)
-#define HIT_WETSUIT         (1<<(23+2))
-#define HIT_EMPATHY_SHIELDS (1<<(23+3))
+#define HIT_PROXIMITY_GUN_BIT	16
+#define HIT_MJOLNIR_BIT			7
+#define HIT_LASER_CANNON_BIT	23
+#define HIT_PROXIMITY_GUN		(1<<HIT_PROXIMITY_GUN_BIT)
+#define HIT_MJOLNIR				(1<<HIT_MJOLNIR_BIT)
+#define HIT_LASER_CANNON		(1<<HIT_LASER_CANNON_BIT)
+#define HIT_WETSUIT				(1<<(23+2))
+#define HIT_EMPATHY_SHIELDS		(1<<(23+3))
 
 //===========================================
 
@@ -242,12 +264,15 @@ typedef struct
 #include "progs.h"
 #include "server.h"
 
+#include "nvs_common.h"		// 2000-04-30 NVS COMMON by Maddes
+
 #ifdef GLQUAKE
 #include "gl_model.h"
 #else
 #include "model.h"
 #include "d_iface.h"
 #endif
+#include "model_common.h"	// 2001-12-28 Merged model functions by Maddes
 
 #include "input.h"
 #include "world.h"
@@ -291,11 +316,12 @@ extern qboolean noclip_anglehack;
 //
 extern	quakeparms_t host_parms;
 
-extern	cvar_t		sys_ticrate;
-extern	cvar_t		sys_nostdout;
-extern	cvar_t		developer;
+extern	cvar_t		*sys_ticrate;
+extern	cvar_t		*sys_nostdout;
+extern	cvar_t		*developer;
 
 extern	qboolean	host_initialized;		// true if into command execution
+
 extern	double		host_frametime;
 extern	byte		*host_basepal;
 extern	byte		*host_colormap;
@@ -314,6 +340,7 @@ void Host_Frame (float time);
 void Host_Quit_f (void);
 void Host_ClientCommands (char *fmt, ...);
 void Host_ShutdownServer (qboolean crash);
+void Host_Version_f (void);				// 2000-04-30 NVS HANDSHAKE SRV<->CL/QC<->CL by Maddes
 
 extern qboolean		msg_suppress_1;		// suppresses resolution and cache size console output
 										//  an fullscreen DIB focus gain/loss
@@ -328,8 +355,27 @@ extern int			minimum_memory;
 //
 // chase
 //
-extern	cvar_t	chase_active;
+extern	cvar_t	*chase_active;
 
 void Chase_Init (void);
 void Chase_Reset (void);
 void Chase_Update (void);
+
+extern qboolean		nouse;	// 1999-10-29 +USE fix by Maddes
+
+// 1999-10-28 Compatibilty check by Maddes  start
+#define PROGHEADER101_CRC	5927
+extern qboolean		keep_compatibility;
+// 1999-10-28 Compatibilty check by Maddes  end
+
+// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa  start
+qboolean SV_RecursiveHullCheck (hull_t *hull, int num, float p1f, float p2f, vec3_t p1, vec3_t p2, trace_t *trace);
+dfunction_t *ED_FindFunction (char *name);	// 2000-01-09 QCExec by FrikaC/Maddes
+// 2000-07-30 DJGPP compiler warning fix by Norberto Alfredo Bensa  end
+
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  start
+extern	double	host_cpu_frametime;
+extern	double	host_org_frametime;
+
+extern	cvar_t	*host_timescale;
+// 2001-10-20 TIMESCALE extension by Tomaz/Maddes  end

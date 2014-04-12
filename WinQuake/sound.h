@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -155,9 +155,9 @@ extern volatile dma_t *shm;
 extern volatile dma_t sn;
 extern vec_t sound_nominal_clip_dist;
 
-extern	cvar_t loadas8bit;
-extern	cvar_t bgmvolume;
-extern	cvar_t volume;
+extern	cvar_t *loadas8bit;
+extern	cvar_t *bgmvolume;
+extern	cvar_t *volume;
 
 extern qboolean	snd_initialized;
 

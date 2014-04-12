@@ -1,0 +1,51 @@
+Changelog of the QIP Quake engine
+*********************************
+(search for "ToDo" to find minor issues)
+
+2001-12-28:
+-----------
+#1 Merged assembler files of Quake and QuakeWorld
+adapted make and project files accordingly
+asm/math.s
+asm/quakeasm.h
+asm/snd_mixa.s
+asm/sys_wina.s
+asm/worlda.s
+
+
+2001-12-10:
+-----------
+#1 Compilable with LCC-Win32 by Jeff Ford
+Done with the help of Jeff Ford from the QBism port at http://qbism.telefragged.com/
+Moved all .s files (DJGPP assembler) with header files to their own ASM folder,
+adapted DJGPP makefile and VC++ project accordingly
+asm/*.bat
+
+
+2001-08-01:
+-----------
+#2 Only one GAS2MASM project for both Quake and QuakeWorld
+adapted make and project files accordingly
+gas2masm/*.*
+
+
+2000-07-30:
+-----------
+#1 DJGPP compiler warning fix by Norberto Alfredo Bensa
+asm/d_parta.s
+asm/d_polysa.s
+asm/math.s
+gas2masm/gas2masm.c (Indirect jmp fix taken from the QuakeForge project)
+
+
+2000-01-31:
+-----------
+#5 typos (now included as files, just do a replace over all source files => *.c,*.h,*.s,*.asm,*.qc)
+allways -> always
+allready -> already (from 1999-12-24)
+
+
+1999-12-24:
+-----------
+#3 typos (not included as files, just do a replace over all source files => *.c,*.h,*.s,*.asm,*.qc)
+allready -> already

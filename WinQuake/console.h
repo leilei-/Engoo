@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // console
 //
 extern int con_totallines;
+extern int con_current;		// 2000-01-05 Console scrolling fix by Maddes
 extern int con_backscroll;
 extern	qboolean con_forcedup;	// because no entities to refresh
 extern qboolean con_initialized;
@@ -44,3 +45,5 @@ void Con_ToggleConsole_f (void);
 
 void Con_NotifyBox (char *text);	// during startup for sound / cd warnings
 
+cvar_t	*con_alpha;				// 2000-08-04 "Transparent" console background for software renderer by Norberto Alfredo Bensa/Maddes
+								// 2000-01-11 Transparent console by Radix

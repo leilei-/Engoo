@@ -8,7 +8,7 @@ of the License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 See the GNU General Public License for more details.
 
@@ -35,11 +35,11 @@ mplane_t	frustum[4];
 
 int			c_brush_polys, c_alias_polys;
 
-qboolean	envmap;				// true during envmap command capture 
+qboolean	envmap;				// true during envmap command capture
 
 int			currenttexture = -1;		// to avoid unnecessary texture sets
 
-int			cnttextures[2] = {-1, -1};     // cached
+int			cnttextures[2] = {-1, -1};	// cached
 
 int			particletexture;	// little dot for particles
 int			playertextures;		// up to 16 color translated skins
@@ -73,33 +73,34 @@ int		d_lightstylevalue[256];	// 8.8 fraction of base light value
 
 void R_MarkLeaves (void);
 
-cvar_t	r_norefresh = {"r_norefresh","0"};
-cvar_t	r_drawentities = {"r_drawentities","1"};
-cvar_t	r_drawviewmodel = {"r_drawviewmodel","1"};
-cvar_t	r_speeds = {"r_speeds","0"};
-cvar_t	r_fullbright = {"r_fullbright","0"};
-cvar_t	r_lightmap = {"r_lightmap","0"};
-cvar_t	r_shadows = {"r_shadows","0"};
-cvar_t	r_mirroralpha = {"r_mirroralpha","1"};
-cvar_t	r_wateralpha = {"r_wateralpha","1"};
-cvar_t	r_dynamic = {"r_dynamic","1"};
-cvar_t	r_novis = {"r_novis","0"};
+cvar_t	*r_norefresh;
+cvar_t	*r_drawentities;
+cvar_t	*r_drawviewmodel;
+cvar_t	*r_speeds;
+cvar_t	*r_fullbright;
+cvar_t	*r_lightmap;
+cvar_t	*r_shadows;
+cvar_t	*r_mirroralpha;
+cvar_t	*r_wateralpha;
+cvar_t	*r_dynamic;
+cvar_t	*r_novis;
+cvar_t	*r_waterwarp;	// 2000-01-02 Missing R_WATERWARP fix by Radix
 
-cvar_t	gl_finish = {"gl_finish","0"};
-cvar_t	gl_clear = {"gl_clear","0"};
-cvar_t	gl_cull = {"gl_cull","1"};
-cvar_t	gl_texsort = {"gl_texsort","1"};
-cvar_t	gl_smoothmodels = {"gl_smoothmodels","1"};
-cvar_t	gl_affinemodels = {"gl_affinemodels","0"};
-cvar_t	gl_polyblend = {"gl_polyblend","1"};
-cvar_t	gl_flashblend = {"gl_flashblend","1"};
-cvar_t	gl_playermip = {"gl_playermip","0"};
-cvar_t	gl_nocolors = {"gl_nocolors","0"};
-cvar_t	gl_keeptjunctions = {"gl_keeptjunctions","0"};
-cvar_t	gl_reporttjunctions = {"gl_reporttjunctions","0"};
-cvar_t	gl_doubleeyes = {"gl_doubleeys", "1"};
+cvar_t	*gl_finish;
+cvar_t	*gl_clear;
+cvar_t	*gl_cull;
+cvar_t	*gl_texsort;
+cvar_t	*gl_smoothmodels;
+cvar_t	*gl_affinemodels;
+cvar_t	*gl_polyblend;
+cvar_t	*gl_flashblend;
+cvar_t	*gl_playermip;
+cvar_t	*gl_nocolors;
+cvar_t	*gl_keeptjunctions;
+cvar_t	*gl_reporttjunctions;
+cvar_t	*gl_doubleeyes;
 
-extern	cvar_t	gl_ztrick;
+extern cvar_t	*gl_ztrick;
 
 /*
 =================
@@ -121,11 +122,11 @@ qboolean R_CullBox (vec3_t mins, vec3_t maxs)
 
 void R_RotateForEntity (entity_t *e)
 {
-    glTranslatef (e->origin[0],  e->origin[1],  e->origin[2]);
+	glTranslatef (e->origin[0],  e->origin[1],  e->origin[2]);
 
-    glRotatef (e->angles[1],  0, 0, 1);
-    glRotatef (-e->angles[0],  0, 1, 0);
-    glRotatef (e->angles[2],  1, 0, 0);
+	glRotatef (e->angles[1],  0, 0, 1);
+	glRotatef (-e->angles[0],  0, 1, 0);
+	glRotatef (e->angles[2],  1, 0, 0);
 }
 
 /*
@@ -201,15 +202,25 @@ void R_DrawSpriteModel (entity_t *e)
 	float		*up, *right;
 	vec3_t		v_forward, v_right, v_up;
 	msprite_t		*psprite;
+// 2001-12-15 Oriented sprites fix by Atomizer  start
+	vec3_t		fixed_origin;
+	vec3_t		temp;
+// 2001-12-15 Oriented sprites fix by Atomizer  end
 
 	// don't even bother culling, because it's just a single
 	// polygon without a surface cache
 	frame = R_GetSpriteFrame (e);
 	psprite = currententity->model->cache.data;
 
+	VectorCopy(e->origin,fixed_origin);	// 2001-12-15 Oriented sprites fix by Atomizer
+
 	if (psprite->type == SPR_ORIENTED)
 	{	// bullet marks on walls
 		AngleVectors (currententity->angles, v_forward, v_right, v_up);
+// 2001-12-15 Oriented sprites fix by Atomizer  start
+		VectorScalarMult(v_forward,-2,temp);
+		VectorAdd(temp,fixed_origin,fixed_origin);
+// 2001-12-15 Oriented sprites fix by Atomizer  end
 		up = v_up;
 		right = v_right;
 	}
@@ -223,31 +234,43 @@ void R_DrawSpriteModel (entity_t *e)
 
 	GL_DisableMultitexture();
 
-    GL_Bind(frame->gl_texturenum);
+	GL_Bind(frame->gl_texturenum);
 
 	glEnable (GL_ALPHA_TEST);
 	glBegin (GL_QUADS);
 
 	glTexCoord2f (0, 1);
-	VectorMA (e->origin, frame->down, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  start
+//	VectorMA (e->origin, frame->down, up, point);
+	VectorMA (fixed_origin, frame->down, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  end
 	VectorMA (point, frame->left, right, point);
 	glVertex3fv (point);
 
 	glTexCoord2f (0, 0);
-	VectorMA (e->origin, frame->up, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  start
+//	VectorMA (e->origin, frame->up, up, point);
+	VectorMA (fixed_origin, frame->up, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  end
 	VectorMA (point, frame->left, right, point);
 	glVertex3fv (point);
 
 	glTexCoord2f (1, 0);
-	VectorMA (e->origin, frame->up, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  start
+//	VectorMA (e->origin, frame->up, up, point);
+	VectorMA (fixed_origin, frame->up, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  end
 	VectorMA (point, frame->right, right, point);
 	glVertex3fv (point);
 
 	glTexCoord2f (1, 1);
-	VectorMA (e->origin, frame->down, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  start
+//	VectorMA (e->origin, frame->down, up, point);
+	VectorMA (fixed_origin, frame->down, up, point);
+// 2001-12-15 Oriented sprites fix by Atomizer  end
 	VectorMA (point, frame->right, right, point);
 	glVertex3fv (point);
-	
+
 	glEnd ();
 
 	glDisable (GL_ALPHA_TEST);
@@ -269,7 +292,7 @@ float	r_avertexnormals[NUMVERTEXNORMALS][3] = {
 };
 
 vec3_t	shadevector;
-float	shadelight, ambientlight;
+//float	shadelight, ambientlight;	// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes
 
 // precalculated dot products for quantized angles
 #define SHADEDOT_QUANT 16
@@ -286,6 +309,7 @@ int	lastposenum;
 GL_DrawAliasFrame
 =============
 */
+extern vec3_t	lightcolor;	// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes
 void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
 {
 	float	s, t;
@@ -299,7 +323,7 @@ void GL_DrawAliasFrame (aliashdr_t *paliashdr, int posenum)
 	float	*normal;
 	int		count;
 
-lastposenum = posenum;
+	lastposenum = posenum;
 
 	verts = (trivertx_t *)((byte *)paliashdr + paliashdr->posedata);
 	verts += posenum * paliashdr->poseverts;
@@ -326,8 +350,14 @@ lastposenum = posenum;
 			order += 2;
 
 			// normals and vertexes come from the frame list
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 			l = shadedots[verts->lightnormalindex] * shadelight;
 			glColor3f (l, l, l);
+*/
+			l = shadedots[verts->lightnormalindex];
+			glColor3f (l * lightcolor[0], l * lightcolor[1], l * lightcolor[2]);
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 			glVertex3f (verts->v[0], verts->v[1], verts->v[2]);
 			verts++;
 		} while (--count);
@@ -401,7 +431,7 @@ void GL_DrawAliasShadow (aliashdr_t *paliashdr, int posenum)
 		} while (--count);
 
 		glEnd ();
-	}	
+	}
 }
 
 
@@ -473,11 +503,27 @@ void R_DrawAliasModel (entity_t *e)
 	// get lighting information
 	//
 
-	ambientlight = shadelight = R_LightPoint (currententity->origin);
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//	ambientlight = shadelight = R_LightPoint (currententity->origin);
+	R_LightPoint(currententity->origin);	// lightcolor is all that matters from this
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
-	// allways give the gun some light
+	// always give the gun some light
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 	if (e == &cl.viewent && ambientlight < 24)
 		ambientlight = shadelight = 24;
+*/
+	if (e == &cl.viewent)
+	{
+		if (lightcolor[0] < 24)
+			lightcolor[0] = 24;
+		if (lightcolor[1] < 24)
+			lightcolor[1] = 24;
+		if (lightcolor[2] < 24)
+			lightcolor[2] = 24;
+	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
 	{
@@ -489,33 +535,62 @@ void R_DrawAliasModel (entity_t *e)
 			add = cl_dlights[lnum].radius - Length(dist);
 
 			if (add > 0) {
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 				ambientlight += add;
 				//ZOID models should be affected by dlights as well
 				shadelight += add;
+*/
+				lightcolor[0] += add * cl_dlights[lnum].color[0];
+				lightcolor[1] += add * cl_dlights[lnum].color[1];
+				lightcolor[2] += add * cl_dlights[lnum].color[2];
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 			}
 		}
 	}
 
 	// clamp lighting so it doesn't overbright as much
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 	if (ambientlight > 128)
 		ambientlight = 128;
 	if (ambientlight + shadelight > 192)
 		shadelight = 192 - ambientlight;
+*/
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	// ZOID: never allow players to go totally black
 	i = currententity - cl_entities;
 	if (i >= 1 && i<=cl.maxclients /* && !strcmp (currententity->model->name, "progs/player.mdl") */)
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 		if (ambientlight < 8)
 			ambientlight = shadelight = 8;
+*/
+	{
+		if (lightcolor[0] < 8)
+			lightcolor[0] = 8;
+		if (lightcolor[1] < 8)
+			lightcolor[1] = 8;
+		if (lightcolor[2] < 8)
+			lightcolor[2] = 8;
+	}
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	// HACK HACK HACK -- no fullbright colors, so make torches full light
 	if (!strcmp (clmodel->name, "progs/flame2.mdl")
 		|| !strcmp (clmodel->name, "progs/flame.mdl") )
-		ambientlight = shadelight = 256;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//		ambientlight = shadelight = 256;
+		lightcolor[0] = lightcolor[1] = lightcolor[2] = 256;
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	shadedots = r_avertexnormal_dots[((int)(e->angles[1] * (SHADEDOT_QUANT / 360.0))) & (SHADEDOT_QUANT - 1)];
-	shadelight = shadelight / 200.0;
-	
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+//	shadelight = shadelight / 200.0;
+	VectorScale(lightcolor, 1.0f / 200.0f, lightcolor);
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
+
 	an = e->angles[1]/180*M_PI;
 	shadevector[0] = cos(-an);
 	shadevector[1] = sin(-an);
@@ -529,16 +604,26 @@ void R_DrawAliasModel (entity_t *e)
 
 	c_alias_polys += paliashdr->numtris;
 
+// 2001-09-09 GL use of unavailable skins on entities fix by Charles "Psykotik" Pence  start
+	//
+	// check skin bounds
+	//
+	if (currententity->skinnum >= paliashdr->numskins)
+	{
+		currententity->skinnum = 0;
+	}
+// 2001-09-09 GL use of unavailable skins on entities fix by Charles "Psykotik" Pence  end
+
 	//
 	// draw all the triangles
 	//
 
 	GL_DisableMultitexture();
 
-    glPushMatrix ();
+	glPushMatrix ();
 	R_RotateForEntity (e);
 
-	if (!strcmp (clmodel->name, "progs/eyes.mdl") && gl_doubleeyes.value) {
+	if (!strcmp (clmodel->name, "progs/eyes.mdl") && gl_doubleeyes->value) {
 		glTranslatef (paliashdr->scale_origin[0], paliashdr->scale_origin[1], paliashdr->scale_origin[2] - (22 + 8));
 // double size of eyes, since they are really hard to see in gl
 		glScalef (paliashdr->scale[0]*2, paliashdr->scale[1]*2, paliashdr->scale[2]*2);
@@ -548,22 +633,22 @@ void R_DrawAliasModel (entity_t *e)
 	}
 
 	anim = (int)(cl.time*10) & 3;
-    GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
+	GL_Bind(paliashdr->gl_texturenum[currententity->skinnum][anim]);
 
 	// we can't dynamically colormap textures, so they are cached
 	// seperately for the players.  Heads are just uncolored.
-	if (currententity->colormap != vid.colormap && !gl_nocolors.value)
+	if (currententity->colormap != vid.colormap && !gl_nocolors->value)
 	{
 		i = currententity - cl_entities;
 		if (i >= 1 && i<=cl.maxclients /* && !strcmp (currententity->model->name, "progs/player.mdl") */)
-		    GL_Bind(playertextures - 1 + i);
+			GL_Bind(playertextures - 1 + i);
 	}
 
-	if (gl_smoothmodels.value)
+	if (gl_smoothmodels->value)
 		glShadeModel (GL_SMOOTH);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-	if (gl_affinemodels.value)
+	if (gl_affinemodels->value)
 		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
 
 	R_SetupAliasFrame (currententity->frame, paliashdr);
@@ -571,12 +656,12 @@ void R_DrawAliasModel (entity_t *e)
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
 	glShadeModel (GL_FLAT);
-	if (gl_affinemodels.value)
+	if (gl_affinemodels->value)
 		glHint (GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 
 	glPopMatrix ();
 
-	if (r_shadows.value)
+	if (r_shadows->value)
 	{
 		glPushMatrix ();
 		R_RotateForEntity (e);
@@ -603,13 +688,21 @@ void R_DrawEntitiesOnList (void)
 {
 	int		i;
 
-	if (!r_drawentities.value)
+	if (!r_drawentities->value)
 		return;
 
 	// draw sprites seperately, because of alpha blending
 	for (i=0 ; i<cl_numvisedicts ; i++)
 	{
 		currententity = cl_visedicts[i];
+
+// 2000-01-09 ChaseCam fix by FrikaC  start
+		if (currententity == &cl_entities[cl.viewentity])
+		{
+			// chase_active->value not checked as player model is necessary for shadows
+			currententity->angles[0] *= 0.3;
+		}
+// 2000-01-09 ChaseCam fix by FrikaC  end
 
 		switch (currententity->model->type)
 		{
@@ -646,6 +739,8 @@ R_DrawViewModel
 */
 void R_DrawViewModel (void)
 {
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 	float		ambient[4], diffuse[4];
 	int			j;
 	int			lnum;
@@ -653,17 +748,19 @@ void R_DrawViewModel (void)
 	float		add;
 	dlight_t	*dl;
 	int			ambientlight, shadelight;
+*/
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
-	if (!r_drawviewmodel.value)
+	if (!r_drawviewmodel->value)
 		return;
 
-	if (chase_active.value)
+	if (chase_active->value)
 		return;
 
 	if (envmap)
 		return;
 
-	if (!r_drawentities.value)
+	if (!r_drawentities->value)
 		return;
 
 	if (cl.items & IT_INVISIBILITY)
@@ -676,14 +773,16 @@ void R_DrawViewModel (void)
 	if (!currententity->model)
 		return;
 
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  start
+/*
 	j = R_LightPoint (currententity->origin);
 
 	if (j < 24)
-		j = 24;		// allways give some light on gun
+		j = 24;		// always give some light on gun
 	ambientlight = j;
 	shadelight = j;
 
-// add dynamic lights		
+// add dynamic lights
 	for (lnum=0 ; lnum<MAX_DLIGHTS ; lnum++)
 	{
 		dl = &cl_dlights[lnum];
@@ -702,6 +801,8 @@ void R_DrawViewModel (void)
 
 	ambient[0] = ambient[1] = ambient[2] = ambient[3] = (float)ambientlight / 128;
 	diffuse[0] = diffuse[1] = diffuse[2] = diffuse[3] = (float)shadelight / 128;
+*/
+// 2001-09-11 Colored lightning by LordHavoc/Sarcazm/Maddes  end
 
 	// hack the depth range to prevent view model from poking into walls
 	glDepthRange (gldepthmin, gldepthmin + 0.3*(gldepthmax-gldepthmin));
@@ -717,7 +818,7 @@ R_PolyBlend
 */
 void R_PolyBlend (void)
 {
-	if (!gl_polyblend.value)
+	if (!gl_polyblend->value)
 		return;
 	if (!v_blend[3])
 		return;
@@ -729,10 +830,10 @@ void R_PolyBlend (void)
 	glDisable (GL_DEPTH_TEST);
 	glDisable (GL_TEXTURE_2D);
 
-    glLoadIdentity ();
+	glLoadIdentity ();
 
-    glRotatef (-90,  1, 0, 0);	    // put Z going up
-    glRotatef (90,  0, 0, 1);	    // put Z going up
+	glRotatef (-90,  1, 0, 0);	// put Z going up
+	glRotatef (90,  0, 0, 1);	// put Z going up
 
 	glColor4fv (v_blend);
 
@@ -770,7 +871,7 @@ void R_SetFrustum (void)
 {
 	int		i;
 
-	if (r_refdef.fov_x == 90) 
+	if (r_refdef.fov_x == 90)
 	{
 		// front side is visible
 
@@ -815,7 +916,7 @@ void R_SetupFrame (void)
 
 // don't allow cheats in multiplayer
 	if (cl.maxclients > 1)
-		Cvar_Set ("r_fullbright", "0");
+		Cvar_Set (r_fullbright, "0");
 
 	R_AnimateLight ();
 
@@ -841,8 +942,7 @@ void R_SetupFrame (void)
 }
 
 
-void MYgluPerspective( GLdouble fovy, GLdouble aspect,
-		     GLdouble zNear, GLdouble zFar )
+void MYgluPerspective( GLdouble fovy, GLdouble aspect, GLdouble zNear, GLdouble zFar )
 {
    GLdouble xmin, xmax, ymin, ymax;
 
@@ -873,7 +973,7 @@ void R_SetupGL (void)
 	// set up viewpoint
 	//
 	glMatrixMode(GL_PROJECTION);
-    glLoadIdentity ();
+	glLoadIdentity ();
 	x = r_refdef.vrect.x * glwidth/vid.width;
 	x2 = (r_refdef.vrect.x + r_refdef.vrect.width) * glwidth/vid.width;
 	y = (vid.height-r_refdef.vrect.y) * glheight/vid.height;
@@ -899,9 +999,12 @@ void R_SetupGL (void)
 	}
 
 	glViewport (glx + x, gly + y2, w, h);
-    screenaspect = (float)r_refdef.vrect.width/r_refdef.vrect.height;
+	screenaspect = (float)r_refdef.vrect.width/r_refdef.vrect.height;
 //	yfov = 2*atan((float)r_refdef.vrect.height/r_refdef.vrect.width)*180/M_PI;
-    MYgluPerspective (r_refdef.fov_y,  screenaspect,  4,  4096);
+// 2002-01-31 GLQuake HOM fix by Matador  start
+//	MYgluPerspective (r_refdef.fov_y,  screenaspect,  4,  4096);
+	MYgluPerspective (r_refdef.fov_y,  screenaspect,  4,  gl_maxdepth->value);
+// 2002-01-31 GLQuake HOM fix by Matador  end
 
 	if (mirror)
 	{
@@ -915,21 +1018,21 @@ void R_SetupGL (void)
 		glCullFace(GL_FRONT);
 
 	glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity ();
+	glLoadIdentity ();
 
-    glRotatef (-90,  1, 0, 0);	    // put Z going up
-    glRotatef (90,  0, 0, 1);	    // put Z going up
-    glRotatef (-r_refdef.viewangles[2],  1, 0, 0);
-    glRotatef (-r_refdef.viewangles[0],  0, 1, 0);
-    glRotatef (-r_refdef.viewangles[1],  0, 0, 1);
-    glTranslatef (-r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2]);
+	glRotatef (-90,  1, 0, 0);	// put Z going up
+	glRotatef (90,  0, 0, 1);	// put Z going up
+	glRotatef (-r_refdef.viewangles[2],  1, 0, 0);
+	glRotatef (-r_refdef.viewangles[0],  0, 1, 0);
+	glRotatef (-r_refdef.viewangles[1],  0, 0, 1);
+	glTranslatef (-r_refdef.vieworg[0],  -r_refdef.vieworg[1],  -r_refdef.vieworg[2]);
 
 	glGetFloatv (GL_MODELVIEW_MATRIX, r_world_matrix);
 
 	//
 	// set drawing parms
 	//
-	if (gl_cull.value)
+	if (gl_cull->value)
 		glEnable(GL_CULL_FACE);
 	else
 		glDisable(GL_CULL_FACE);
@@ -982,9 +1085,9 @@ R_Clear
 */
 void R_Clear (void)
 {
-	if (r_mirroralpha.value != 1.0)
+	if (r_mirroralpha->value != 1.0)
 	{
-		if (gl_clear.value)
+		if (gl_clear->value)
 			glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		else
 			glClear (GL_DEPTH_BUFFER_BIT);
@@ -992,11 +1095,11 @@ void R_Clear (void)
 		gldepthmax = 0.5;
 		glDepthFunc (GL_LEQUAL);
 	}
-	else if (gl_ztrick.value)
+	else if (gl_ztrick->value)
 	{
 		static int trickframe;
 
-		if (gl_clear.value)
+		if (gl_clear->value)
 			glClear (GL_COLOR_BUFFER_BIT);
 
 		trickframe++;
@@ -1015,7 +1118,7 @@ void R_Clear (void)
 	}
 	else
 	{
-		if (gl_clear.value)
+		if (gl_clear->value)
 			glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		else
 			glClear (GL_DEPTH_BUFFER_BIT);
@@ -1085,7 +1188,7 @@ void R_Mirror (void)
 
 	glLoadMatrixf (r_base_world_matrix);
 
-	glColor4f (1,1,1,r_mirroralpha.value);
+	glColor4f (1,1,1,r_mirroralpha->value);
 	s = cl.worldmodel->textures[mirrortexturenum]->texturechain;
 	for ( ; s ; s=s->texturechain)
 		R_RenderBrushPoly (s);
@@ -1106,13 +1209,13 @@ void R_RenderView (void)
 	double	time1, time2;
 	GLfloat colors[4] = {(GLfloat) 0.0, (GLfloat) 0.0, (GLfloat) 1, (GLfloat) 0.20};
 
-	if (r_norefresh.value)
+	if (r_norefresh->value)
 		return;
 
 	if (!r_worldentity.model || !cl.worldmodel)
 		Sys_Error ("R_RenderView: NULL worldmodel");
 
-	if (r_speeds.value)
+	if (r_speeds->value)
 	{
 		glFinish ();
 		time1 = Sys_FloatTime ();
@@ -1122,7 +1225,7 @@ void R_RenderView (void)
 
 	mirror = false;
 
-	if (gl_finish.value)
+	if (gl_finish->value)
 		glFinish ();
 
 	R_Clear ();
@@ -1150,10 +1253,10 @@ void R_RenderView (void)
 
 	R_PolyBlend ();
 
-	if (r_speeds.value)
+	if (r_speeds->value)
 	{
 //		glFinish ();
 		time2 = Sys_FloatTime ();
-		Con_Printf ("%3i ms  %4i wpoly %4i epoly\n", (int)((time2-time1)*1000), c_brush_polys, c_alias_polys); 
+		Con_Printf ("%3i ms  %4i wpoly %4i epoly\n", (int)((time2-time1)*1000), c_brush_polys, c_alias_polys);
 	}
 }
