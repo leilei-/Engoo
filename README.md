@@ -2,6 +2,8 @@ Engoo
 =====
 
   This is a heavily modified Quake engine that adds multiple standard (and not so standard) features to the software renderer.
+  
+  Much of the inspiration comes from Zdoom and Unreal.   While most ports are focused on expanding Quake's functionality for mappers and modders, this one is also intending to break the not-well-aged parts (as an option). However by default, it should reflect vanilla behavior.
 
 * Colored lighting in 8-bit color by 15bpp or 18bpp lookup tables, supports lits
 * Translucent liquids with variable-adjusted alphas, supports vis
@@ -47,7 +49,7 @@ Some of the terrible bugs you should be aware of:
 * Multiplayer is completely untested.  It may not work.
 * Sometimes, resizing the window will cause it to become 1x1 instantly.
 * It's a bit sluggish because the new colored lighting code is not written in assembly.
-
+* Sound looping not consistent with pitches
 
 Some of the things that I want:
 
