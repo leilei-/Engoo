@@ -1168,7 +1168,7 @@ byte	colorthis;
 void Palette_Init (void)
 {
 	loadedfile_t	*fileinfo;	// 2001-09-12 Returning information about loaded file by Maddes
-	int		pre100;
+	int		pre100 = 0;
 
 
 

@@ -360,7 +360,7 @@ void VID_ForceLockState (int lk) {}
 #define MAX_MODE_LIST	36
 #define VID_ROW_SIZE	3
 
-extern int		Minimized;
+extern qboolean	Minimized;
 
 HWND WINAPI InitializeWindow (HINSTANCE hInstance, int nCmdShow);
 

@@ -1450,7 +1450,7 @@ void D_DrawSpans16_C (espan_t *pspan) //qbism up it from 8 to 16.  This + unroll
 //   int			fogcount, fogcount2;	// leilei - fog
 	int beep = 512;
 	int boop = 512;
-	int feg;
+	int feg = 0;
    sstep = 0;   // keep compiler happy
    tstep = 0;   // ditto
 

@@ -819,7 +819,7 @@ static void _MIDI_SetChannelVolume
    Sets the volume of the specified midi channel.
 ---------------------------------------------------------------------*/
 
-int USRHOOKS_GetMem(char **ptr, unsigned long size )
+int USRHOOKS_GetMem(void **ptr, unsigned long size )
 {
    *ptr = malloc(size);
 
@@ -830,7 +830,7 @@ int USRHOOKS_GetMem(char **ptr, unsigned long size )
 
 }
 
-int USRHOOKS_FreeMem(char *ptr)
+int USRHOOKS_FreeMem(void *ptr)
 {
    free(ptr);
    return( USRHOOKS_Ok);
