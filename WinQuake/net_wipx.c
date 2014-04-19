@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <wsipx.h>
 #include "net_wipx.h"
 
+#define errno errorno
+
 extern cvar_t	*hostname;
 
 #define MAXHOSTNAMELEN		256

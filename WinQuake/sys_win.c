@@ -283,7 +283,7 @@ void Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length)
 }
 
 
-#ifndef _M_IX86
+#ifdef NOASM
 
 void Sys_SetFPCW (void)
 {
@@ -616,6 +616,15 @@ void Sys_InitFloatTime (void)
 	lastcurtime = curtime;
 }
 
+#if !id386
+void Sys_HighFPPrecision (void)
+{
+}
+
+void Sys_LowFPPrecision (void)
+{
+}
+#endif
 
 char *Sys_ConsoleInput (void)
 {

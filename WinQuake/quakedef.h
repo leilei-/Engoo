@@ -212,7 +212,7 @@ void	VID_UnlockBuffer (void);
 
 #endif
 
-#if defined __i386__ // && !defined __sun__
+#if defined __i386__ && !defined NOASM // && !defined __sun__
 #define id386	1
 #define id386poly 0
 #define id386rgb	0
