@@ -11,3 +11,13 @@ If it removes ASM code for C unroll hell and crossing fingers with great optimis
 If it's SDL, it's not going here.
 
 If it makes Quake not choke so much on very old PCs, it's going here.
+
+
+TODO:
+
+* Get the DOS version working because DOS is fast
+* Port some optimizations from libretro/TyrQuake
+* Port some optimizations from PocketQuake
+* get the refdef actually take the whole screen instead of leaving some sort of 2/1 pixel border, mistake made in the source release
+* Port some of the 'fast' things from Engoo like screen detail, r_dynamic, and fast lightmap mode
+* Don't break anything
