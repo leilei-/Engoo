@@ -72,6 +72,14 @@ fixed16_t	bbextents, bbextentt;
 
 void D_DrawSpans8 (espan_t *pspans);
 void D_DrawSpans16 (espan_t *pspans);
+void D_DrawSpans32 (espan_t *pspans);
+void D_DrawSpans64 (espan_t *pspans);
+void D_DrawSpansPocket (espan_t *pspans);
+void D_DrawSpansPocketFast (espan_t *pspans);
+void D_DrawSpansPocket64 (espan_t *pspans);
+void D_DrawSpans32_ASM (espan_t *pspans);
+void D_DrawSpans64_ASM (espan_t *pspans);
+
 void D_DrawZSpans (espan_t *pspans);
 void Turbulent8 (espan_t *pspan);
 void D_SpriteDrawSpans (sspan_t *pspan);

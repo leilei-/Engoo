@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define WARP_WIDTH		320
 #define WARP_HEIGHT		200
 
+#define LOW_WIDTH		160
+#define LOW_HEIGHT		200
+
 #define MAX_LBM_HEIGHT	480
 
 typedef struct
@@ -107,6 +110,8 @@ typedef struct
 } zpointdesc_t;
 
 extern cvar_t	r_drawflat;
+extern cvar_t	r_lowworld;
+extern cvar_t	r_lowdetail;
 extern int		d_spanpixcount;
 extern int		r_framecount;		// sequence # of current frame since Quake
 									//  started
@@ -128,6 +133,7 @@ extern float	r_aliasuvscale;		// scale-up factor for screen u and v
 									//  on Alias vertices passed to driver
 extern int		r_pixbytes;
 extern qboolean	r_dowarp;
+extern qboolean	r_dolow;
 
 extern affinetridesc_t	r_affinetridesc;
 extern spritedesc_t		r_spritedesc;
@@ -226,4 +232,5 @@ extern int		c_surf;
 extern vrect_t	scr_vrect;
 
 extern byte		*r_warpbuffer;
+extern byte		*r_lowbuffer;
 

@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #endif
 
+#define LEILEI_ASSEMBLY 1
+
 #ifdef __i386__
 #define id386	1
 #else
@@ -224,6 +226,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern float_minus_1
 	.extern float_0
 	.extern fp_16
+// leilei
+#ifdef LEILEI_ASSEMBLY
+	.extern fp_32
+	.extern fp_64
+#endif
 	.extern fp_64k
 	.extern fp_1m
 	.extern fp_1m_minus_1
@@ -264,6 +271,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 	.extern fp_64kx64k
 	.extern pz
 	.extern spr8entryvec_table
+
+	.extern reciprocal_table_32
+	.extern entryvec_table_32
+	.extern reciprocal_table_64
+	.extern entryvec_table_64
 #endif
 
 	.extern C(snd_scaletable)

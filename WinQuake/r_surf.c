@@ -49,6 +49,13 @@ static void	(*surfmiptable[4])(void) = {
 	R_DrawSurfaceBlock8_mip3
 };
 
+static void	(*surfmiptablefast[4])(void) = {
+	R_DrawSurfaceBlock8Fast_mip0,
+	R_DrawSurfaceBlock8Fast_mip1,
+	R_DrawSurfaceBlock8Fast_mip2,
+	R_DrawSurfaceBlock8Fast_mip3
+};
+
 
 
 unsigned		blocklights[18*18];
@@ -116,24 +123,7 @@ void R_AddDynamicLights (void)
 				else
 					dist = td + (sd>>1);
 				if (dist < minlight)
-#ifdef QUAKE2
-				{
-					unsigned temp;
-					temp = (rad - dist)*256;
-					i = t*smax + s;
-					if (!cl_dlights[lnum].dark)
-						blocklights[i] += temp;
-					else
-					{
-						if (blocklights[i] > temp)
-							blocklights[i] -= temp;
-						else
-							blocklights[i] = 0;
-					}
-				}
-#else
 					blocklights[t*smax + s] += (rad - dist)*256;
-#endif
 			}
 		}
 	}
@@ -283,6 +273,10 @@ void R_DrawSurface (void)
 
 	if (r_pixbytes == 1)
 	{
+	
+	if (lowworld)
+		pblockdrawer = surfmiptablefast[r_drawsurf.surfmip];
+		else
 		pblockdrawer = surfmiptable[r_drawsurf.surfmip];
 	// TODO: only needs to be set when there is a display settings change
 		horzblockstep = blocksize;

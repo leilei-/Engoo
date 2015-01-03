@@ -39,6 +39,7 @@ int			r_outofsurfaces;
 int			r_outofedges;
 
 qboolean	r_dowarp, r_dowarpold, r_viewchanged;
+qboolean	r_dolow, r_dolowold;
 
 int			numbtofpolys;
 btofpoly_t	*pbtofpolys;
@@ -50,6 +51,7 @@ qboolean	r_surfsonstack;
 int			r_clipflags;
 
 byte		*r_warpbuffer;
+byte		*r_lowbuffer;
 
 byte		*r_stack_start;
 
@@ -137,6 +139,9 @@ cvar_t	r_numedges = {"r_numedges", "0"};
 cvar_t	r_aliastransbase = {"r_aliastransbase", "200"};
 cvar_t	r_aliastransadj = {"r_aliastransadj", "100"};
 
+cvar_t	r_lowdetail = {"r_lowdetail", "0"};
+cvar_t	r_lowworld = {"r_lowworld", "0"};
+
 extern cvar_t	scr_fov;
 
 void CreatePassages (void);
@@ -197,6 +202,8 @@ void R_Init (void)
 	Cvar_RegisterVariable (&r_timegraph);
 	Cvar_RegisterVariable (&r_graphheight);
 	Cvar_RegisterVariable (&r_drawflat);
+	Cvar_RegisterVariable (&r_lowworld);
+	Cvar_RegisterVariable (&r_lowdetail);
 	Cvar_RegisterVariable (&r_ambient);
 	Cvar_RegisterVariable (&r_clearcolor);
 	Cvar_RegisterVariable (&r_waterwarp);
@@ -465,10 +472,19 @@ void R_ViewChanged (vrect_t *pvrect, int lineadj, float aspect)
 #if	id386
 	if (r_pixbytes == 1)
 	{
-		Sys_MakeCodeWriteable ((long)R_Surf8Start,
-						     (long)R_Surf8End - (long)R_Surf8Start);
-		colormap = vid.colormap;
-		R_Surf8Patch ();
+		if (lowworld){	// leilei - low lightmap detail
+			Sys_MakeCodeWriteable ((long)R_Surf8FastStart,
+								 (long)R_Surf8FastEnd - (long)R_Surf8FastStart);
+			colormap = vid.colormap;
+			R_Surf8FastPatch ();
+		}
+		else
+		{
+			Sys_MakeCodeWriteable ((long)R_Surf8Start,
+								 (long)R_Surf8End - (long)R_Surf8Start);
+			colormap = vid.colormap;
+			R_Surf8Patch ();
+		}
 	}
 	else
 	{
@@ -953,8 +969,10 @@ r_refdef must be set before the first call
 void R_RenderView_ (void)
 {
 	byte	warpbuffer[WARP_WIDTH * WARP_HEIGHT];
+	byte	lowbuffer[LOW_WIDTH * LOW_HEIGHT];
 
 	r_warpbuffer = warpbuffer;
+	r_lowbuffer = lowbuffer;
 
 	if (r_timegraph.value || r_speeds.value || r_dspeeds.value)
 		r_time1 = Sys_FloatTime ();
@@ -1019,7 +1037,10 @@ SetVisibilityByPassages ();
 	if (r_dspeeds.value)
 		dp_time2 = Sys_FloatTime ();
 
-	if (r_dowarp)
+	if (r_dolow)	
+		D_LowScreen ();
+
+	else if (r_dowarp)
 		D_WarpScreen ();
 
 	V_SetContentsColor (r_viewleaf->contents);
@@ -1042,6 +1063,7 @@ SetVisibilityByPassages ();
 	if (r_reportedgeout.value && r_outofedges)
 		Con_Printf ("Short roughly %d edges\n", r_outofedges * 2 / 3);
 
+	
 // back to high floating-point precision
 	Sys_HighFPPrecision ();
 }
@@ -1063,6 +1085,10 @@ void R_RenderView (void)
 
 	if ( (long)(&r_warpbuffer) & 3 )
 		Sys_Error ("Globals are missaligned");
+
+	if ( (long)(&r_lowbuffer) & 3 )
+		Sys_Error ("Globals are missaligned");
+
 
 	R_RenderView_ ();
 }

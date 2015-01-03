@@ -125,6 +125,8 @@ void D_SetupFrame (void)
 
 	if (r_dowarp)
 		d_viewbuffer = r_warpbuffer;
+	else if (r_dolow)
+		d_viewbuffer = r_lowbuffer;
 	else
 		d_viewbuffer = (void *)(byte *)vid.buffer;
 
@@ -146,8 +148,18 @@ void D_SetupFrame (void)
 		d_scalemip[i] = basemip[i] * d_mipscale.value;
 
 #if	id386
-				if (d_subdiv16.value)
+				if (d_subdiv16.value == 1)
 					d_drawspans = D_DrawSpans16;
+				else if (d_subdiv16.value == 2)
+					d_drawspans = D_DrawSpansPocket;
+				else if (d_subdiv16.value == 3)
+					d_drawspans = D_DrawSpans32;
+				else if (d_subdiv16.value == 4)
+					d_drawspans = D_DrawSpans64;		// UNSTABLE
+				else if (d_subdiv16.value == 5)
+					d_drawspans = D_DrawSpansPocket64; // UNSTABLE
+				else if (d_subdiv16.value == 6)
+					d_drawspans = D_DrawSpans64_ASM; // not realy 64 but 16 with less cache reads
 				else
 					d_drawspans = D_DrawSpans8;
 #else

@@ -64,6 +64,8 @@ extern cvar_t	r_drawentities;
 extern cvar_t	r_aliasstats;
 extern cvar_t	r_dspeeds;
 extern cvar_t	r_drawflat;
+extern cvar_t	r_lowworld;
+extern cvar_t	r_lowdetail;
 extern cvar_t	r_ambient;
 extern cvar_t	r_reportsurfout;
 extern cvar_t	r_maxsurfs;
@@ -147,11 +149,17 @@ void R_DrawSurfaceBlock8_mip1 (void);
 void R_DrawSurfaceBlock8_mip2 (void);
 void R_DrawSurfaceBlock8_mip3 (void);
 
+void R_DrawSurfaceBlock8Fast_mip0 (void);
+void R_DrawSurfaceBlock8Fast_mip1 (void);
+void R_DrawSurfaceBlock8Fast_mip2 (void);
+void R_DrawSurfaceBlock8Fast_mip3 (void);
+
 #endif
 
 void R_GenSkyTile (void *pdest);
 void R_GenSkyTile16 (void *pdest);
 void R_Surf8Patch (void);
+void R_Surf8FastPatch (void);
 void R_Surf16Patch (void);
 void R_DrawSubmodelPolygons (model_t *pmodel, int clipflags);
 void R_DrawSolidClippedSubmodelPolygons (model_t *pmodel);
@@ -165,6 +173,9 @@ void D_DrawSurfaces (void);
 void R_InsertNewEdges (edge_t *edgestoadd, edge_t *edgelist);
 void R_StepActiveU (edge_t *pedge);
 void R_RemoveEdges (edge_t *pedge);
+
+extern void R_Surf8FastStart (void);
+extern void R_Surf8FastEnd (void);
 
 extern void R_Surf8Start (void);
 extern void R_Surf8End (void);

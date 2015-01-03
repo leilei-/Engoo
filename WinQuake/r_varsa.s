@@ -49,6 +49,9 @@ fp_1m_minus_1:	.single	1048575.0
 fp_64k:			.single	65536.0
 fp_8:			.single	8.0
 fp_16:			.single	16.0
+// leilei
+fp_32:			.single	32.0
+fp_64:			.single	16.0
 fp_64kx64k:		.long	0x4f000000	// (float)0x8000*0x10000
 
 
@@ -59,6 +62,7 @@ FloatMinus2ToThe31nd:	.long	0xcf000000
 
 .globl	C(r_bmodelactive)
 C(r_bmodelactive):	.long	0
+
 
 #endif	// id386
 

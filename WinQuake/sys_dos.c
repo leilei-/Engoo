@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <dpmi.h>
 #include <sys/nearptr.h>
 #include <conio.h>
+#include <crt0.h>
+int _crt0_startup_flags = _CRT0_FLAG_UNIX_SBRK;
 
 #include "quakedef.h"
 #include "dosisms.h"
@@ -58,7 +60,7 @@ static double		curtime = 0.0;
 static double		lastcurtime = 0.0;
 static double		oldtime = 0.0;
 
-static qboolean		isDedicated;
+qboolean		isDedicated;
 
 static int			minmem;
 

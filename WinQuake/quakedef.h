@@ -61,6 +61,8 @@ void	VID_UnlockBuffer (void);
 
 #endif
 
+#define LEILEI_ASSEMBLY 1
+
 #if defined __i386__ // && !defined __sun__
 #define id386	1
 #else

@@ -437,10 +437,45 @@ r_refdef.viewangles[2]=    0;
 
 	r_dowarpold = r_dowarp;
 	r_dowarp = r_waterwarp.value && (r_viewleaf->contents <= CONTENTS_WATER);
+	r_dolow = r_lowdetail.value;
 
-	if ((r_dowarp != r_dowarpold) || r_viewchanged || lcd_x.value)
+	if ((r_dowarp != r_dowarpold) || (r_dolow) || r_viewchanged || lcd_x.value)
 	{
-		if (r_dowarp)
+		if (r_dolow)
+		{
+			{
+				w = vid.width;
+				h = vid.height;
+
+
+				
+				if (w > LOW_WIDTH)
+				{
+					h *= (float)LOW_WIDTH / w;
+					w = LOW_WIDTH;
+				}
+
+				
+
+				if (h > LOW_HEIGHT)
+				{
+					h = LOW_HEIGHT;
+					w *= (float)LOW_HEIGHT / h;
+				}
+
+				vrect.x = 0;
+				vrect.y = 0;
+				vrect.width = (int)w;
+				vrect.height = (int)h;
+
+				R_ViewChanged (&vrect,
+							   (int)((float)sb_lines * (h/(float)vid.height)),
+							   vid.aspect * (h / w) *
+								 ((float)vid.width / (float)vid.height));
+			}
+		}
+
+		else if (r_dowarp)
 		{
 			if ((vid.width <= vid.maxwarpwidth) &&
 				(vid.height <= vid.maxwarpheight))
@@ -480,6 +515,7 @@ r_refdef.viewangles[2]=    0;
 								 ((float)vid.width / (float)vid.height));
 			}
 		}
+		
 		else
 		{
 			vrect.x = 0;

@@ -143,6 +143,102 @@ entryvec_table_16:	.long	0, Entry2_16, Entry3_16, Entry4_16
 					.long	Entry9_16, Entry10_16, Entry11_16, Entry12_16
 					.long	Entry13_16, Entry14_16, Entry15_16, Entry16_16
 
+// leilei
+
+#ifdef LEILEI_ASSEMBLY
+//-------------------------------------------------------
+// local variables for d_draw32.s
+//-------------------------------------------------------
+
+.globl	reciprocal_table_32, entryvec_table_32
+// 1/2, 1/3, 1/4, 1/5, 1/6, 1/7, 1/8, 1/9, 1/10, 1/11, 1/12, 1/13,
+// 1/14, and 1/15 in 0.32 form
+reciprocal_table_32:	.long	0x40000000, 0x2aaaaaaa, 0x20000000
+						.long	0x19999999, 0x15555555, 0x12492492
+						.long	0x10000000, 0xe38e38e, 0xccccccc, 0xba2e8ba
+						.long	0xaaaaaaa, 0x9d89d89, 0x9249249, 0x8888888
+
+#ifndef NeXT
+	.extern Entry2_32
+	.extern Entry3_32
+	.extern Entry4_32
+	.extern Entry5_32
+	.extern Entry6_32
+	.extern Entry7_32
+	.extern Entry8_32
+	.extern Entry9_32
+	.extern Entry10_32
+	.extern Entry11_32
+	.extern Entry12_32
+	.extern Entry13_32
+	.extern Entry14_32
+	.extern Entry15_32
+	.extern Entry16_32
+	.extern Entry17_32
+	.extern Entry18_32
+	.extern Entry19_32
+	.extern Entry20_32
+	.extern Entry21_32
+	.extern Entry22_32
+	.extern Entry23_32
+	.extern Entry24_32
+	.extern Entry25_32
+	.extern Entry26_32
+	.extern Entry27_32
+	.extern Entry28_32
+	.extern Entry29_32
+	.extern Entry30_32
+	.extern Entry31_32
+	.extern Entry32_32
+#endif
+
+entryvec_table_32:	.long	0, Entry2_32, Entry3_32, Entry4_32
+					.long	Entry5_32, Entry6_32, Entry7_32, Entry8_32
+					.long	Entry9_32, Entry10_32, Entry11_32, Entry12_32
+					.long	Entry13_32, Entry14_32, Entry15_32, Entry16_32
+					.long	Entry17_32, Entry18_32, Entry19_32, Entry20_32
+					.long	Entry21_32, Entry22_32, Entry23_32, Entry24_32
+					.long	Entry25_32, Entry26_32, Entry27_32, Entry28_32
+					.long	Entry29_32, Entry30_32, Entry31_32, Entry32_32
+
+
+//-------------------------------------------------------
+// local variables for d_draw64.s
+//-------------------------------------------------------
+
+.globl	reciprocal_table_64, entryvec_table_64
+// 1/2, 1/3, 1/4, 1/5, 1/6, 1/7, 1/8, 1/9, 1/10, 1/11, 1/12, 1/13,
+// 1/14, and 1/15 in 0.32 form
+reciprocal_table_64:	.long	0x40000000, 0x2aaaaaaa, 0x20000000
+						.long	0x19999999, 0x15555555, 0x12492492
+						.long	0x10000000, 0xe38e38e, 0xccccccc, 0xba2e8ba
+						.long	0xaaaaaaa, 0x9d89d89, 0x9249249, 0x8888888
+
+#ifndef NeXT
+	.extern Entry2_64
+	.extern Entry3_64
+	.extern Entry4_64
+	.extern Entry5_64
+	.extern Entry6_64
+	.extern Entry7_64
+	.extern Entry8_64
+	.extern Entry9_64
+	.extern Entry10_64
+	.extern Entry11_64
+	.extern Entry12_64
+	.extern Entry13_64
+	.extern Entry14_64
+	.extern Entry15_64
+	.extern Entry16_64
+#endif
+
+entryvec_table_64:	.long	0, Entry2_64, Entry3_64, Entry4_64
+					.long	Entry5_64, Entry6_64, Entry7_64, Entry8_64
+					.long	Entry9_64, Entry10_64, Entry11_64, Entry12_64
+					.long	Entry13_64, Entry14_64, Entry15_64, Entry16_64
+
+
+#endif // LEILEI_ASSEMBLY
 //-------------------------------------------------------
 // local variables for d_parta.s
 //-------------------------------------------------------

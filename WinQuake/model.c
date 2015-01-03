@@ -52,6 +52,7 @@ Mod_Init
 void Mod_Init (void)
 {
 	memset (mod_novis, 0xff, sizeof(mod_novis));
+	
 }
 
 /*
@@ -1146,6 +1147,9 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer)
 	dheader_t	*header;
 	dmodel_t 	*bm;
 	
+	if (r_lowworld.value)
+		lowworld = r_lowworld.value;
+
 	loadmodel->type = mod_brush;
 	
 	header = (dheader_t *)buffer;
