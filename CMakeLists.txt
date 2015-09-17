@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(Engoo)
 
+if( COMMAND cmake_policy )
+	if( POLICY CMP0054 )
+		cmake_policy( SET CMP0054 NEW )
+	endif( POLICY CMP0054 )
+endif( COMMAND cmake_policy )
+
 if( MSVC )
 	# Statically link the run time and disable run time checks in debug mode.
 	string(REPLACE "/MD " " " CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} )
@@ -29,7 +35,7 @@ if( MSVC )
 endif( MSVC )
 
 # On for now until the ASM is made to work on newer compilers
-option( NO_ASM "Disable assembly code" ON )
+option( NO_ASM "Disable assembly code" OFF )
 
 if( NOT NO_ASM )
 	if( MSVC )
